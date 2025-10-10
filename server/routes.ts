@@ -8,6 +8,7 @@ import { trainings } from "@shared/schema";
 import {
   insertActSchema,
   insertDepartmentSchema,
+  insertLocationTypeSchema,
   insertLocationSchema,
   insertArtistGroupSchema,
   insertArtistSchema,
@@ -186,6 +187,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/departments/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     await storage.deleteDepartment(req.params.id);
+    res.sendStatus(204);
+  });
+
+  // Location Types routes
+  app.get("/api/location-types", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const locationTypes = await storage.getAllLocationTypes();
+    res.json(locationTypes);
+  });
+
+  app.post("/api/location-types", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const validation = insertLocationTypeSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const locationType = await storage.createLocationType(validation.data);
+    res.json(locationType);
+  });
+
+  app.patch("/api/location-types/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const validation = insertLocationTypeSchema.partial().safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const locationType = await storage.updateLocationType(req.params.id, validation.data);
+    if (!locationType) return res.sendStatus(404);
+    res.json(locationType);
+  });
+
+  app.delete("/api/location-types/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    await storage.deleteLocationType(req.params.id);
     res.sendStatus(204);
   });
 

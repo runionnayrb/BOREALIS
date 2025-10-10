@@ -2,6 +2,7 @@ import {
   type User, type InsertUser, users,
   type Act, type InsertAct, acts,
   type Department, type InsertDepartment, departments,
+  type LocationType, type InsertLocationType, locationTypes,
   type Location, type InsertLocation, locations,
   type ArtistGroup, type InsertArtistGroup, artistGroups,
   type Artist, type InsertArtist, artists,
@@ -40,6 +41,13 @@ export interface IStorage {
   createDepartment(department: InsertDepartment): Promise<Department>;
   updateDepartment(id: string, updates: Partial<InsertDepartment>): Promise<Department | undefined>;
   deleteDepartment(id: string): Promise<void>;
+  
+  // Location Types
+  getAllLocationTypes(): Promise<LocationType[]>;
+  getLocationType(id: string): Promise<LocationType | undefined>;
+  createLocationType(locationType: InsertLocationType): Promise<LocationType>;
+  updateLocationType(id: string, updates: Partial<InsertLocationType>): Promise<LocationType | undefined>;
+  deleteLocationType(id: string): Promise<void>;
   
   // Locations
   getAllLocations(): Promise<Location[]>;
@@ -177,6 +185,30 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDepartment(id: string): Promise<void> {
     await db.delete(departments).where(eq(departments.id, id));
+  }
+
+  // Location Types
+  async getAllLocationTypes(): Promise<LocationType[]> {
+    return await db.select().from(locationTypes).orderBy(asc(locationTypes.sortOrder));
+  }
+
+  async getLocationType(id: string): Promise<LocationType | undefined> {
+    const result = await db.select().from(locationTypes).where(eq(locationTypes.id, id));
+    return result[0];
+  }
+
+  async createLocationType(locationType: InsertLocationType): Promise<LocationType> {
+    const result = await db.insert(locationTypes).values(locationType).returning();
+    return result[0];
+  }
+
+  async updateLocationType(id: string, updates: Partial<InsertLocationType>): Promise<LocationType | undefined> {
+    const result = await db.update(locationTypes).set(updates).where(eq(locationTypes.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteLocationType(id: string): Promise<void> {
+    await db.delete(locationTypes).where(eq(locationTypes.id, id));
   }
 
   // Locations
