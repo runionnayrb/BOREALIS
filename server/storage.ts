@@ -3,6 +3,7 @@ import {
   type Scene, type InsertScene, scenes,
   type Act, type InsertAct, acts,
   type Department, type InsertDepartment, departments,
+  type ActDepartment, type InsertActDepartment, actDepartments,
   type LocationType, type InsertLocationType, locationTypes,
   type Location, type InsertLocation, locations,
   type ArtistGroup, type InsertArtistGroup, artistGroups,
@@ -42,6 +43,10 @@ export interface IStorage {
   createAct(act: InsertAct): Promise<Act>;
   updateAct(id: string, updates: Partial<InsertAct>): Promise<Act | undefined>;
   deleteAct(id: string): Promise<void>;
+  
+  // Act Departments
+  getActDepartments(actId: string): Promise<ActDepartment[]>;
+  setActDepartments(actId: string, departmentIds: string[]): Promise<void>;
   
   // Departments
   getAllDepartments(): Promise<Department[]>;
@@ -193,6 +198,20 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAct(id: string): Promise<void> {
     await db.delete(acts).where(eq(acts.id, id));
+  }
+
+  // Act Departments
+  async getActDepartments(actId: string): Promise<ActDepartment[]> {
+    return await db.select().from(actDepartments).where(eq(actDepartments.actId, actId));
+  }
+
+  async setActDepartments(actId: string, departmentIds: string[]): Promise<void> {
+    await db.delete(actDepartments).where(eq(actDepartments.actId, actId));
+    if (departmentIds.length > 0) {
+      await db.insert(actDepartments).values(
+        departmentIds.map(departmentId => ({ actId, departmentId }))
+      );
+    }
   }
 
   // Departments
