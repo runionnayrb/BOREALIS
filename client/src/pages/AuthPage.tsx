@@ -18,7 +18,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import logoPath from "@assets/la perle logo no background_1760100596227.png";
+import logoPath from "@assets/LaPerle-logo-basic_1760100706441.png";
 
 const loginSchema = insertUserSchema.pick({ email: true, password: true });
 const registerSchema = insertUserSchema;
