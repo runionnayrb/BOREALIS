@@ -209,6 +209,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(actDepartments);
   });
 
+  // Act Artists routes
+  app.get("/api/acts/:id/artists", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const actArtists = await storage.getActArtists(req.params.id);
+    res.json(actArtists);
+  });
+
+  app.post("/api/acts/:id/artists", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const { artistIds } = req.body;
+    if (!Array.isArray(artistIds)) {
+      return res.status(400).json({ error: "artistIds must be an array" });
+    }
+    await storage.setActArtists(req.params.id, artistIds);
+    const actArtists = await storage.getActArtists(req.params.id);
+    res.json(actArtists);
+  });
+
   // Departments routes
   app.get("/api/departments", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
