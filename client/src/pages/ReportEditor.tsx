@@ -425,11 +425,11 @@ export default function ReportEditor() {
                                 </SelectGroup>
                               );
                             })}
-                            {/* Locations without a type */}
-                            {locations.filter(l => !l.locationTypeId).length > 0 && (
+                            {/* Locations without a type (excluding FULL STAGE which is shown at top) */}
+                            {locations.filter(l => !l.locationTypeId && l.name !== "FULL STAGE").length > 0 && (
                               <SelectGroup>
                                 <SelectLabel>Other</SelectLabel>
-                                {locations.filter(l => !l.locationTypeId).map((location) => (
+                                {locations.filter(l => !l.locationTypeId && l.name !== "FULL STAGE").map((location) => (
                                   <SelectItem key={location.id} value={location.id} className="pl-12">
                                     {location.name}
                                   </SelectItem>
