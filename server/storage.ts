@@ -8,6 +8,7 @@ import {
   type Location, type InsertLocation, locations,
   type ArtistGroup, type InsertArtistGroup, artistGroups,
   type Artist, type InsertArtist, artists,
+  type ActArtist, type InsertActArtist, actArtists,
   type Technician, type InsertTechnician, technicians,
   type ReportTemplate, type InsertReportTemplate, reportTemplate,
   type Report, type InsertReport, reports,
@@ -82,6 +83,10 @@ export interface IStorage {
   createArtist(artist: InsertArtist): Promise<Artist>;
   updateArtist(id: string, updates: Partial<InsertArtist>): Promise<Artist | undefined>;
   deleteArtist(id: string): Promise<void>;
+  
+  // Act Artists
+  getActArtists(actId: string): Promise<ActArtist[]>;
+  setActArtists(actId: string, artistIds: string[]): Promise<void>;
   
   // Technicians
   getAllTechnicians(): Promise<Technician[]>;
@@ -332,6 +337,23 @@ export class DatabaseStorage implements IStorage {
 
   async deleteArtist(id: string): Promise<void> {
     await db.delete(artists).where(eq(artists.id, id));
+  }
+
+  // Act Artists
+  async getActArtists(actId: string): Promise<ActArtist[]> {
+    return await db.select().from(actArtists).where(eq(actArtists.actId, actId));
+  }
+
+  async setActArtists(actId: string, artistIds: string[]): Promise<void> {
+    // Delete existing assignments
+    await db.delete(actArtists).where(eq(actArtists.actId, actId));
+    
+    // Insert new assignments
+    if (artistIds.length > 0) {
+      await db.insert(actArtists).values(
+        artistIds.map(artistId => ({ actId, artistId }))
+      );
+    }
   }
 
   // Technicians
