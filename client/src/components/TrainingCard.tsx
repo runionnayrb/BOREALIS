@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Training, Act, Department, Location, Artist, Technician, User, DepartmentAssignment } from "@shared/schema";
+import type { Training, Scene, Act, Department, Location, Artist, Technician, User, DepartmentAssignment } from "@shared/schema";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +20,7 @@ import {
 
 interface TrainingCardProps {
   training: Training;
+  scenes: Scene[];
   acts: Act[];
   locations: Location[];
   departments: Department[];
@@ -30,6 +31,7 @@ interface TrainingCardProps {
 
 export default function TrainingCard({
   training,
+  scenes,
   acts,
   locations,
   departments,
@@ -55,6 +57,7 @@ export default function TrainingCard({
     },
   });
 
+  const scene = scenes.find(s => s.id === training.sceneId);
   const act = acts.find(a => a.id === training.actId);
   const location = locations.find(l => l.id === training.locationId);
   const creator = users.find(u => u.id === training.createdBy);
@@ -82,7 +85,7 @@ export default function TrainingCard({
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex-1">
           <h3 className="font-semibold text-base mb-1" data-testid={`text-act-${training.id}`}>
-            {act?.name || "Unknown Act"}
+            {scene ? `${scene.name} (Full Scene)` : act?.name || "Unknown"}
           </h3>
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mb-1">
             <span className="font-mono" data-testid={`text-time-${training.id}`}>

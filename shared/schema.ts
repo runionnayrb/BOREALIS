@@ -306,7 +306,8 @@ export type Report = typeof reports.$inferSelect;
 export const trainings = pgTable("trainings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   reportId: varchar("report_id").notNull().references(() => reports.id, { onDelete: "cascade" }),
-  actId: varchar("act_id").notNull().references(() => acts.id),
+  sceneId: varchar("scene_id").references(() => scenes.id), // Optional: for full scene trainings
+  actId: varchar("act_id").references(() => acts.id), // Optional: for specific act trainings
   locationId: varchar("location_id").references(() => locations.id),
   startTime: text("start_time").notNull(), // HH:MM format
   endTime: text("end_time").notNull(), // HH:MM format
@@ -322,7 +323,10 @@ export const insertTrainingSchema = createInsertSchema(trainings).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-});
+}).refine(
+  (data) => data.sceneId || data.actId,
+  { message: "Either sceneId or actId must be provided" }
+);
 
 export type InsertTraining = z.infer<typeof insertTrainingSchema>;
 export type Training = typeof trainings.$inferSelect;

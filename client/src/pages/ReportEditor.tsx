@@ -76,10 +76,14 @@ export default function ReportEditor() {
     }
   }, [report]);
 
-  // Fetch act departments when act is selected
+  // Fetch departments when scene or act is selected
   useEffect(() => {
     if (selectedActId) {
-      fetch(`/api/acts/${selectedActId}/departments`, {
+      const isScene = selectedActId.startsWith("scene-");
+      const id = isScene ? selectedActId.replace("scene-", "") : selectedActId;
+      const endpoint = isScene ? `/api/scenes/${id}/departments` : `/api/acts/${id}/departments`;
+      
+      fetch(endpoint, {
         credentials: 'include',
         headers: {
           'Accept': 'application/json',
@@ -96,10 +100,10 @@ export default function ReportEditor() {
           return res.json();
         })
         .then(data => {
-          setActDepartmentIds(data.map((ad: any) => ad.departmentId));
+          setActDepartmentIds(data.map((item: any) => item.departmentId));
         })
         .catch(err => {
-          console.error("Error loading act departments:", err);
+          console.error("Error loading departments:", err);
           setActDepartmentIds([]);
         });
     } else {
@@ -218,10 +222,16 @@ export default function ReportEditor() {
       finalLocationId = fullStageLocation.id;
     }
 
+    // Determine if scene or act is selected
+    const isScene = selectedActId.startsWith("scene-");
+    const sceneId = isScene ? selectedActId.replace("scene-", "") : null;
+    const actId = isScene ? null : selectedActId;
+
     const duration = calculateDuration();
     createTrainingMutation.mutate({
       reportId,
-      actId: selectedActId,
+      sceneId: sceneId || undefined,
+      actId: actId || undefined,
       locationId: finalLocationId || null,
       startTime,
       endTime,
@@ -364,6 +374,9 @@ export default function ReportEditor() {
                               return (
                                 <SelectGroup key={scene.id}>
                                   <SelectLabel>{scene.name}</SelectLabel>
+                                  <SelectItem value={`scene-${scene.id}`} className="font-semibold">
+                                    {scene.name} (Full Scene)
+                                  </SelectItem>
                                   {sceneActs.map((act) => (
                                     <SelectItem key={act.id} value={act.id} className="pl-12">
                                       {act.name}
@@ -502,6 +515,7 @@ export default function ReportEditor() {
                   <TrainingCard
                     key={training.id}
                     training={training}
+                    scenes={scenes}
                     acts={acts}
                     locations={locations}
                     departments={departments}

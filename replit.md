@@ -32,6 +32,8 @@ A production-ready full-stack web application for theatrical production training
 - ✅ Image upload for report template (left/right images)
 - ✅ **Hierarchical dropdowns in training modal**:
   - **Scene/Act dropdown**: Shows scenes as group labels with indented acts nested underneath
+    - **Scenes are selectable**: Can select full scene for training (shows as "{Scene Name} (Full Scene)" with font-semibold)
+    - **Acts are selectable**: Can select individual acts for training (indented under their parent scene)
   - **Location dropdown**: "FULL STAGE" option at top, then location types as group labels with indented locations nested underneath
   - Visual indentation (`pl-12`) applied to nested items for better readability
 
@@ -68,8 +70,10 @@ A production-ready full-stack web application for theatrical production training
 
 ### Reports & Trainings
 - `reports` - Daily reports (id, date, stageManagerOnDuty, notes, createdBy, updatedBy, createdAt, updatedAt)
-- `trainings` - Training sessions (id, reportId, actId, locationId, startTime, endTime, durationMinutes, notes, createdBy, updatedBy, createdAt, updatedAt)
-- `department_assignments` - Per-training department leads (id, trainingId, departmentId, leadTechnicianId, notes) - **auto-created from act's required departments**
+- `trainings` - Training sessions (id, reportId, **sceneId (optional)**, **actId (optional)**, locationId, startTime, endTime, durationMinutes, notes, createdBy, updatedBy, createdAt, updatedAt)
+  - **Either sceneId OR actId must be provided** (validated in schema)
+  - sceneId for full scene trainings, actId for specific act trainings
+- `department_assignments` - Per-training department leads (id, trainingId, departmentId, leadTechnicianId, notes) - **auto-created from scene's or act's required departments**
 
 ## API Endpoints
 ### Authentication
