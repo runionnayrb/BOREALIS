@@ -141,7 +141,7 @@ export default function RichTextEditor({ content = '', onChange }: RichTextEdito
       >
         <EditorContent
           editor={editor}
-          className="prose prose-sm max-w-none p-4 min-h-64 focus:outline-none [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0 [&_li]:mb-1"
+          className="prose prose-sm max-w-none p-4 min-h-64 focus:outline-none [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0 [&_li]:mb-1 text-foreground [&_p]:text-foreground [&_li]:text-foreground [&_ul]:text-foreground [&_ol]:text-foreground"
           data-testid="editor-content"
         />
       </div>
