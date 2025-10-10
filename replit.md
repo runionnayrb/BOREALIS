@@ -8,12 +8,15 @@ A production-ready full-stack web application for theatrical production training
 - ✅ Secure authentication system (login/signup with hashed passwords, session-based)
 - ✅ Profile management (update name, position, pronouns, email, password)
 - ✅ Settings management with full CRUD for all entities (acts, departments, locations, artist groups, artists, technicians, report template)
+- ✅ User management with active/inactive status control
 - ✅ Reports CRUD with audit trail (createdBy, updatedBy, timestamps)
 - ✅ Trainings CRUD with location assignment and audit trail
 - ✅ Department assignments per training
 - ✅ Rich text editor for report notes
+- ✅ SM on Duty dropdown showing only active stage managers
 - ✅ Linear-inspired professional dark mode UI with Inter/JetBrains Mono fonts and cyan accent
 - ✅ Mobile-first responsive design
+- ✅ Image upload for report template (left/right images)
 
 ## Design Decisions
 - **One report per day** containing all trainings (simplified model)
@@ -29,7 +32,7 @@ A production-ready full-stack web application for theatrical production training
 
 ## Database Schema
 ### Core Tables
-- `users` - Stage Managers with auth and profile info (id, username, password, name, position, pronouns, email)
+- `users` - Stage Managers with auth and profile info (id, email, password, name, position, pronouns, active)
 - `acts` - Performance acts (id, name, sortOrder)
 - `departments` - Technical departments (id, name, sortOrder)
 - `locations` - Training locations (id, name, sortOrder)
@@ -49,7 +52,10 @@ A production-ready full-stack web application for theatrical production training
 - POST `/api/login` - Login user
 - POST `/api/logout` - Logout user
 - GET `/api/user` - Get current user
-- GET `/api/users` - Get all users
+
+### User Management
+- GET `/api/users` - Get all users (sanitized, no passwords)
+- PATCH `/api/users/:id` - Update user active status
 
 ### Profile
 - PATCH `/api/user` - Update profile
@@ -91,15 +97,15 @@ A production-ready full-stack web application for theatrical production training
 - Scheduling app integration for importing trainings (details pending)
 
 ## Key Files
-- `shared/schema.ts` - Database schema and types
+- `shared/schema.ts` - Database schema and types (includes SafeUser type without password/tokens)
 - `server/auth.ts` - Authentication setup with sanitization
-- `server/storage.ts` - Database interface and operations
-- `server/routes.ts` - API endpoints
+- `server/storage.ts` - Database interface and operations (includes getAllUsers)
+- `server/routes.ts` - API endpoints (includes user management routes)
 - `server/db.ts` - Database connection
 - `client/src/hooks/use-auth.tsx` - Auth context and hooks
 - `client/src/pages/Profile.tsx` - Profile management
-- `client/src/pages/Settings.tsx` - Settings CRUD interface
-- `client/src/pages/ReportEditor.tsx` - Report and trainings editor
+- `client/src/pages/Settings.tsx` - Settings CRUD interface with Users management tab
+- `client/src/pages/ReportEditor.tsx` - Report and trainings editor with SM dropdown
 - `client/src/pages/AuthPage.tsx` - Login/signup
 - `client/src/components/TrainingCard.tsx` - Training display with audit info
 - `client/src/components/RichTextEditor.tsx` - Tiptap rich text editor
