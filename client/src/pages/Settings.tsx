@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Users, Briefcase, Theater, UsersRound, FileText } from "lucide-react";
+import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -39,6 +39,12 @@ export default function Settings() {
     { id: '3', content: <Card className="p-3 flex-1"><p className="font-medium">Wheel Team</p></Card> },
   ]);
 
+  const [locations, setLocations] = useState<Array<{ id: string; content: React.ReactNode }>>([
+    { id: '1', content: <Card className="p-3 flex-1"><p className="font-medium">Main Stage</p></Card> },
+    { id: '2', content: <Card className="p-3 flex-1"><p className="font-medium">Rehearsal Hall A</p></Card> },
+    { id: '3', content: <Card className="p-3 flex-1"><p className="font-medium">Rehearsal Hall B</p></Card> },
+  ]);
+
   const [leftImage, setLeftImage] = useState("");
   const [title, setTitle] = useState("Training Report");
   const [rightImage, setRightImage] = useState("");
@@ -49,31 +55,35 @@ export default function Settings() {
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-bold mb-2">Settings</h1>
           <p className="text-sm text-muted-foreground">
-            Manage acts, departments, artists, technicians, and report template
+            Manage acts, departments, artists, technicians, locations, and report template
           </p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5 mb-6">
+          <TabsList className="grid w-full grid-cols-6 mb-6">
             <TabsTrigger value="report-template" data-testid="tab-report-template">
-              <FileText className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Template</span>
+              <FileText className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">Template</span>
             </TabsTrigger>
             <TabsTrigger value="acts" data-testid="tab-acts">
-              <Theater className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Acts</span>
+              <Theater className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">Acts</span>
             </TabsTrigger>
             <TabsTrigger value="departments" data-testid="tab-departments">
-              <Briefcase className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Departments</span>
+              <Briefcase className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">Departments</span>
+            </TabsTrigger>
+            <TabsTrigger value="locations" data-testid="tab-locations">
+              <MapPin className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">Locations</span>
             </TabsTrigger>
             <TabsTrigger value="artist-groups" data-testid="tab-artist-groups">
-              <UsersRound className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Groups</span>
+              <UsersRound className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">Groups</span>
             </TabsTrigger>
             <TabsTrigger value="people" data-testid="tab-people">
-              <Users className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">People</span>
+              <Users className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">People</span>
             </TabsTrigger>
           </TabsList>
 
@@ -164,6 +174,39 @@ export default function Settings() {
               </Dialog>
             </div>
             <DraggableList items={departments} onReorder={setDepartments} />
+          </TabsContent>
+
+          <TabsContent value="locations" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Training Locations</h2>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button data-testid="button-add-location">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Location
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Training Location</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="location-name">Location Name</Label>
+                      <Input
+                        id="location-name"
+                        placeholder="e.g., Main Stage, Rehearsal Hall A"
+                        data-testid="input-location-name"
+                      />
+                    </div>
+                    <Button className="w-full" data-testid="button-save-location">
+                      Save Location
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+            <DraggableList items={locations} onReorder={setLocations} />
           </TabsContent>
 
           <TabsContent value="artist-groups" className="space-y-4">

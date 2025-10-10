@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Download, Plus, Save, Calendar, Users } from "lucide-react";
+import { ArrowLeft, Download, Plus, Save, Calendar, Users, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import RichTextEditor from "@/components/RichTextEditor";
 import TrainingCard from "@/components/TrainingCard";
@@ -31,8 +31,16 @@ export default function ReportEditor() {
 
   //todo: remove mock functionality
   const [selectedAct, setSelectedAct] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState("");
   const [startTime, setStartTime] = useState("14:00");
   const [endTime, setEndTime] = useState("16:30");
+
+  const mockLocations = [
+    { id: "1", name: "Main Stage" },
+    { id: "2", name: "Rehearsal Hall A" },
+    { id: "3", name: "Rehearsal Hall B" },
+    { id: "4", name: "Pool Area" },
+  ];
 
   const mockActs = [
     { 
@@ -94,6 +102,7 @@ export default function ReportEditor() {
       startTime: "14:00",
       endTime: "16:30",
       durationMinutes: 150,
+      location: "Pool Area",
       departments: [
         { departmentName: "Rigging", leadName: "Sarah Johnson", notes: "Check harness tension" },
         { departmentName: "Safety", leadName: "Mike Chen" },
@@ -105,6 +114,7 @@ export default function ReportEditor() {
       startTime: "17:00",
       endTime: "18:30",
       durationMinutes: 90,
+      location: "Main Stage",
       departments: [
         { departmentName: "Lighting", leadName: "Alex Rivera" },
       ],
@@ -203,6 +213,25 @@ export default function ReportEditor() {
                           {mockActs.map((act) => (
                             <SelectItem key={act.id} value={act.id}>
                               {act.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Training Location</Label>
+                      <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                        <SelectTrigger data-testid="select-location">
+                          <SelectValue placeholder="Select training location" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {mockLocations.map((location) => (
+                            <SelectItem key={location.id} value={location.id}>
+                              <div className="flex items-center gap-2">
+                                <MapPin className="w-4 h-4" />
+                                {location.name}
+                              </div>
                             </SelectItem>
                           ))}
                         </SelectContent>

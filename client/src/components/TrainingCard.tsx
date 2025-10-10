@@ -1,4 +1,4 @@
-import { Clock, Users, Pencil, Trash2 } from "lucide-react";
+import { Clock, Users, Pencil, Trash2, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ interface TrainingCardProps {
   startTime: string;
   endTime: string;
   durationMinutes: number;
+  location?: string;
   departments: DepartmentPosition[];
   scheduledFor?: string;
   onEdit?: () => void;
@@ -27,6 +28,7 @@ export default function TrainingCard({
   startTime,
   endTime,
   durationMinutes,
+  location,
   departments,
   scheduledFor,
   onEdit,
@@ -39,7 +41,7 @@ export default function TrainingCard({
           <h3 className="font-semibold text-base mb-1" data-testid={`text-act-${id}`}>
             {actName}
           </h3>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mb-1">
             <span className="font-mono" data-testid={`text-time-${id}`}>
               {startTime} - {endTime}
             </span>
@@ -47,13 +49,19 @@ export default function TrainingCard({
               {durationMinutes} min
             </Badge>
           </div>
+          {location && (
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <MapPin className="w-3 h-3" />
+              <span>{location}</span>
+            </div>
+          )}
           {scheduledFor && (
             <p className="text-xs text-muted-foreground mt-1">
               Scheduled: {scheduledFor}
             </p>
           )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           <Button
             variant="ghost"
             size="icon"

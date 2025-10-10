@@ -42,12 +42,15 @@ export default function ReportsList() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search reports by date..."
+            placeholder="Search by date, act, artist, location, notes, or time..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
             data-testid="input-search-reports"
           />
+          <p className="text-xs text-muted-foreground mt-2">
+            Search across all training data including dates, times, acts, artists, locations, department notes, and technicians
+          </p>
         </div>
 
         {filteredReports.length === 0 ? (
