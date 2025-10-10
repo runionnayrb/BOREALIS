@@ -31,10 +31,27 @@ export type User = typeof users.$inferSelect;
 // Safe user type without sensitive fields (for client-side use)
 export type SafeUser = Omit<User, 'password' | 'resetToken' | 'resetTokenExpiry'>;
 
+// Scenes
+export const scenes = pgTable("scenes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertSceneSchema = createInsertSchema(scenes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertScene = z.infer<typeof insertSceneSchema>;
+export type Scene = typeof scenes.$inferSelect;
+
 // Acts
 export const acts = pgTable("acts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  sceneId: varchar("scene_id").references(() => scenes.id),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

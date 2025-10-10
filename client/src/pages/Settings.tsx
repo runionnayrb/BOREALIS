@@ -35,7 +35,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { 
-  Act, Department, LocationType, Location, ArtistGroup, Artist, Technician, ReportTemplate, SafeUser 
+  Scene, Act, Department, LocationType, Location, ArtistGroup, Artist, Technician, ReportTemplate, SafeUser 
 } from "@shared/schema";
 
 type SimpleItem = {
@@ -46,6 +46,7 @@ type SimpleItem = {
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("acts");
+  const [sceneDialogOpen, setSceneDialogOpen] = useState(false);
   const [actDialogOpen, setActDialogOpen] = useState(false);
   const [deptDialogOpen, setDeptDialogOpen] = useState(false);
   const [locationTypeDialogOpen, setLocationTypeDialogOpen] = useState(false);
@@ -57,10 +58,12 @@ export default function Settings() {
   const [deleteTarget, setDeleteTarget] = useState<{ type: string; id: string } | null>(null);
   const [editTarget, setEditTarget] = useState<{ type: string; id: string; data: any } | null>(null);
   const [selectedLocationTypeId, setSelectedLocationTypeId] = useState<string | undefined>(undefined);
+  const [selectedSceneId, setSelectedSceneId] = useState<string | undefined>(undefined);
 
   const { toast } = useToast();
 
   // Fetch all settings data
+  const { data: scenes = [] } = useQuery<Scene[]>({ queryKey: ["/api/scenes"] });
   const { data: acts = [] } = useQuery<Act[]>({ queryKey: ["/api/acts"] });
   const { data: departments = [] } = useQuery<Department[]>({ queryKey: ["/api/departments"] });
   const { data: locationTypes = [] } = useQuery<LocationType[]>({ queryKey: ["/api/location-types"] });
@@ -86,8 +89,19 @@ export default function Settings() {
   }, [reportTemplate]);
 
   // Create mutations
-  const createActMutation = useMutation({
+  const createSceneMutation = useMutation({
     mutationFn: async (data: { name: string; sortOrder: number }) => {
+      return await apiRequest("POST", "/api/scenes", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/scenes"] });
+      setSceneDialogOpen(false);
+      toast({ title: "Scene created successfully" });
+    },
+  });
+
+  const createActMutation = useMutation({
+    mutationFn: async (data: { name: string; sortOrder: number; sceneId?: string }) => {
       return await apiRequest("POST", "/api/acts", data);
     },
     onSuccess: () => {
@@ -166,8 +180,8 @@ export default function Settings() {
 
   // Update mutations
   const updateActMutation = useMutation({
-    mutationFn: async (data: { id: string; name: string; sortOrder: number }) => {
-      return await apiRequest("PATCH", `/api/acts/${data.id}`, { name: data.name, sortOrder: data.sortOrder });
+    mutationFn: async (data: { id: string; name: string; sceneId?: string | null; sortOrder: number }) => {
+      return await apiRequest("PATCH", `/api/acts/${data.id}`, { name: data.name, sceneId: data.sceneId, sortOrder: data.sortOrder });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/acts"] });
@@ -186,6 +200,18 @@ export default function Settings() {
       setDeptDialogOpen(false);
       setEditTarget(null);
       toast({ title: "Department updated successfully" });
+    },
+  });
+
+  const updateSceneMutation = useMutation({
+    mutationFn: async (data: { id: string; name: string; sortOrder: number }) => {
+      return await apiRequest("PATCH", `/api/scenes/${data.id}`, { name: data.name, sortOrder: data.sortOrder });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/scenes"] });
+      setSceneDialogOpen(false);
+      setEditTarget(null);
+      toast({ title: "Scene updated successfully" });
     },
   });
 
@@ -285,6 +311,16 @@ export default function Settings() {
     },
   });
 
+  const deleteSceneMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/scenes/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/scenes"] });
+      toast({ title: "Scene deleted successfully" });
+    },
+  });
+
   const deleteLocationTypeMutation = useMutation({
     mutationFn: async (id: string) => {
       return await apiRequest("DELETE", `/api/location-types/${id}`);
@@ -365,6 +401,7 @@ export default function Settings() {
     if (!deleteTarget) return;
 
     const mutations: Record<string, any> = {
+      scene: deleteSceneMutation,
       act: deleteActMutation,
       department: deleteDeptMutation,
       "location-type": deleteLocationTypeMutation,
@@ -508,6 +545,91 @@ export default function Settings() {
     );
   };
 
+  const renderGroupedActs = () => {
+    if (acts.length === 0) {
+      return (
+        <Card className="p-6 text-center text-muted-foreground">
+          <p>No acts yet. Click "Add Act" to create one.</p>
+        </Card>
+      );
+    }
+
+    // Group acts by sceneId
+    const grouped = acts.reduce((acc, act) => {
+      const key = act.sceneId || 'no-scene';
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(act);
+      return acc;
+    }, {} as Record<string, Act[]>);
+
+    // Sort scenes by their sortOrder
+    const sortedSceneIds = Object.keys(grouped).sort((a, b) => {
+      if (a === 'no-scene') return 1; // Always put "no-scene" last
+      if (b === 'no-scene') return -1;
+      
+      const sceneA = scenes.find(s => s.id === a);
+      const sceneB = scenes.find(s => s.id === b);
+      
+      return (sceneA?.sortOrder || 0) - (sceneB?.sortOrder || 0);
+    });
+
+    return (
+      <div className="space-y-6">
+        {sortedSceneIds.map((sceneId) => {
+          const actsInGroup = grouped[sceneId];
+          const scene = scenes.find(s => s.id === sceneId);
+          const sceneName = sceneId === 'no-scene' ? 'No Scene' : scene?.name || 'Unknown';
+
+          return (
+            <div key={sceneId} className="space-y-2">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  {sceneName}
+                </h3>
+                <span className="text-xs text-muted-foreground">
+                  ({actsInGroup.length})
+                </span>
+              </div>
+              <div className="space-y-2">
+                {actsInGroup.map((act) => (
+                  <Card key={act.id} className="p-3 flex items-center justify-between hover-elevate" data-testid={`card-act-${act.id}`}>
+                    <p className="font-medium">{act.name}</p>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setEditTarget({ type: "act", id: act.id, data: act });
+                          setActDialogOpen(true);
+                        }}
+                        data-testid={`button-edit-act-${act.id}`}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setDeleteTarget({ type: "act", id: act.id });
+                          setDeleteDialogOpen(true);
+                        }}
+                        data-testid={`button-delete-act-${act.id}`}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="flex-1 overflow-auto pb-20 md:pb-4">
       <div className="max-w-6xl mx-auto p-4 md:p-8">
@@ -580,20 +702,115 @@ export default function Settings() {
           <TabsContent value="acts" className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Acts</h2>
-              <Dialog 
-                open={actDialogOpen} 
-                onOpenChange={(open) => {
-                  setActDialogOpen(open);
-                  if (!open) setEditTarget(null);
-                }}
-              >
-                <DialogTrigger asChild>
-                  <Button data-testid="button-add-act">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Act
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
+              <div className="flex gap-2">
+                <Dialog
+                  open={sceneDialogOpen}
+                  onOpenChange={(open) => {
+                    setSceneDialogOpen(open);
+                    if (!open) setEditTarget(null);
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" data-testid="button-scenes">
+                      Scenes
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Manage Scenes</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const formData = new FormData(e.currentTarget);
+                          const name = formData.get("name") as string;
+                          
+                          if (editTarget?.type === "scene") {
+                            updateSceneMutation.mutate({
+                              id: editTarget.id,
+                              name,
+                              sortOrder: editTarget.data.sortOrder,
+                            });
+                          } else {
+                            createSceneMutation.mutate({
+                              name,
+                              sortOrder: scenes.length,
+                            });
+                          }
+                          e.currentTarget.reset();
+                        }}
+                      >
+                        <div className="flex gap-2">
+                          <Input
+                            id="scene-name"
+                            name="name"
+                            placeholder="Enter scene name"
+                            defaultValue={editTarget?.type === "scene" ? editTarget.data.name : ""}
+                            required
+                            data-testid="input-scene-name"
+                          />
+                          <Button 
+                            type="submit"
+                            disabled={createSceneMutation.isPending || updateSceneMutation.isPending}
+                            data-testid="button-save-scene"
+                          >
+                            {editTarget?.type === "scene" ? "Update" : "Add"}
+                          </Button>
+                        </div>
+                      </form>
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                        {scenes.map((scene) => (
+                          <Card key={scene.id} className="p-3 flex items-center justify-between" data-testid={`card-scene-${scene.id}`}>
+                            <p className="font-medium">{scene.name}</p>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setEditTarget({ type: "scene", id: scene.id, data: scene });
+                                }}
+                                data-testid={`button-edit-scene-${scene.id}`}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setDeleteTarget({ type: "scene", id: scene.id });
+                                  setDeleteDialogOpen(true);
+                                }}
+                                data-testid={`button-delete-scene-${scene.id}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </Card>
+                        ))}
+                        {scenes.length === 0 && (
+                          <Card className="p-6 text-center text-muted-foreground">
+                            <p>No scenes yet. Add one above.</p>
+                          </Card>
+                        )}
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                <Dialog 
+                  open={actDialogOpen} 
+                  onOpenChange={(open) => {
+                    setActDialogOpen(open);
+                    if (!open) setEditTarget(null);
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button data-testid="button-add-act">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Act
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
@@ -604,11 +821,13 @@ export default function Settings() {
                         updateActMutation.mutate({
                           id: editTarget.id,
                           name,
+                          sceneId: editTarget.data.sceneId === "none" || !editTarget.data.sceneId ? null : editTarget.data.sceneId,
                           sortOrder: editTarget.data.sortOrder,
                         });
                       } else {
                         createActMutation.mutate({
                           name,
+                          sceneId: selectedSceneId === "none" || !selectedSceneId ? undefined : selectedSceneId,
                           sortOrder: acts.length,
                         });
                       }
@@ -629,6 +848,32 @@ export default function Settings() {
                           data-testid="input-act-name"
                         />
                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="scene-select">Scene (Optional)</Label>
+                        <Select
+                          name="sceneId"
+                          value={editTarget?.type === "act" ? (editTarget.data.sceneId || "none") : selectedSceneId || "none"}
+                          onValueChange={(value) => {
+                            if (editTarget?.type === "act") {
+                              setEditTarget({ ...editTarget, data: { ...editTarget.data, sceneId: value === "none" ? null : value } });
+                            } else {
+                              setSelectedSceneId(value === "none" ? undefined : value);
+                            }
+                          }}
+                        >
+                          <SelectTrigger id="scene-select" data-testid="select-scene">
+                            <SelectValue placeholder="Select a scene" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
+                            {scenes.map((scene) => (
+                              <SelectItem key={scene.id} value={scene.id}>
+                                {scene.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     <DialogFooter>
                       <Button 
@@ -642,8 +887,9 @@ export default function Settings() {
                   </form>
                 </DialogContent>
               </Dialog>
+              </div>
             </div>
-            {renderSimpleList(acts, "act")}
+            {renderGroupedActs()}
           </TabsContent>
 
           <TabsContent value="departments" className="space-y-4">

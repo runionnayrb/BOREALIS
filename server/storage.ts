@@ -1,5 +1,6 @@
 import { 
   type User, type InsertUser, users,
+  type Scene, type InsertScene, scenes,
   type Act, type InsertAct, acts,
   type Department, type InsertDepartment, departments,
   type LocationType, type InsertLocationType, locationTypes,
@@ -27,6 +28,13 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<Omit<User, 'id' | 'createdAt'>>): Promise<User | undefined>;
+  
+  // Scenes
+  getAllScenes(): Promise<Scene[]>;
+  getScene(id: string): Promise<Scene | undefined>;
+  createScene(scene: InsertScene): Promise<Scene>;
+  updateScene(id: string, updates: Partial<InsertScene>): Promise<Scene | undefined>;
+  deleteScene(id: string): Promise<void>;
   
   // Acts
   getAllActs(): Promise<Act[]>;
@@ -137,6 +145,30 @@ export class DatabaseStorage implements IStorage {
   async updateUser(id: string, updates: Partial<Omit<User, 'id' | 'createdAt'>>): Promise<User | undefined> {
     const result = await db.update(users).set(updates).where(eq(users.id, id)).returning();
     return result[0];
+  }
+
+  // Scenes
+  async getAllScenes(): Promise<Scene[]> {
+    return await db.select().from(scenes).orderBy(asc(scenes.sortOrder));
+  }
+
+  async getScene(id: string): Promise<Scene | undefined> {
+    const result = await db.select().from(scenes).where(eq(scenes.id, id));
+    return result[0];
+  }
+
+  async createScene(scene: InsertScene): Promise<Scene> {
+    const result = await db.insert(scenes).values(scene).returning();
+    return result[0];
+  }
+
+  async updateScene(id: string, updates: Partial<InsertScene>): Promise<Scene | undefined> {
+    const result = await db.update(scenes).set(updates).where(eq(scenes.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteScene(id: string): Promise<void> {
+    await db.delete(scenes).where(eq(scenes.id, id));
   }
 
   // Acts

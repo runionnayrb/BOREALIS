@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "./db";
 import { trainings } from "@shared/schema";
 import {
+  insertSceneSchema,
   insertActSchema,
   insertDepartmentSchema,
   insertLocationTypeSchema,
@@ -120,6 +121,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     res.json(sanitizeUser(updated));
+  });
+
+  // Scenes routes
+  app.get("/api/scenes", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const scenes = await storage.getAllScenes();
+    res.json(scenes);
+  });
+
+  app.post("/api/scenes", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const validation = insertSceneSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const scene = await storage.createScene(validation.data);
+    res.json(scene);
+  });
+
+  app.patch("/api/scenes/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const validation = insertSceneSchema.partial().safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const scene = await storage.updateScene(req.params.id, validation.data);
+    if (!scene) return res.sendStatus(404);
+    res.json(scene);
+  });
+
+  app.delete("/api/scenes/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    await storage.deleteScene(req.params.id);
+    res.sendStatus(204);
   });
 
   // Acts routes
