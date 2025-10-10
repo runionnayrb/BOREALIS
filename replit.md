@@ -9,9 +9,12 @@ A production-ready full-stack web application for theatrical production training
 - ✅ Profile management (update name, position, pronouns, email, password)
 - ✅ Settings management with full CRUD for all entities (scenes, acts, departments, location types, locations, artist groups, artists, technicians, report template)
 - ✅ User management with active/inactive status control
-- ✅ **Scenes categorization**: Acts are organized by scenes (similar to location types → locations pattern)
-- ✅ **Location types categorization**: Locations organized by types (onstage, rehearsal room, dance studio, offstage, meetings, etc.)
-- ✅ **Grouped display**: Acts and locations are displayed grouped by their parent category with count badges
+- ✅ **Hierarchical organization pattern** applied consistently across all entity groups:
+  - **Scenes → Acts**: Scenes managed within Acts tab (button in header)
+  - **Location Types → Locations**: Location Types managed within Locations tab (button in header)
+  - **Artist Groups → Artists**: Artist Groups managed within Artists tab (button in header)
+- ✅ **Grouped display**: Acts, locations, and artists are displayed grouped by their parent category with count badges and "NO [PARENT]" sections
+- ✅ **Artist role field**: Artists include role information (character/position) displayed below artist name
 - ✅ Reports CRUD with audit trail (createdBy, updatedBy, timestamps)
 - ✅ Trainings CRUD with location assignment and audit trail
 - ✅ Department assignments per training
@@ -27,7 +30,8 @@ A production-ready full-stack web application for theatrical production training
 - **Hierarchical organization pattern**: Both Acts and Locations use a parent→child structure
   - **Scenes → Acts**: Acts are optionally grouped by scenes for better organization
   - **Location Types → Locations**: Locations are optionally grouped by types (onstage, rehearsal room, etc.)
-- **Grouped display in Settings**: Acts and locations are displayed grouped by their parent category with count badges and "NO [PARENT]" sections for ungrouped items
+  - **Artist Groups → Artists**: Artists are optionally grouped by artist groups (ensemble, dancers, etc.)
+- **Grouped display in Settings**: Acts, locations, and artists are displayed grouped by their parent category with count badges and "NO [PARENT]" sections for ungrouped items
 - **All Stage Managers see same interface** (no user-based filtering)
 - **Global report header/footer template** in Settings (applies to all reports)
 - **Audit trail enabled**: All reports and trainings track who created/updated them with timestamps

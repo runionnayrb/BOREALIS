@@ -630,6 +630,94 @@ export default function Settings() {
     );
   };
 
+  const renderGroupedArtists = () => {
+    if (artists.length === 0) {
+      return (
+        <Card className="p-6 text-center text-muted-foreground">
+          <p>No artists yet. Click "Add Artist" to create one.</p>
+        </Card>
+      );
+    }
+
+    // Group artists by artistGroupId
+    const grouped = artists.reduce((acc, artist) => {
+      const key = artist.artistGroupId || 'no-group';
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(artist);
+      return acc;
+    }, {} as Record<string, Artist[]>);
+
+    // Sort groups by their sortOrder
+    const sortedGroupIds = Object.keys(grouped).sort((a, b) => {
+      if (a === 'no-group') return 1; // Always put "no-group" last
+      if (b === 'no-group') return -1;
+      
+      const groupA = artistGroups.find(g => g.id === a);
+      const groupB = artistGroups.find(g => g.id === b);
+      
+      return (groupA?.sortOrder || 0) - (groupB?.sortOrder || 0);
+    });
+
+    return (
+      <div className="space-y-6">
+        {sortedGroupIds.map((groupId) => {
+          const artistsInGroup = grouped[groupId];
+          const group = artistGroups.find(g => g.id === groupId);
+          const groupName = groupId === 'no-group' ? 'No Group' : group?.name || 'Unknown';
+
+          return (
+            <div key={groupId} className="space-y-2">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  {groupName}
+                </h3>
+                <span className="text-xs text-muted-foreground">
+                  ({artistsInGroup.length})
+                </span>
+              </div>
+              <div className="space-y-2">
+                {artistsInGroup.map((artist) => (
+                  <Card key={artist.id} className="p-3 flex items-center justify-between hover-elevate" data-testid={`card-artist-${artist.id}`}>
+                    <div>
+                      <p className="font-medium">{artist.stageName || `${artist.firstName} ${artist.lastName}`}</p>
+                      {artist.role && <p className="text-sm text-muted-foreground">{artist.role}</p>}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setEditTarget({ type: "artist", id: artist.id, data: artist });
+                          setArtistDialogOpen(true);
+                        }}
+                        data-testid={`button-edit-artist-${artist.id}`}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setDeleteTarget({ type: "artist", id: artist.id });
+                          setDeleteDialogOpen(true);
+                        }}
+                        data-testid={`button-delete-artist-${artist.id}`}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="flex-1 overflow-auto pb-20 md:pb-4">
       <div className="max-w-6xl mx-auto p-4 md:p-8">
@@ -641,7 +729,7 @@ export default function Settings() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-7 mb-6">
+          <TabsList className="grid w-full grid-cols-6 mb-6">
             <TabsTrigger value="report-template" data-testid="tab-report-template">
               <FileText className="w-4 h-4 md:mr-2" />
               <span className="hidden md:inline">Template</span>
@@ -657,10 +745,6 @@ export default function Settings() {
             <TabsTrigger value="locations" data-testid="tab-locations">
               <MapPin className="w-4 h-4 md:mr-2" />
               <span className="hidden md:inline">Locations</span>
-            </TabsTrigger>
-            <TabsTrigger value="artist-groups" data-testid="tab-artist-groups">
-              <UsersRound className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">Groups</span>
             </TabsTrigger>
             <TabsTrigger value="people" data-testid="tab-people">
               <Users className="w-4 h-4 md:mr-2" />
@@ -1153,75 +1237,6 @@ export default function Settings() {
             {renderGroupedLocations()}
           </TabsContent>
 
-          <TabsContent value="artist-groups" className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Artist Groups</h2>
-              <Dialog 
-                open={groupDialogOpen} 
-                onOpenChange={(open) => {
-                  setGroupDialogOpen(open);
-                  if (!open) setEditTarget(null);
-                }}
-              >
-                <DialogTrigger asChild>
-                  <Button data-testid="button-add-artist-group">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Group
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const formData = new FormData(e.currentTarget);
-                      const name = formData.get("name") as string;
-                      
-                      if (editTarget?.type === "group") {
-                        updateGroupMutation.mutate({
-                          id: editTarget.id,
-                          name,
-                          sortOrder: editTarget.data.sortOrder,
-                        });
-                      } else {
-                        createGroupMutation.mutate({
-                          name,
-                          sortOrder: artistGroups.length,
-                        });
-                      }
-                    }}
-                  >
-                    <DialogHeader>
-                      <DialogTitle>{editTarget?.type === "group" ? "Edit Artist Group" : "Add Artist Group"}</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="group-name">Group Name</Label>
-                        <Input
-                          id="group-name"
-                          name="name"
-                          placeholder="Enter group name"
-                          required
-                          defaultValue={editTarget?.type === "group" ? editTarget.data.name : ""}
-                          data-testid="input-group-name"
-                        />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button 
-                        type="submit" 
-                        disabled={createGroupMutation.isPending || updateGroupMutation.isPending} 
-                        data-testid="button-save-group"
-                      >
-                        {(createGroupMutation.isPending || updateGroupMutation.isPending) ? "Saving..." : editTarget?.type === "group" ? "Update Group" : "Save Group"}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
-            {renderSimpleList(artistGroups, "group")}
-          </TabsContent>
-
           <TabsContent value="people" className="space-y-4">
             <Tabs defaultValue="artists">
               <TabsList className="grid w-full grid-cols-2">
@@ -1231,19 +1246,109 @@ export default function Settings() {
               <TabsContent value="artists" className="space-y-4 mt-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">Artists</h2>
-                  <Dialog 
-                    open={artistDialogOpen} 
-                    onOpenChange={(open) => {
-                      setArtistDialogOpen(open);
-                      if (!open) setEditTarget(null);
-                    }}
-                  >
-                    <DialogTrigger asChild>
-                      <Button data-testid="button-add-artist">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Artist
-                      </Button>
-                    </DialogTrigger>
+                  <div className="flex gap-2">
+                    <Dialog
+                      open={groupDialogOpen}
+                      onOpenChange={(open) => {
+                        setGroupDialogOpen(open);
+                        if (!open) setEditTarget(null);
+                      }}
+                    >
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" data-testid="button-groups">
+                          Groups
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Manage Groups</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              const formData = new FormData(e.currentTarget);
+                              const name = formData.get("name") as string;
+                              
+                              if (editTarget?.type === "group") {
+                                updateGroupMutation.mutate({
+                                  id: editTarget.id,
+                                  name,
+                                  sortOrder: editTarget.data.sortOrder,
+                                });
+                              } else {
+                                createGroupMutation.mutate({
+                                  name,
+                                  sortOrder: artistGroups.length,
+                                });
+                              }
+                              e.currentTarget.reset();
+                            }}
+                          >
+                            <div className="flex gap-2">
+                              <Input
+                                id="group-name"
+                                name="name"
+                                placeholder="Enter group name"
+                                defaultValue={editTarget?.type === "group" ? editTarget.data.name : ""}
+                                required
+                                data-testid="input-group-name"
+                              />
+                              <Button 
+                                type="submit"
+                                disabled={createGroupMutation.isPending || updateGroupMutation.isPending}
+                                data-testid="button-save-group"
+                              >
+                                {editTarget?.type === "group" ? "Update" : "Add"}
+                              </Button>
+                            </div>
+                          </form>
+                          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                            {artistGroups.map((group) => (
+                              <Card key={group.id} className="p-3 flex items-center justify-between" data-testid={`card-group-${group.id}`}>
+                                <p className="font-medium">{group.name}</p>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setEditTarget({ type: "group", id: group.id, data: group });
+                                    }}
+                                    data-testid={`button-edit-group-${group.id}`}
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setDeleteTarget({ type: "group", id: group.id });
+                                      setDeleteDialogOpen(true);
+                                    }}
+                                    data-testid={`button-delete-group-${group.id}`}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </Card>
+                            ))}
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    <Dialog 
+                      open={artistDialogOpen} 
+                      onOpenChange={(open) => {
+                        setArtistDialogOpen(open);
+                        if (!open) setEditTarget(null);
+                      }}
+                    >
+                      <DialogTrigger asChild>
+                        <Button data-testid="button-add-artist">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Artist
+                        </Button>
+                      </DialogTrigger>
                     <DialogContent>
                       <form
                         onSubmit={(e) => {
@@ -1353,46 +1458,8 @@ export default function Settings() {
                     </DialogContent>
                   </Dialog>
                 </div>
-                <div className="space-y-2">
-                  {artists.length === 0 ? (
-                    <Card className="p-6 text-center text-muted-foreground">
-                      <p>No artists yet. Click "Add Artist" to create one.</p>
-                    </Card>
-                  ) : (
-                    artists.map((artist) => (
-                      <Card key={artist.id} className="p-3 flex items-center justify-between hover-elevate" data-testid={`card-artist-${artist.id}`}>
-                        <div>
-                          <p className="font-medium">{artist.firstName} {artist.lastName}</p>
-                          {artist.stageName && <p className="text-sm text-muted-foreground">{artist.stageName}</p>}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setEditTarget({ type: "artist", id: artist.id, data: artist });
-                              setArtistDialogOpen(true);
-                            }}
-                            data-testid={`button-edit-artist-${artist.id}`}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setDeleteTarget({ type: "artist", id: artist.id });
-                              setDeleteDialogOpen(true);
-                            }}
-                            data-testid={`button-delete-artist-${artist.id}`}
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </Card>
-                    ))
-                  )}
-                </div>
+              </div>
+              {renderGroupedArtists()}
               </TabsContent>
               <TabsContent value="technicians" className="space-y-4 mt-4">
                 <div className="flex items-center justify-between">
