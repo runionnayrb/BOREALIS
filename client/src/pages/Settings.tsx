@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit } from "lucide-react";
+import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit, Settings as SettingsIcon, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,7 +35,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { 
-  Act, Department, Location, ArtistGroup, Artist, Technician, ReportTemplate 
+  Act, Department, Location, ArtistGroup, Artist, Technician, ReportTemplate, SafeUser 
 } from "@shared/schema";
 
 type SimpleItem = {
@@ -66,6 +66,7 @@ export default function Settings() {
   const { data: artists = [] } = useQuery<Artist[]>({ queryKey: ["/api/artists"] });
   const { data: technicians = [] } = useQuery<Technician[]>({ queryKey: ["/api/technicians"] });
   const { data: reportTemplate } = useQuery<ReportTemplate | null>({ queryKey: ["/api/report-template"] });
+  const { data: users = [] } = useQuery<SafeUser[]>({ queryKey: ["/api/users"] });
 
   // Report Template state
   const [leftImage, setLeftImage] = useState(reportTemplate?.leftImageUrl || "");
@@ -292,6 +293,17 @@ export default function Settings() {
     },
   });
 
+  // User update mutation
+  const updateUserMutation = useMutation({
+    mutationFn: async (data: { id: string; active: number }) => {
+      return await apiRequest("PATCH", `/api/users/${data.id}`, { active: data.active });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({ title: "User status updated successfully" });
+    },
+  });
+
   // Report Template mutation
   const saveTemplateMutation = useMutation({
     mutationFn: async () => {
@@ -378,7 +390,7 @@ export default function Settings() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-6 mb-6">
+          <TabsList className="grid w-full grid-cols-7 mb-6">
             <TabsTrigger value="report-template" data-testid="tab-report-template">
               <FileText className="w-4 h-4 md:mr-2" />
               <span className="hidden md:inline">Template</span>
@@ -402,6 +414,10 @@ export default function Settings() {
             <TabsTrigger value="people" data-testid="tab-people">
               <Users className="w-4 h-4 md:mr-2" />
               <span className="hidden md:inline">People</span>
+            </TabsTrigger>
+            <TabsTrigger value="users" data-testid="tab-users">
+              <Shield className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">Users</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1019,6 +1035,57 @@ export default function Settings() {
                 </div>
               </TabsContent>
             </Tabs>
+          </TabsContent>
+
+          <TabsContent value="users" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">User Management</h2>
+            </div>
+            <div className="space-y-2">
+              {users.map((user) => (
+                <Card key={user.id} className="p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <p className="font-medium" data-testid={`text-user-name-${user.id}`}>
+                        {user.name || "Unnamed User"}
+                      </p>
+                      <p className="text-sm text-muted-foreground" data-testid={`text-user-email-${user.id}`}>
+                        {user.email}
+                      </p>
+                      {user.position && (
+                        <p className="text-sm text-muted-foreground" data-testid={`text-user-position-${user.id}`}>
+                          {user.position}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-3 py-1 rounded-full text-sm ${user.active === 1 ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                        {user.active === 1 ? 'Active' : 'Inactive'}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          updateUserMutation.mutate({
+                            id: user.id,
+                            active: user.active === 1 ? 0 : 1,
+                          });
+                        }}
+                        disabled={updateUserMutation.isPending}
+                        data-testid={`button-toggle-user-${user.id}`}
+                      >
+                        {user.active === 1 ? 'Deactivate' : 'Activate'}
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+              {users.length === 0 && (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">No users found</p>
+                </Card>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </div>

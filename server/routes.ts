@@ -90,6 +90,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(200);
   });
 
+  // User management routes
+  app.get("/api/users", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const allUsers = await storage.getAllUsers();
+    const sanitizedUsers = allUsers.map(sanitizeUser);
+    res.json(sanitizedUsers);
+  });
+
+  const updateUserSchema = z.object({
+    active: z.number().min(0).max(1),
+  });
+
+  app.patch("/api/users/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const validation = updateUserSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: "Validation failed",
+        details: validation.error.issues,
+      });
+    }
+
+    const updated = await storage.updateUser(req.params.id, validation.data);
+    if (!updated) {
+      return res.status(404).send("User not found");
+    }
+
+    res.json(sanitizeUser(updated));
+  });
+
   // Acts routes
   app.get("/api/acts", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
