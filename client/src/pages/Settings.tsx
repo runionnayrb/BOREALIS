@@ -62,8 +62,14 @@ export default function Settings() {
   const [selectedSceneId, setSelectedSceneId] = useState<string | undefined>(undefined);
   const [selectedDepartmentIds, setSelectedDepartmentIds] = useState<string[]>([]);
   const [selectedArtistIds, setSelectedArtistIds] = useState<string[]>([]);
+  const [selectedArtistGroupIds, setSelectedArtistGroupIds] = useState<string[]>([]);
+  
+  // Scene assignment states
+  const [selectedSceneDepartmentIds, setSelectedSceneDepartmentIds] = useState<string[]>([]);
+  const [selectedSceneArtistGroupIds, setSelectedSceneArtistGroupIds] = useState<string[]>([]);
+  const [selectedSceneArtistIds, setSelectedSceneArtistIds] = useState<string[]>([]);
 
-  const { toast } = useToast();
+  const { toast} = useToast();
 
   // Fetch all settings data
   const { data: scenes = [] } = useQuery<Scene[]>({ queryKey: ["/api/scenes"] });

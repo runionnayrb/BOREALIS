@@ -4,7 +4,7 @@
 A production-ready full-stack web application for theatrical production training management. Stage Managers create daily training reports with rich text notes, track trainings by act/department/artist/location, assign technician leads, and export to PDF.
 
 ## Current State (Updated Oct 10, 2025)
-- ✅ PostgreSQL database with complete schema (users, scenes, acts, departments, act_departments, location_types, locations, artists, technicians, reports, trainings, assignments)
+- ✅ PostgreSQL database with complete schema (users, scenes, acts, departments, act_departments, act_artist_groups, act_artists, scene_departments, scene_artist_groups, scene_artists, location_types, locations, artist_groups, artists, technicians, reports, trainings, assignments)
 - ✅ Secure authentication system (login/signup with hashed passwords, session-based)
 - ✅ Profile management (update name, position, pronouns, email, password)
 - ✅ Settings management with full CRUD for all entities (scenes, acts, departments, location types, locations, artist groups, artists, technicians, report template)
@@ -18,7 +18,10 @@ A production-ready full-stack web application for theatrical production training
   - Ungrouped items shown at top without group header (technicians) or with "NO [PARENT]" sections (acts, locations, artists)
 - ✅ **Artist role field**: Artists include role information (character/position) displayed below artist name
 - ✅ **Technician name field**: Technicians include technicianName (stage/professional name) in addition to firstName/lastName
-- ✅ **Act department assignments**: Acts can have required departments assigned; these auto-populate when creating trainings
+- ✅ **Scene and Act Assignments**:
+  - **Scenes** can be assigned: departments, artist groups, and individual artists
+  - **Acts** can be assigned: departments, artist groups, and individual artists
+  - Act department assignments auto-populate when creating trainings
 - ✅ Reports CRUD with audit trail (createdBy, updatedBy, timestamps)
 - ✅ Trainings CRUD with location assignment and audit trail
 - ✅ Department assignments per training (auto-populated from act's required departments)
@@ -81,8 +84,13 @@ A production-ready full-stack web application for theatrical production training
 
 ### Settings (All with CRUD)
 - `/api/scenes` - Scenes management (categories for organizing acts)
+- `/api/scenes/:id/departments` - Get/set scene's departments (GET returns SceneDepartment[], POST body: { departmentIds: string[] })
+- `/api/scenes/:id/artist-groups` - Get/set scene's artist groups (GET returns SceneArtistGroup[], POST body: { artistGroupIds: string[] })
+- `/api/scenes/:id/artists` - Get/set scene's artists (GET returns SceneArtist[], POST body: { artistIds: string[] })
 - `/api/acts` - Acts management (with required sceneId)
 - `/api/acts/:id/departments` - Get/set act's required departments (GET returns ActDepartment[], POST body: { departmentIds: string[] })
+- `/api/acts/:id/artist-groups` - Get/set act's artist groups (GET returns ActArtistGroup[], POST body: { artistGroupIds: string[] })
+- `/api/acts/:id/artists` - Get/set act's artists (GET returns ActArtist[], POST body: { artistIds: string[] })
 - `/api/departments` - Departments management
 - `/api/location-types` - Location types management (categories for organizing locations)
 - `/api/locations` - Locations management (with optional locationTypeId)
