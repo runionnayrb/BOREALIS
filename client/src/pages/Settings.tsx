@@ -1239,6 +1239,33 @@ export default function Settings() {
                               <p className="text-sm text-muted-foreground">No artists available</p>
                             ) : (
                               <>
+                                {/* ALL ARTISTS Checkbox */}
+                                <div className="flex items-center space-x-2 pb-2 border-b-2">
+                                  <Checkbox
+                                    id="scene-all-artists"
+                                    checked={artists.every(a => selectedSceneArtistIds.includes(a.id))}
+                                    data-state={artists.some(a => selectedSceneArtistIds.includes(a.id)) && !artists.every(a => selectedSceneArtistIds.includes(a.id)) ? "indeterminate" : undefined}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        // Select all artists and all artist groups
+                                        setSelectedSceneArtistIds(artists.map(a => a.id));
+                                        setSelectedSceneArtistGroupIds(artistGroups.map(g => g.id));
+                                      } else {
+                                        // Deselect all artists and all artist groups
+                                        setSelectedSceneArtistIds([]);
+                                        setSelectedSceneArtistGroupIds([]);
+                                      }
+                                    }}
+                                    data-testid="checkbox-scene-all-artists"
+                                  />
+                                  <Label
+                                    htmlFor="scene-all-artists"
+                                    className="text-sm font-bold cursor-pointer flex-1 uppercase"
+                                  >
+                                    All Artists
+                                  </Label>
+                                </div>
+                                
                                 {artistGroups.map((group) => {
                                   const groupArtists = artists.filter(a => a.artistGroupId === group.id);
                                   if (groupArtists.length === 0) return null;
@@ -1482,6 +1509,33 @@ export default function Settings() {
                             <p className="text-sm text-muted-foreground">No artists available</p>
                           ) : (
                             <>
+                              {/* ALL ARTISTS Checkbox */}
+                              <div className="flex items-center space-x-2 pb-2 border-b-2">
+                                <Checkbox
+                                  id="act-all-artists"
+                                  checked={artists.every(a => selectedArtistIds.includes(a.id))}
+                                  data-state={artists.some(a => selectedArtistIds.includes(a.id)) && !artists.every(a => selectedArtistIds.includes(a.id)) ? "indeterminate" : undefined}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      // Select all artists and all artist groups
+                                      setSelectedArtistIds(artists.map(a => a.id));
+                                      setSelectedArtistGroupIds(artistGroups.map(g => g.id));
+                                    } else {
+                                      // Deselect all artists and all artist groups
+                                      setSelectedArtistIds([]);
+                                      setSelectedArtistGroupIds([]);
+                                    }
+                                  }}
+                                  data-testid="checkbox-act-all-artists"
+                                />
+                                <Label
+                                  htmlFor="act-all-artists"
+                                  className="text-sm font-bold cursor-pointer flex-1 uppercase"
+                                >
+                                  All Artists
+                                </Label>
+                              </div>
+                              
                               {/* Group artists by artist group */}
                               {artistGroups.map((group) => {
                                 const groupArtists = artists.filter(a => a.artistGroupId === group.id);
