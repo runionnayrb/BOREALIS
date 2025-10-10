@@ -287,7 +287,7 @@ export default function Profile() {
           <Card className="p-4 bg-muted/30">
             <h3 className="font-semibold mb-2">Account Information</h3>
             <div className="space-y-1 text-sm text-muted-foreground">
-              <p><span className="font-medium">Username:</span> {user.username}</p>
+              <p><span className="font-medium">Email:</span> {user.email}</p>
               <p><span className="font-medium">Account created:</span> {new Date(user.createdAt).toLocaleDateString()}</p>
             </div>
           </Card>

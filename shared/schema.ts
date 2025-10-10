@@ -6,24 +6,22 @@ import { z } from "zod";
 // Users/Stage Managers
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
   password: text("password").notNull(),
   name: text("name"),
   position: text("position"),
   pronouns: text("pronouns"),
-  email: text("email").unique(),
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
+  email: true,
   password: true,
   name: true,
   position: true,
   pronouns: true,
-  email: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/form";
 import { TheaterIcon } from "lucide-react";
 
-const loginSchema = insertUserSchema.pick({ username: true, password: true });
+const loginSchema = insertUserSchema.pick({ email: true, password: true });
 const registerSchema = insertUserSchema;
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -34,7 +34,7 @@ export default function AuthPage() {
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -42,10 +42,9 @@ export default function AuthPage() {
   const registerForm = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
       name: "",
-      email: "",
       position: "",
       pronouns: "",
     },
@@ -87,12 +86,12 @@ export default function AuthPage() {
                   <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
                     <FormField
                       control={loginForm.control}
-                      name="username"
+                      name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Username</FormLabel>
+                          <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input {...field} data-testid="input-login-username" />
+                            <Input type="email" {...field} data-testid="input-login-email" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -137,19 +136,6 @@ export default function AuthPage() {
                   <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
                     <FormField
                       control={registerForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Full Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} value={field.value || ""} data-testid="input-register-name" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={registerForm.control}
                       name="email"
                       render={({ field }) => (
                         <FormItem>
@@ -163,12 +149,12 @@ export default function AuthPage() {
                     />
                     <FormField
                       control={registerForm.control}
-                      name="username"
+                      name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Username</FormLabel>
+                          <FormLabel>Full Name (Optional)</FormLabel>
                           <FormControl>
-                            <Input {...field} data-testid="input-register-username" />
+                            <Input {...field} value={field.value || ""} data-testid="input-register-name" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

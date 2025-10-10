@@ -74,7 +74,7 @@ export default function TrainingCard({
   const getUserName = (userId: string | null) => {
     if (!userId) return "Unknown";
     const user = users.find(u => u.id === userId);
-    return user?.name || user?.username || "Unknown";
+    return user?.name || user?.email || "Unknown";
   };
 
   return (
