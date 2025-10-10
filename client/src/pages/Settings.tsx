@@ -1233,7 +1233,7 @@ export default function Settings() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label>Artist Groups & Artists</Label>
+                          <Label>Artists</Label>
                           <div className="border rounded-md p-3 space-y-3 max-h-64 overflow-y-auto">
                             {artists.length === 0 ? (
                               <p className="text-sm text-muted-foreground">No artists available</p>
@@ -1449,7 +1449,7 @@ export default function Settings() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>Required Departments</Label>
+                        <Label>Departments</Label>
                         <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
                           {departments.map((dept) => (
                             <div key={dept.id} className="flex items-center space-x-2">
@@ -1476,7 +1476,7 @@ export default function Settings() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label>Artist Groups & Artists</Label>
+                        <Label>Artists</Label>
                         <div className="border rounded-md p-3 space-y-3 max-h-64 overflow-y-auto">
                           {artists.length === 0 ? (
                             <p className="text-sm text-muted-foreground">No artists available</p>
