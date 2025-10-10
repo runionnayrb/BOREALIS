@@ -4,20 +4,24 @@
 A production-ready full-stack web application for theatrical production training management. Stage Managers create daily training reports with rich text notes, track trainings by act/department/artist/location, assign technician leads, and export to PDF.
 
 ## Current State (Updated Oct 10, 2025)
-- ✅ PostgreSQL database with complete schema (users, scenes, acts, departments, location_types, locations, artists, technicians, reports, trainings, assignments)
+- ✅ PostgreSQL database with complete schema (users, scenes, acts, departments, act_departments, location_types, locations, artists, technicians, reports, trainings, assignments)
 - ✅ Secure authentication system (login/signup with hashed passwords, session-based)
 - ✅ Profile management (update name, position, pronouns, email, password)
 - ✅ Settings management with full CRUD for all entities (scenes, acts, departments, location types, locations, artist groups, artists, technicians, report template)
 - ✅ User management with active/inactive status control
 - ✅ **Hierarchical organization pattern** applied consistently across all entity groups:
-  - **Scenes → Acts**: Scenes managed within Acts tab (button in header)
+  - **Scenes → Acts**: Scenes managed within Acts tab (button in header). **Scene is required when creating/editing acts**
   - **Location Types → Locations**: Location Types managed within Locations tab (button in header)
   - **Artist Groups → Artists**: Artist Groups managed within Artists tab (button in header)
-- ✅ **Grouped display**: Acts, locations, and artists are displayed grouped by their parent category with count badges and "NO [PARENT]" sections
+- ✅ **Grouped display**: Acts, locations, artists, and technicians are displayed grouped by their parent category with count badges
+  - Acts grouped by scene, locations by type, artists by group, **technicians by department (alphabetical order)**
+  - Ungrouped items shown at top without group header (technicians) or with "NO [PARENT]" sections (acts, locations, artists)
 - ✅ **Artist role field**: Artists include role information (character/position) displayed below artist name
+- ✅ **Technician name field**: Technicians include technicianName (stage/professional name) in addition to firstName/lastName
+- ✅ **Act department assignments**: Acts can have required departments assigned; these auto-populate when creating trainings
 - ✅ Reports CRUD with audit trail (createdBy, updatedBy, timestamps)
 - ✅ Trainings CRUD with location assignment and audit trail
-- ✅ Department assignments per training
+- ✅ Department assignments per training (auto-populated from act's required departments)
 - ✅ Rich text editor for report notes
 - ✅ SM on Duty dropdown showing only active stage managers
 - ✅ Linear-inspired professional dark mode UI with Inter/JetBrains Mono fonts and cyan accent
@@ -45,19 +49,20 @@ A production-ready full-stack web application for theatrical production training
 ### Core Tables
 - `users` - Stage Managers with auth and profile info (id, email, password, name, position, pronouns, active)
 - `scenes` - Performance scenes (id, name, sortOrder) - parent category for acts
-- `acts` - Performance acts (id, name, sceneId, sortOrder) - sceneId is optional foreign key to scenes
+- `acts` - Performance acts (id, name, sceneId, sortOrder) - **sceneId is REQUIRED foreign key to scenes**
 - `departments` - Technical departments (id, name, sortOrder)
+- `act_departments` - **Junction table** for act-department many-to-many relationship (id, actId, departmentId, createdAt)
 - `location_types` - Location categories (id, name, sortOrder) - e.g., onstage, rehearsal room, dance studio, offstage, meetings
 - `locations` - Training locations (id, name, locationTypeId, sortOrder) - locationTypeId is optional foreign key to location_types
 - `artist_groups` - Artist groups/ensembles (id, name, sortOrder)
-- `artists` - Individual performers (id, firstName, lastName, stageName, artistGroupId)
-- `technicians` - Technical leads (id, firstName, lastName, role, departmentId)
+- `artists` - Individual performers (id, firstName, lastName, stageName, role, artistGroupId)
+- `technicians` - Technical leads (id, firstName, lastName, technicianName, role, departmentId)
 - `report_template` - Global header/footer for reports (id, title, leftImageUrl, rightImageUrl, updatedBy, updatedAt)
 
 ### Reports & Trainings
 - `reports` - Daily reports (id, date, stageManagerOnDuty, notes, createdBy, updatedBy, createdAt, updatedAt)
 - `trainings` - Training sessions (id, reportId, actId, locationId, startTime, endTime, durationMinutes, notes, createdBy, updatedBy, createdAt, updatedAt)
-- `department_assignments` - Per-training department leads (id, trainingId, departmentId, leadTechnicianId, notes)
+- `department_assignments` - Per-training department leads (id, trainingId, departmentId, leadTechnicianId, notes) - **auto-created from act's required departments**
 
 ## API Endpoints
 ### Authentication
@@ -76,7 +81,8 @@ A production-ready full-stack web application for theatrical production training
 
 ### Settings (All with CRUD)
 - `/api/scenes` - Scenes management (categories for organizing acts)
-- `/api/acts` - Acts management (with optional sceneId)
+- `/api/acts` - Acts management (with required sceneId)
+- `/api/acts/:id/departments` - Get/set act's required departments (GET returns ActDepartment[], POST body: { departmentIds: string[] })
 - `/api/departments` - Departments management
 - `/api/location-types` - Location types management (categories for organizing locations)
 - `/api/locations` - Locations management (with optional locationTypeId)
