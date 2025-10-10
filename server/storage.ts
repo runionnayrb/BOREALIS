@@ -1,6 +1,15 @@
-import { type User, type InsertUser, users } from "@shared/schema";
+import { 
+  type User, type InsertUser, users,
+  type Act, type InsertAct, acts,
+  type Department, type InsertDepartment, departments,
+  type Location, type InsertLocation, locations,
+  type ArtistGroup, type InsertArtistGroup, artistGroups,
+  type Artist, type InsertArtist, artists,
+  type Technician, type InsertTechnician, technicians,
+  type ReportTemplate, type InsertReportTemplate, reportTemplate,
+} from "@shared/schema";
 import { db, pool } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import type { Store } from "express-session";
@@ -8,11 +17,59 @@ import type { Store } from "express-session";
 const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
+  // User management
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<Omit<User, 'id' | 'createdAt'>>): Promise<User | undefined>;
+  
+  // Acts
+  getAllActs(): Promise<Act[]>;
+  getAct(id: string): Promise<Act | undefined>;
+  createAct(act: InsertAct): Promise<Act>;
+  updateAct(id: string, updates: Partial<InsertAct>): Promise<Act | undefined>;
+  deleteAct(id: string): Promise<void>;
+  
+  // Departments
+  getAllDepartments(): Promise<Department[]>;
+  getDepartment(id: string): Promise<Department | undefined>;
+  createDepartment(department: InsertDepartment): Promise<Department>;
+  updateDepartment(id: string, updates: Partial<InsertDepartment>): Promise<Department | undefined>;
+  deleteDepartment(id: string): Promise<void>;
+  
+  // Locations
+  getAllLocations(): Promise<Location[]>;
+  getLocation(id: string): Promise<Location | undefined>;
+  createLocation(location: InsertLocation): Promise<Location>;
+  updateLocation(id: string, updates: Partial<InsertLocation>): Promise<Location | undefined>;
+  deleteLocation(id: string): Promise<void>;
+  
+  // Artist Groups
+  getAllArtistGroups(): Promise<ArtistGroup[]>;
+  getArtistGroup(id: string): Promise<ArtistGroup | undefined>;
+  createArtistGroup(group: InsertArtistGroup): Promise<ArtistGroup>;
+  updateArtistGroup(id: string, updates: Partial<InsertArtistGroup>): Promise<ArtistGroup | undefined>;
+  deleteArtistGroup(id: string): Promise<void>;
+  
+  // Artists
+  getAllArtists(): Promise<Artist[]>;
+  getArtist(id: string): Promise<Artist | undefined>;
+  createArtist(artist: InsertArtist): Promise<Artist>;
+  updateArtist(id: string, updates: Partial<InsertArtist>): Promise<Artist | undefined>;
+  deleteArtist(id: string): Promise<void>;
+  
+  // Technicians
+  getAllTechnicians(): Promise<Technician[]>;
+  getTechnician(id: string): Promise<Technician | undefined>;
+  createTechnician(technician: InsertTechnician): Promise<Technician>;
+  updateTechnician(id: string, updates: Partial<InsertTechnician>): Promise<Technician | undefined>;
+  deleteTechnician(id: string): Promise<void>;
+  
+  // Report Template
+  getReportTemplate(): Promise<ReportTemplate | undefined>;
+  updateReportTemplate(updates: Partial<InsertReportTemplate>, userId: string): Promise<ReportTemplate>;
+  
   sessionStore: Store;
 }
 
@@ -49,6 +106,180 @@ export class DatabaseStorage implements IStorage {
   async updateUser(id: string, updates: Partial<Omit<User, 'id' | 'createdAt'>>): Promise<User | undefined> {
     const result = await db.update(users).set(updates).where(eq(users.id, id)).returning();
     return result[0];
+  }
+
+  // Acts
+  async getAllActs(): Promise<Act[]> {
+    return await db.select().from(acts).orderBy(asc(acts.sortOrder));
+  }
+
+  async getAct(id: string): Promise<Act | undefined> {
+    const result = await db.select().from(acts).where(eq(acts.id, id));
+    return result[0];
+  }
+
+  async createAct(act: InsertAct): Promise<Act> {
+    const result = await db.insert(acts).values(act).returning();
+    return result[0];
+  }
+
+  async updateAct(id: string, updates: Partial<InsertAct>): Promise<Act | undefined> {
+    const result = await db.update(acts).set(updates).where(eq(acts.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteAct(id: string): Promise<void> {
+    await db.delete(acts).where(eq(acts.id, id));
+  }
+
+  // Departments
+  async getAllDepartments(): Promise<Department[]> {
+    return await db.select().from(departments).orderBy(asc(departments.sortOrder));
+  }
+
+  async getDepartment(id: string): Promise<Department | undefined> {
+    const result = await db.select().from(departments).where(eq(departments.id, id));
+    return result[0];
+  }
+
+  async createDepartment(department: InsertDepartment): Promise<Department> {
+    const result = await db.insert(departments).values(department).returning();
+    return result[0];
+  }
+
+  async updateDepartment(id: string, updates: Partial<InsertDepartment>): Promise<Department | undefined> {
+    const result = await db.update(departments).set(updates).where(eq(departments.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteDepartment(id: string): Promise<void> {
+    await db.delete(departments).where(eq(departments.id, id));
+  }
+
+  // Locations
+  async getAllLocations(): Promise<Location[]> {
+    return await db.select().from(locations).orderBy(asc(locations.sortOrder));
+  }
+
+  async getLocation(id: string): Promise<Location | undefined> {
+    const result = await db.select().from(locations).where(eq(locations.id, id));
+    return result[0];
+  }
+
+  async createLocation(location: InsertLocation): Promise<Location> {
+    const result = await db.insert(locations).values(location).returning();
+    return result[0];
+  }
+
+  async updateLocation(id: string, updates: Partial<InsertLocation>): Promise<Location | undefined> {
+    const result = await db.update(locations).set(updates).where(eq(locations.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteLocation(id: string): Promise<void> {
+    await db.delete(locations).where(eq(locations.id, id));
+  }
+
+  // Artist Groups
+  async getAllArtistGroups(): Promise<ArtistGroup[]> {
+    return await db.select().from(artistGroups).orderBy(asc(artistGroups.sortOrder));
+  }
+
+  async getArtistGroup(id: string): Promise<ArtistGroup | undefined> {
+    const result = await db.select().from(artistGroups).where(eq(artistGroups.id, id));
+    return result[0];
+  }
+
+  async createArtistGroup(group: InsertArtistGroup): Promise<ArtistGroup> {
+    const result = await db.insert(artistGroups).values(group).returning();
+    return result[0];
+  }
+
+  async updateArtistGroup(id: string, updates: Partial<InsertArtistGroup>): Promise<ArtistGroup | undefined> {
+    const result = await db.update(artistGroups).set(updates).where(eq(artistGroups.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteArtistGroup(id: string): Promise<void> {
+    await db.delete(artistGroups).where(eq(artistGroups.id, id));
+  }
+
+  // Artists
+  async getAllArtists(): Promise<Artist[]> {
+    return await db.select().from(artists);
+  }
+
+  async getArtist(id: string): Promise<Artist | undefined> {
+    const result = await db.select().from(artists).where(eq(artists.id, id));
+    return result[0];
+  }
+
+  async createArtist(artist: InsertArtist): Promise<Artist> {
+    const result = await db.insert(artists).values(artist).returning();
+    return result[0];
+  }
+
+  async updateArtist(id: string, updates: Partial<InsertArtist>): Promise<Artist | undefined> {
+    const result = await db.update(artists).set(updates).where(eq(artists.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteArtist(id: string): Promise<void> {
+    await db.delete(artists).where(eq(artists.id, id));
+  }
+
+  // Technicians
+  async getAllTechnicians(): Promise<Technician[]> {
+    return await db.select().from(technicians);
+  }
+
+  async getTechnician(id: string): Promise<Technician | undefined> {
+    const result = await db.select().from(technicians).where(eq(technicians.id, id));
+    return result[0];
+  }
+
+  async createTechnician(technician: InsertTechnician): Promise<Technician> {
+    const result = await db.insert(technicians).values(technician).returning();
+    return result[0];
+  }
+
+  async updateTechnician(id: string, updates: Partial<InsertTechnician>): Promise<Technician | undefined> {
+    const result = await db.update(technicians).set(updates).where(eq(technicians.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteTechnician(id: string): Promise<void> {
+    await db.delete(technicians).where(eq(technicians.id, id));
+  }
+
+  // Report Template
+  async getReportTemplate(): Promise<ReportTemplate | undefined> {
+    const result = await db.select().from(reportTemplate).limit(1);
+    return result[0];
+  }
+
+  async updateReportTemplate(updates: Partial<InsertReportTemplate>, userId: string): Promise<ReportTemplate> {
+    const existing = await this.getReportTemplate();
+    
+    if (existing) {
+      const result = await db
+        .update(reportTemplate)
+        .set({ ...updates, updatedBy: userId, updatedAt: new Date() })
+        .where(eq(reportTemplate.id, existing.id))
+        .returning();
+      return result[0];
+    } else {
+      const result = await db
+        .insert(reportTemplate)
+        .values({ 
+          title: updates.title || '',
+          leftImageUrl: updates.leftImageUrl,
+          rightImageUrl: updates.rightImageUrl,
+          updatedBy: userId 
+        })
+        .returning();
+      return result[0];
+    }
   }
 }
 

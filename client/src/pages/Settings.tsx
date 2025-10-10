@@ -1,53 +1,371 @@
-import { useState } from "react";
-import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import DraggableList from "@/components/DraggableList";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import ReportHeader from "@/components/ReportHeader";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { 
+  Act, Department, Location, ArtistGroup, Artist, Technician, ReportTemplate 
+} from "@shared/schema";
+
+type SimpleItem = {
+  id: string;
+  name: string;
+  sortOrder: number;
+};
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("acts");
+  const [actDialogOpen, setActDialogOpen] = useState(false);
+  const [deptDialogOpen, setDeptDialogOpen] = useState(false);
+  const [locationDialogOpen, setLocationDialogOpen] = useState(false);
+  const [groupDialogOpen, setGroupDialogOpen] = useState(false);
+  const [artistDialogOpen, setArtistDialogOpen] = useState(false);
+  const [techDialogOpen, setTechDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: string; id: string } | null>(null);
+  const [editTarget, setEditTarget] = useState<{ type: string; id: string; data: any } | null>(null);
 
-  //todo: remove mock functionality
-  const [acts, setActs] = useState<Array<{ id: string; content: React.ReactNode }>>([
-    { id: '1', content: <Card className="p-3 flex-1"><p className="font-medium">High Dive</p></Card> },
-    { id: '2', content: <Card className="p-3 flex-1"><p className="font-medium">Wheel</p></Card> },
-    { id: '3', content: <Card className="p-3 flex-1"><p className="font-medium">House Sync</p></Card> },
-    { id: '4', content: <Card className="p-3 flex-1"><p className="font-medium">Finale</p></Card> },
-  ]);
+  const { toast } = useToast();
 
-  const [departments, setDepartments] = useState<Array<{ id: string; content: React.ReactNode }>>([
-    { id: '1', content: <Card className="p-3 flex-1"><p className="font-medium">Rigging</p></Card> },
-    { id: '2', content: <Card className="p-3 flex-1"><p className="font-medium">Automation</p></Card> },
-    { id: '3', content: <Card className="p-3 flex-1"><p className="font-medium">Lighting</p></Card> },
-    { id: '4', content: <Card className="p-3 flex-1"><p className="font-medium">Sound</p></Card> },
-  ]);
+  // Fetch all settings data
+  const { data: acts = [] } = useQuery<Act[]>({ queryKey: ["/api/acts"] });
+  const { data: departments = [] } = useQuery<Department[]>({ queryKey: ["/api/departments"] });
+  const { data: locations = [] } = useQuery<Location[]>({ queryKey: ["/api/locations"] });
+  const { data: artistGroups = [] } = useQuery<ArtistGroup[]>({ queryKey: ["/api/artist-groups"] });
+  const { data: artists = [] } = useQuery<Artist[]>({ queryKey: ["/api/artists"] });
+  const { data: technicians = [] } = useQuery<Technician[]>({ queryKey: ["/api/technicians"] });
+  const { data: reportTemplate } = useQuery<ReportTemplate | null>({ queryKey: ["/api/report-template"] });
 
-  const [artistGroups, setArtistGroups] = useState<Array<{ id: string; content: React.ReactNode }>>([
-    { id: '1', content: <Card className="p-3 flex-1"><p className="font-medium">Flyers</p></Card> },
-    { id: '2', content: <Card className="p-3 flex-1"><p className="font-medium">Divers</p></Card> },
-    { id: '3', content: <Card className="p-3 flex-1"><p className="font-medium">Wheel Team</p></Card> },
-  ]);
+  // Report Template state
+  const [leftImage, setLeftImage] = useState(reportTemplate?.leftImageUrl || "");
+  const [title, setTitle] = useState(reportTemplate?.title || "Training Report");
+  const [rightImage, setRightImage] = useState(reportTemplate?.rightImageUrl || "");
 
-  const [locations, setLocations] = useState<Array<{ id: string; content: React.ReactNode }>>([
-    { id: '1', content: <Card className="p-3 flex-1"><p className="font-medium">Main Stage</p></Card> },
-    { id: '2', content: <Card className="p-3 flex-1"><p className="font-medium">Rehearsal Hall A</p></Card> },
-    { id: '3', content: <Card className="p-3 flex-1"><p className="font-medium">Rehearsal Hall B</p></Card> },
-  ]);
+  // Sync report template state with query data
+  useEffect(() => {
+    if (reportTemplate) {
+      setLeftImage(reportTemplate.leftImageUrl || "");
+      setTitle(reportTemplate.title || "Training Report");
+      setRightImage(reportTemplate.rightImageUrl || "");
+    }
+  }, [reportTemplate]);
 
-  const [leftImage, setLeftImage] = useState("");
-  const [title, setTitle] = useState("Training Report");
-  const [rightImage, setRightImage] = useState("");
+  // Create mutations
+  const createActMutation = useMutation({
+    mutationFn: async (data: { name: string; sortOrder: number }) => {
+      return await apiRequest("POST", "/api/acts", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/acts"] });
+      setActDialogOpen(false);
+      toast({ title: "Act created successfully" });
+    },
+  });
+
+  const createDeptMutation = useMutation({
+    mutationFn: async (data: { name: string; sortOrder: number }) => {
+      return await apiRequest("POST", "/api/departments", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
+      setDeptDialogOpen(false);
+      toast({ title: "Department created successfully" });
+    },
+  });
+
+  const createLocationMutation = useMutation({
+    mutationFn: async (data: { name: string; sortOrder: number }) => {
+      return await apiRequest("POST", "/api/locations", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/locations"] });
+      setLocationDialogOpen(false);
+      toast({ title: "Location created successfully" });
+    },
+  });
+
+  const createGroupMutation = useMutation({
+    mutationFn: async (data: { name: string; sortOrder: number }) => {
+      return await apiRequest("POST", "/api/artist-groups", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artist-groups"] });
+      setGroupDialogOpen(false);
+      toast({ title: "Artist group created successfully" });
+    },
+  });
+
+  const createArtistMutation = useMutation({
+    mutationFn: async (data: { firstName: string; lastName: string; stageName?: string; artistGroupId?: string }) => {
+      return await apiRequest("POST", "/api/artists", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artists"] });
+      setArtistDialogOpen(false);
+      toast({ title: "Artist created successfully" });
+    },
+  });
+
+  const createTechMutation = useMutation({
+    mutationFn: async (data: { firstName: string; lastName: string; role?: string; departmentId?: string }) => {
+      return await apiRequest("POST", "/api/technicians", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/technicians"] });
+      setTechDialogOpen(false);
+      toast({ title: "Technician created successfully" });
+    },
+  });
+
+  // Update mutations
+  const updateActMutation = useMutation({
+    mutationFn: async (data: { id: string; name: string; sortOrder: number }) => {
+      return await apiRequest("PATCH", `/api/acts/${data.id}`, { name: data.name, sortOrder: data.sortOrder });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/acts"] });
+      setActDialogOpen(false);
+      setEditTarget(null);
+      toast({ title: "Act updated successfully" });
+    },
+  });
+
+  const updateDeptMutation = useMutation({
+    mutationFn: async (data: { id: string; name: string; sortOrder: number }) => {
+      return await apiRequest("PATCH", `/api/departments/${data.id}`, { name: data.name, sortOrder: data.sortOrder });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
+      setDeptDialogOpen(false);
+      setEditTarget(null);
+      toast({ title: "Department updated successfully" });
+    },
+  });
+
+  const updateLocationMutation = useMutation({
+    mutationFn: async (data: { id: string; name: string; sortOrder: number }) => {
+      return await apiRequest("PATCH", `/api/locations/${data.id}`, { name: data.name, sortOrder: data.sortOrder });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/locations"] });
+      setLocationDialogOpen(false);
+      setEditTarget(null);
+      toast({ title: "Location updated successfully" });
+    },
+  });
+
+  const updateGroupMutation = useMutation({
+    mutationFn: async (data: { id: string; name: string; sortOrder: number }) => {
+      return await apiRequest("PATCH", `/api/artist-groups/${data.id}`, { name: data.name, sortOrder: data.sortOrder });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artist-groups"] });
+      setGroupDialogOpen(false);
+      setEditTarget(null);
+      toast({ title: "Artist group updated successfully" });
+    },
+  });
+
+  const updateArtistMutation = useMutation({
+    mutationFn: async (data: { id: string; firstName: string; lastName: string; stageName?: string; artistGroupId?: string }) => {
+      return await apiRequest("PATCH", `/api/artists/${data.id}`, {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        stageName: data.stageName,
+        artistGroupId: data.artistGroupId,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artists"] });
+      setArtistDialogOpen(false);
+      setEditTarget(null);
+      toast({ title: "Artist updated successfully" });
+    },
+  });
+
+  const updateTechMutation = useMutation({
+    mutationFn: async (data: { id: string; firstName: string; lastName: string; role?: string; departmentId?: string }) => {
+      return await apiRequest("PATCH", `/api/technicians/${data.id}`, {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        role: data.role,
+        departmentId: data.departmentId,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/technicians"] });
+      setTechDialogOpen(false);
+      setEditTarget(null);
+      toast({ title: "Technician updated successfully" });
+    },
+  });
+
+  // Delete mutations
+  const deleteActMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/acts/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/acts"] });
+      toast({ title: "Act deleted successfully" });
+    },
+  });
+
+  const deleteDeptMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/departments/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
+      toast({ title: "Department deleted successfully" });
+    },
+  });
+
+  const deleteLocationMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/locations/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/locations"] });
+      toast({ title: "Location deleted successfully" });
+    },
+  });
+
+  const deleteGroupMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/artist-groups/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artist-groups"] });
+      toast({ title: "Artist group deleted successfully" });
+    },
+  });
+
+  const deleteArtistMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/artists/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artists"] });
+      toast({ title: "Artist deleted successfully" });
+    },
+  });
+
+  const deleteTechMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/technicians/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/technicians"] });
+      toast({ title: "Technician deleted successfully" });
+    },
+  });
+
+  // Report Template mutation
+  const saveTemplateMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("PUT", "/api/report-template", {
+        title,
+        leftImageUrl: leftImage || null,
+        rightImageUrl: rightImage || null,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/report-template"] });
+      toast({ title: "Report template saved successfully" });
+    },
+  });
+
+  const handleDelete = () => {
+    if (!deleteTarget) return;
+
+    const mutations: Record<string, any> = {
+      act: deleteActMutation,
+      department: deleteDeptMutation,
+      location: deleteLocationMutation,
+      group: deleteGroupMutation,
+      artist: deleteArtistMutation,
+      technician: deleteTechMutation,
+    };
+
+    mutations[deleteTarget.type]?.mutate(deleteTarget.id);
+    setDeleteDialogOpen(false);
+    setDeleteTarget(null);
+  };
+
+  const renderSimpleList = (items: SimpleItem[], type: string) => (
+    <div className="space-y-2">
+      {items.length === 0 ? (
+        <Card className="p-6 text-center text-muted-foreground">
+          <p>No items yet. Click "Add" to create one.</p>
+        </Card>
+      ) : (
+        items.map((item) => (
+          <Card key={item.id} className="p-3 flex items-center justify-between hover-elevate" data-testid={`card-${type}-${item.id}`}>
+            <p className="font-medium">{item.name}</p>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setEditTarget({ type, id: item.id, data: item });
+                  if (type === "act") setActDialogOpen(true);
+                  else if (type === "department") setDeptDialogOpen(true);
+                  else if (type === "location") setLocationDialogOpen(true);
+                  else if (type === "group") setGroupDialogOpen(true);
+                }}
+                data-testid={`button-edit-${type}-${item.id}`}
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setDeleteTarget({ type, id: item.id });
+                  setDeleteDialogOpen(true);
+                }}
+                data-testid={`button-delete-${type}-${item.id}`}
+              >
+                <Trash2 className="w-4 h-4 text-destructive" />
+              </Button>
+            </div>
+          </Card>
+        ))
+      )}
+    </div>
+  );
 
   return (
     <div className="flex-1 overflow-auto pb-20 md:pb-4">
@@ -103,8 +421,12 @@ export default function Settings() {
                 onRightImageChange={setRightImage}
               />
               <div className="mt-4">
-                <Button data-testid="button-save-template">
-                  Save Template
+                <Button
+                  onClick={() => saveTemplateMutation.mutate()}
+                  disabled={saveTemplateMutation.isPending}
+                  data-testid="button-save-template"
+                >
+                  {saveTemplateMutation.isPending ? "Saving..." : "Save Template"}
                 </Button>
               </div>
             </div>
@@ -113,7 +435,13 @@ export default function Settings() {
           <TabsContent value="acts" className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Acts</h2>
-              <Dialog>
+              <Dialog 
+                open={actDialogOpen} 
+                onOpenChange={(open) => {
+                  setActDialogOpen(open);
+                  if (!open) setEditTarget(null);
+                }}
+              >
                 <DialogTrigger asChild>
                   <Button data-testid="button-add-act">
                     <Plus className="w-4 h-4 mr-2" />
@@ -121,32 +449,68 @@ export default function Settings() {
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Act</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="act-name">Act Name</Label>
-                      <Input
-                        id="act-name"
-                        placeholder="Enter act name"
-                        data-testid="input-act-name"
-                      />
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.currentTarget);
+                      const name = formData.get("name") as string;
+                      
+                      if (editTarget?.type === "act") {
+                        updateActMutation.mutate({
+                          id: editTarget.id,
+                          name,
+                          sortOrder: editTarget.data.sortOrder,
+                        });
+                      } else {
+                        createActMutation.mutate({
+                          name,
+                          sortOrder: acts.length,
+                        });
+                      }
+                    }}
+                  >
+                    <DialogHeader>
+                      <DialogTitle>{editTarget?.type === "act" ? "Edit Act" : "Add Act"}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="act-name">Act Name</Label>
+                        <Input
+                          id="act-name"
+                          name="name"
+                          placeholder="Enter act name"
+                          required
+                          defaultValue={editTarget?.type === "act" ? editTarget.data.name : ""}
+                          data-testid="input-act-name"
+                        />
+                      </div>
                     </div>
-                    <Button className="w-full" data-testid="button-save-act">
-                      Save Act
-                    </Button>
-                  </div>
+                    <DialogFooter>
+                      <Button 
+                        type="submit" 
+                        disabled={createActMutation.isPending || updateActMutation.isPending} 
+                        data-testid="button-save-act"
+                      >
+                        {(createActMutation.isPending || updateActMutation.isPending) ? "Saving..." : editTarget?.type === "act" ? "Update Act" : "Save Act"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
                 </DialogContent>
               </Dialog>
             </div>
-            <DraggableList items={acts} onReorder={setActs} />
+            {renderSimpleList(acts, "act")}
           </TabsContent>
 
           <TabsContent value="departments" className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Departments</h2>
-              <Dialog>
+              <Dialog 
+                open={deptDialogOpen} 
+                onOpenChange={(open) => {
+                  setDeptDialogOpen(open);
+                  if (!open) setEditTarget(null);
+                }}
+              >
                 <DialogTrigger asChild>
                   <Button data-testid="button-add-department">
                     <Plus className="w-4 h-4 mr-2" />
@@ -154,32 +518,68 @@ export default function Settings() {
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Department</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="dept-name">Department Name</Label>
-                      <Input
-                        id="dept-name"
-                        placeholder="Enter department name"
-                        data-testid="input-department-name"
-                      />
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.currentTarget);
+                      const name = formData.get("name") as string;
+                      
+                      if (editTarget?.type === "department") {
+                        updateDeptMutation.mutate({
+                          id: editTarget.id,
+                          name,
+                          sortOrder: editTarget.data.sortOrder,
+                        });
+                      } else {
+                        createDeptMutation.mutate({
+                          name,
+                          sortOrder: departments.length,
+                        });
+                      }
+                    }}
+                  >
+                    <DialogHeader>
+                      <DialogTitle>{editTarget?.type === "department" ? "Edit Department" : "Add Department"}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="dept-name">Department Name</Label>
+                        <Input
+                          id="dept-name"
+                          name="name"
+                          placeholder="Enter department name"
+                          required
+                          defaultValue={editTarget?.type === "department" ? editTarget.data.name : ""}
+                          data-testid="input-department-name"
+                        />
+                      </div>
                     </div>
-                    <Button className="w-full" data-testid="button-save-department">
-                      Save Department
-                    </Button>
-                  </div>
+                    <DialogFooter>
+                      <Button 
+                        type="submit" 
+                        disabled={createDeptMutation.isPending || updateDeptMutation.isPending} 
+                        data-testid="button-save-department"
+                      >
+                        {(createDeptMutation.isPending || updateDeptMutation.isPending) ? "Saving..." : editTarget?.type === "department" ? "Update Department" : "Save Department"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
                 </DialogContent>
               </Dialog>
             </div>
-            <DraggableList items={departments} onReorder={setDepartments} />
+            {renderSimpleList(departments, "department")}
           </TabsContent>
 
           <TabsContent value="locations" className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Training Locations</h2>
-              <Dialog>
+              <Dialog 
+                open={locationDialogOpen} 
+                onOpenChange={(open) => {
+                  setLocationDialogOpen(open);
+                  if (!open) setEditTarget(null);
+                }}
+              >
                 <DialogTrigger asChild>
                   <Button data-testid="button-add-location">
                     <Plus className="w-4 h-4 mr-2" />
@@ -187,32 +587,68 @@ export default function Settings() {
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Training Location</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="location-name">Location Name</Label>
-                      <Input
-                        id="location-name"
-                        placeholder="e.g., Main Stage, Rehearsal Hall A"
-                        data-testid="input-location-name"
-                      />
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.currentTarget);
+                      const name = formData.get("name") as string;
+                      
+                      if (editTarget?.type === "location") {
+                        updateLocationMutation.mutate({
+                          id: editTarget.id,
+                          name,
+                          sortOrder: editTarget.data.sortOrder,
+                        });
+                      } else {
+                        createLocationMutation.mutate({
+                          name,
+                          sortOrder: locations.length,
+                        });
+                      }
+                    }}
+                  >
+                    <DialogHeader>
+                      <DialogTitle>{editTarget?.type === "location" ? "Edit Training Location" : "Add Training Location"}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="location-name">Location Name</Label>
+                        <Input
+                          id="location-name"
+                          name="name"
+                          placeholder="e.g., Main Stage, Rehearsal Hall A"
+                          required
+                          defaultValue={editTarget?.type === "location" ? editTarget.data.name : ""}
+                          data-testid="input-location-name"
+                        />
+                      </div>
                     </div>
-                    <Button className="w-full" data-testid="button-save-location">
-                      Save Location
-                    </Button>
-                  </div>
+                    <DialogFooter>
+                      <Button 
+                        type="submit" 
+                        disabled={createLocationMutation.isPending || updateLocationMutation.isPending} 
+                        data-testid="button-save-location"
+                      >
+                        {(createLocationMutation.isPending || updateLocationMutation.isPending) ? "Saving..." : editTarget?.type === "location" ? "Update Location" : "Save Location"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
                 </DialogContent>
               </Dialog>
             </div>
-            <DraggableList items={locations} onReorder={setLocations} />
+            {renderSimpleList(locations, "location")}
           </TabsContent>
 
           <TabsContent value="artist-groups" className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Artist Groups</h2>
-              <Dialog>
+              <Dialog 
+                open={groupDialogOpen} 
+                onOpenChange={(open) => {
+                  setGroupDialogOpen(open);
+                  if (!open) setEditTarget(null);
+                }}
+              >
                 <DialogTrigger asChild>
                   <Button data-testid="button-add-artist-group">
                     <Plus className="w-4 h-4 mr-2" />
@@ -220,26 +656,56 @@ export default function Settings() {
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Artist Group</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="group-name">Group Name</Label>
-                      <Input
-                        id="group-name"
-                        placeholder="Enter group name"
-                        data-testid="input-group-name"
-                      />
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.currentTarget);
+                      const name = formData.get("name") as string;
+                      
+                      if (editTarget?.type === "group") {
+                        updateGroupMutation.mutate({
+                          id: editTarget.id,
+                          name,
+                          sortOrder: editTarget.data.sortOrder,
+                        });
+                      } else {
+                        createGroupMutation.mutate({
+                          name,
+                          sortOrder: artistGroups.length,
+                        });
+                      }
+                    }}
+                  >
+                    <DialogHeader>
+                      <DialogTitle>{editTarget?.type === "group" ? "Edit Artist Group" : "Add Artist Group"}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="group-name">Group Name</Label>
+                        <Input
+                          id="group-name"
+                          name="name"
+                          placeholder="Enter group name"
+                          required
+                          defaultValue={editTarget?.type === "group" ? editTarget.data.name : ""}
+                          data-testid="input-group-name"
+                        />
+                      </div>
                     </div>
-                    <Button className="w-full" data-testid="button-save-group">
-                      Save Group
-                    </Button>
-                  </div>
+                    <DialogFooter>
+                      <Button 
+                        type="submit" 
+                        disabled={createGroupMutation.isPending || updateGroupMutation.isPending} 
+                        data-testid="button-save-group"
+                      >
+                        {(createGroupMutation.isPending || updateGroupMutation.isPending) ? "Saving..." : editTarget?.type === "group" ? "Update Group" : "Save Group"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
                 </DialogContent>
               </Dialog>
             </div>
-            <DraggableList items={artistGroups} onReorder={setArtistGroups} />
+            {renderSimpleList(artistGroups, "group")}
           </TabsContent>
 
           <TabsContent value="people" className="space-y-4">
@@ -251,7 +717,13 @@ export default function Settings() {
               <TabsContent value="artists" className="space-y-4 mt-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">Artists</h2>
-                  <Dialog>
+                  <Dialog 
+                    open={artistDialogOpen} 
+                    onOpenChange={(open) => {
+                      setArtistDialogOpen(open);
+                      if (!open) setEditTarget(null);
+                    }}
+                  >
                     <DialogTrigger asChild>
                       <Button data-testid="button-add-artist">
                         <Plus className="w-4 h-4 mr-2" />
@@ -259,36 +731,151 @@ export default function Settings() {
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Add Artist</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>First Name</Label>
-                            <Input placeholder="First name" data-testid="input-artist-firstname" />
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const formData = new FormData(e.currentTarget);
+                          const firstName = formData.get("firstName") as string;
+                          const lastName = formData.get("lastName") as string;
+                          const stageName = (formData.get("stageName") as string) || undefined;
+                          const artistGroupId = (formData.get("groupId") as string) || undefined;
+
+                          if (editTarget?.type === "artist") {
+                            updateArtistMutation.mutate({
+                              id: editTarget.id,
+                              firstName,
+                              lastName,
+                              stageName,
+                              artistGroupId,
+                            });
+                          } else {
+                            createArtistMutation.mutate({
+                              firstName,
+                              lastName,
+                              stageName,
+                              artistGroupId,
+                            });
+                          }
+                        }}
+                      >
+                        <DialogHeader>
+                          <DialogTitle>{editTarget?.type === "artist" ? "Edit Artist" : "Add Artist"}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>First Name</Label>
+                              <Input 
+                                name="firstName" 
+                                placeholder="First name" 
+                                required 
+                                defaultValue={editTarget?.type === "artist" ? editTarget.data.firstName : ""}
+                                data-testid="input-artist-firstname" 
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Last Name</Label>
+                              <Input 
+                                name="lastName" 
+                                placeholder="Last name" 
+                                required 
+                                defaultValue={editTarget?.type === "artist" ? editTarget.data.lastName : ""}
+                                data-testid="input-artist-lastname" 
+                              />
+                            </div>
                           </div>
                           <div className="space-y-2">
-                            <Label>Last Name</Label>
-                            <Input placeholder="Last name" data-testid="input-artist-lastname" />
+                            <Label>Stage Name (Optional)</Label>
+                            <Input 
+                              name="stageName" 
+                              placeholder="Stage name" 
+                              defaultValue={editTarget?.type === "artist" ? editTarget.data.stageName || "" : ""}
+                              data-testid="input-artist-stagename" 
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Group (Optional)</Label>
+                            <Select 
+                              name="groupId" 
+                              defaultValue={editTarget?.type === "artist" ? editTarget.data.artistGroupId || "" : ""}
+                            >
+                              <SelectTrigger data-testid="select-artist-group">
+                                <SelectValue placeholder="Select a group" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {artistGroups.map((group) => (
+                                  <SelectItem key={group.id} value={group.id}>
+                                    {group.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label>Stage Name (Optional)</Label>
-                          <Input placeholder="Stage name" data-testid="input-artist-stagename" />
-                        </div>
-                        <Button className="w-full" data-testid="button-save-artist">
-                          Save Artist
-                        </Button>
-                      </div>
+                        <DialogFooter>
+                          <Button 
+                            type="submit" 
+                            disabled={createArtistMutation.isPending || updateArtistMutation.isPending} 
+                            data-testid="button-save-artist"
+                          >
+                            {(createArtistMutation.isPending || updateArtistMutation.isPending) ? "Saving..." : editTarget?.type === "artist" ? "Update Artist" : "Save Artist"}
+                          </Button>
+                        </DialogFooter>
+                      </form>
                     </DialogContent>
                   </Dialog>
+                </div>
+                <div className="space-y-2">
+                  {artists.length === 0 ? (
+                    <Card className="p-6 text-center text-muted-foreground">
+                      <p>No artists yet. Click "Add Artist" to create one.</p>
+                    </Card>
+                  ) : (
+                    artists.map((artist) => (
+                      <Card key={artist.id} className="p-3 flex items-center justify-between hover-elevate" data-testid={`card-artist-${artist.id}`}>
+                        <div>
+                          <p className="font-medium">{artist.firstName} {artist.lastName}</p>
+                          {artist.stageName && <p className="text-sm text-muted-foreground">{artist.stageName}</p>}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditTarget({ type: "artist", id: artist.id, data: artist });
+                              setArtistDialogOpen(true);
+                            }}
+                            data-testid={`button-edit-artist-${artist.id}`}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setDeleteTarget({ type: "artist", id: artist.id });
+                              setDeleteDialogOpen(true);
+                            }}
+                            data-testid={`button-delete-artist-${artist.id}`}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </TabsContent>
               <TabsContent value="technicians" className="space-y-4 mt-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">Technicians</h2>
-                  <Dialog>
+                  <Dialog 
+                    open={techDialogOpen} 
+                    onOpenChange={(open) => {
+                      setTechDialogOpen(open);
+                      if (!open) setEditTarget(null);
+                    }}
+                  >
                     <DialogTrigger asChild>
                       <Button data-testid="button-add-technician">
                         <Plus className="w-4 h-4 mr-2" />
@@ -296,36 +883,162 @@ export default function Settings() {
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Add Technician</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>First Name</Label>
-                            <Input placeholder="First name" data-testid="input-tech-firstname" />
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const formData = new FormData(e.currentTarget);
+                          const firstName = formData.get("firstName") as string;
+                          const lastName = formData.get("lastName") as string;
+                          const role = (formData.get("role") as string) || undefined;
+                          const departmentId = (formData.get("departmentId") as string) || undefined;
+
+                          if (editTarget?.type === "technician") {
+                            updateTechMutation.mutate({
+                              id: editTarget.id,
+                              firstName,
+                              lastName,
+                              role,
+                              departmentId,
+                            });
+                          } else {
+                            createTechMutation.mutate({
+                              firstName,
+                              lastName,
+                              role,
+                              departmentId,
+                            });
+                          }
+                        }}
+                      >
+                        <DialogHeader>
+                          <DialogTitle>{editTarget?.type === "technician" ? "Edit Technician" : "Add Technician"}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>First Name</Label>
+                              <Input 
+                                name="firstName" 
+                                placeholder="First name" 
+                                required 
+                                defaultValue={editTarget?.type === "technician" ? editTarget.data.firstName : ""}
+                                data-testid="input-tech-firstname" 
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Last Name</Label>
+                              <Input 
+                                name="lastName" 
+                                placeholder="Last name" 
+                                required 
+                                defaultValue={editTarget?.type === "technician" ? editTarget.data.lastName : ""}
+                                data-testid="input-tech-lastname" 
+                              />
+                            </div>
                           </div>
                           <div className="space-y-2">
-                            <Label>Last Name</Label>
-                            <Input placeholder="Last name" data-testid="input-tech-lastname" />
+                            <Label>Role (Optional)</Label>
+                            <Input 
+                              name="role" 
+                              placeholder="Role" 
+                              defaultValue={editTarget?.type === "technician" ? editTarget.data.role || "" : ""}
+                              data-testid="input-tech-role" 
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Department (Optional)</Label>
+                            <Select 
+                              name="departmentId" 
+                              defaultValue={editTarget?.type === "technician" ? editTarget.data.departmentId || "" : ""}
+                            >
+                              <SelectTrigger data-testid="select-tech-department">
+                                <SelectValue placeholder="Select a department" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {departments.map((dept) => (
+                                  <SelectItem key={dept.id} value={dept.id}>
+                                    {dept.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label>Role (Optional)</Label>
-                          <Input placeholder="Role" data-testid="input-tech-role" />
-                        </div>
-                        <Button className="w-full" data-testid="button-save-technician">
-                          Save Technician
-                        </Button>
-                      </div>
+                        <DialogFooter>
+                          <Button 
+                            type="submit" 
+                            disabled={createTechMutation.isPending || updateTechMutation.isPending} 
+                            data-testid="button-save-technician"
+                          >
+                            {(createTechMutation.isPending || updateTechMutation.isPending) ? "Saving..." : editTarget?.type === "technician" ? "Update Technician" : "Save Technician"}
+                          </Button>
+                        </DialogFooter>
+                      </form>
                     </DialogContent>
                   </Dialog>
+                </div>
+                <div className="space-y-2">
+                  {technicians.length === 0 ? (
+                    <Card className="p-6 text-center text-muted-foreground">
+                      <p>No technicians yet. Click "Add Technician" to create one.</p>
+                    </Card>
+                  ) : (
+                    technicians.map((tech) => (
+                      <Card key={tech.id} className="p-3 flex items-center justify-between hover-elevate" data-testid={`card-technician-${tech.id}`}>
+                        <div>
+                          <p className="font-medium">{tech.firstName} {tech.lastName}</p>
+                          {tech.role && <p className="text-sm text-muted-foreground">{tech.role}</p>}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditTarget({ type: "technician", id: tech.id, data: tech });
+                              setTechDialogOpen(true);
+                            }}
+                            data-testid={`button-edit-technician-${tech.id}`}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setDeleteTarget({ type: "technician", id: tech.id });
+                              setDeleteDialogOpen(true);
+                            }}
+                            data-testid={`button-delete-technician-${tech.id}`}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </TabsContent>
             </Tabs>
           </TabsContent>
         </Tabs>
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this item.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
