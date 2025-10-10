@@ -164,6 +164,22 @@ export const insertArtistSchema = createInsertSchema(artists).omit({
 export type InsertArtist = z.infer<typeof insertArtistSchema>;
 export type Artist = typeof artists.$inferSelect;
 
+// Act Artists (junction table for many-to-many relationship)
+export const actArtists = pgTable("act_artists", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  actId: varchar("act_id").notNull().references(() => acts.id),
+  artistId: varchar("artist_id").notNull().references(() => artists.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertActArtistSchema = createInsertSchema(actArtists).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertActArtist = z.infer<typeof insertActArtistSchema>;
+export type ActArtist = typeof actArtists.$inferSelect;
+
 // Technicians
 export const technicians = pgTable("technicians", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
