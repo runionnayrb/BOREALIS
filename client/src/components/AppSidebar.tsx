@@ -33,12 +33,10 @@ export default function AppSidebar() {
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={isActive} data-testid={`nav-${item.title.toLowerCase().replace(" ", "-")}`}>
-                      <Link href={item.path}>
-                        <a className="flex items-center gap-3">
-                          <Icon className="w-4 h-4" />
-                          <span>{item.title}</span>
-                          {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
-                        </a>
+                      <Link href={item.path} className="flex items-center gap-3">
+                        <Icon className="w-4 h-4" />
+                        <span>{item.title}</span>
+                        {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
