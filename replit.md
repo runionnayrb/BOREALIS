@@ -4,12 +4,14 @@
 A production-ready full-stack web application for theatrical production training management. Stage Managers create daily training reports with rich text notes, track trainings by act/department/artist/location, assign technician leads, and export to PDF.
 
 ## Current State (Updated Oct 10, 2025)
-- ✅ PostgreSQL database with complete schema (users, acts, departments, location_types, locations, artists, technicians, reports, trainings, assignments)
+- ✅ PostgreSQL database with complete schema (users, scenes, acts, departments, location_types, locations, artists, technicians, reports, trainings, assignments)
 - ✅ Secure authentication system (login/signup with hashed passwords, session-based)
 - ✅ Profile management (update name, position, pronouns, email, password)
-- ✅ Settings management with full CRUD for all entities (acts, departments, location types, locations, artist groups, artists, technicians, report template)
+- ✅ Settings management with full CRUD for all entities (scenes, acts, departments, location types, locations, artist groups, artists, technicians, report template)
 - ✅ User management with active/inactive status control
-- ✅ Location types categorization (onstage, rehearsal room, dance studio, offstage, meetings, etc.)
+- ✅ **Scenes categorization**: Acts are organized by scenes (similar to location types → locations pattern)
+- ✅ **Location types categorization**: Locations organized by types (onstage, rehearsal room, dance studio, offstage, meetings, etc.)
+- ✅ **Grouped display**: Acts and locations are displayed grouped by their parent category with count badges
 - ✅ Reports CRUD with audit trail (createdBy, updatedBy, timestamps)
 - ✅ Trainings CRUD with location assignment and audit trail
 - ✅ Department assignments per training
@@ -22,7 +24,10 @@ A production-ready full-stack web application for theatrical production training
 ## Design Decisions
 - **One report per day** containing all trainings (simplified model)
 - **Location assigned to training** (training happens at a location)
-- **Locations grouped by type**: In Settings, locations are organized by their assigned location types for better visibility
+- **Hierarchical organization pattern**: Both Acts and Locations use a parent→child structure
+  - **Scenes → Acts**: Acts are optionally grouped by scenes for better organization
+  - **Location Types → Locations**: Locations are optionally grouped by types (onstage, rehearsal room, etc.)
+- **Grouped display in Settings**: Acts and locations are displayed grouped by their parent category with count badges and "NO [PARENT]" sections for ungrouped items
 - **All Stage Managers see same interface** (no user-based filtering)
 - **Global report header/footer template** in Settings (applies to all reports)
 - **Audit trail enabled**: All reports and trainings track who created/updated them with timestamps
@@ -35,7 +40,8 @@ A production-ready full-stack web application for theatrical production training
 ## Database Schema
 ### Core Tables
 - `users` - Stage Managers with auth and profile info (id, email, password, name, position, pronouns, active)
-- `acts` - Performance acts (id, name, sortOrder)
+- `scenes` - Performance scenes (id, name, sortOrder) - parent category for acts
+- `acts` - Performance acts (id, name, sceneId, sortOrder) - sceneId is optional foreign key to scenes
 - `departments` - Technical departments (id, name, sortOrder)
 - `location_types` - Location categories (id, name, sortOrder) - e.g., onstage, rehearsal room, dance studio, offstage, meetings
 - `locations` - Training locations (id, name, locationTypeId, sortOrder) - locationTypeId is optional foreign key to location_types
@@ -65,7 +71,8 @@ A production-ready full-stack web application for theatrical production training
 - POST `/api/user/change-password` - Change password
 
 ### Settings (All with CRUD)
-- `/api/acts` - Acts management
+- `/api/scenes` - Scenes management (categories for organizing acts)
+- `/api/acts` - Acts management (with optional sceneId)
 - `/api/departments` - Departments management
 - `/api/location-types` - Location types management (categories for organizing locations)
 - `/api/locations` - Locations management (with optional locationTypeId)
