@@ -7,7 +7,7 @@ import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Report, Training, Act, Department, Location, Artist, Technician, DepartmentAssignment, User } from "@shared/schema";
+import type { Report, Training, Act, Department, Location, Artist, Technician, DepartmentAssignment, SafeUser } from "@shared/schema";
 import {
   Dialog,
   DialogContent,
@@ -58,7 +58,10 @@ export default function ReportEditor() {
   const { data: locations = [] } = useQuery<Location[]>({ queryKey: ['/api/locations'] });
   const { data: artists = [] } = useQuery<Artist[]>({ queryKey: ['/api/artists'] });
   const { data: technicians = [] } = useQuery<Technician[]>({ queryKey: ['/api/technicians'] });
-  const { data: users = [] } = useQuery<User[]>({ queryKey: ['/api/users'] });
+  const { data: users = [] } = useQuery<SafeUser[]>({ queryKey: ['/api/users'] });
+  
+  // Filter active users for SM on Duty dropdown
+  const activeUsers = users.filter(user => user.active === 1);
 
   useEffect(() => {
     if (report) {
@@ -195,14 +198,26 @@ export default function ReportEditor() {
             />
             <div className="flex items-center gap-2 flex-1">
               <Label className="text-sm text-muted-foreground whitespace-nowrap">SM on Duty:</Label>
-              <Input
-                type="text"
+              <Select
                 value={stageManagerOnDuty}
-                onChange={(e) => setStageManagerOnDuty(e.target.value)}
-                placeholder="Enter name"
-                className="max-w-[250px]"
-                data-testid="input-sm-on-duty"
-              />
+                onValueChange={setStageManagerOnDuty}
+              >
+                <SelectTrigger className="max-w-[250px]" data-testid="select-sm-on-duty">
+                  <SelectValue placeholder="Select stage manager" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeUsers.map((user) => (
+                    <SelectItem key={user.id} value={user.name || user.email}>
+                      {user.name || user.email}
+                    </SelectItem>
+                  ))}
+                  {activeUsers.length === 0 && (
+                    <SelectItem value="no-users" disabled>
+                      No active users available
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
