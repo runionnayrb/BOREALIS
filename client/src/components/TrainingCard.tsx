@@ -27,6 +27,7 @@ interface TrainingCardProps {
   artists: Artist[];
   technicians: Technician[];
   users: User[];
+  onEdit: (training: Training) => void;
 }
 
 export default function TrainingCard({
@@ -37,6 +38,7 @@ export default function TrainingCard({
   departments,
   technicians,
   users,
+  onEdit,
 }: TrainingCardProps) {
   const { toast } = useToast();
   
@@ -123,6 +125,7 @@ export default function TrainingCard({
             size="icon"
             data-testid={`button-edit-training-${training.id}`}
             className="w-9 h-9"
+            onClick={() => onEdit(training)}
           >
             <Pencil className="w-4 h-4" />
           </Button>

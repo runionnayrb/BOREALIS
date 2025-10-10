@@ -17,6 +17,7 @@ import {
   insertReportTemplateSchema,
   insertReportSchema,
   insertTrainingSchema,
+  updateTrainingSchema,
   insertDepartmentAssignmentSchema,
 } from "@shared/schema";
 
@@ -599,7 +600,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/trainings/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const validation = insertTrainingSchema.partial().omit({ createdBy: true, reportId: true }).safeParse(req.body);
+    const validation = updateTrainingSchema.safeParse(req.body);
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
     }

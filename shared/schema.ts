@@ -328,7 +328,16 @@ export const insertTrainingSchema = createInsertSchema(trainings).omit({
   { message: "Either sceneId or actId must be provided" }
 );
 
+export const updateTrainingSchema = createInsertSchema(trainings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  createdBy: true,
+  reportId: true,
+}).partial();
+
 export type InsertTraining = z.infer<typeof insertTrainingSchema>;
+export type UpdateTraining = z.infer<typeof updateTrainingSchema>;
 export type Training = typeof trainings.$inferSelect;
 
 // Department Assignments (per training)

@@ -38,6 +38,7 @@ export default function ReportEditor() {
   const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
   const [stageManagerOnDuty, setStageManagerOnDuty] = useState("");
   const [showAddTraining, setShowAddTraining] = useState(false);
+  const [editingTraining, setEditingTraining] = useState<Training | null>(null);
   
   const [selectedActId, setSelectedActId] = useState("");
   const [selectedLocationId, setSelectedLocationId] = useState("");
@@ -75,6 +76,23 @@ export default function ReportEditor() {
       setStageManagerOnDuty(report.stageManagerOnDuty || "");
     }
   }, [report]);
+
+  // Load training data when editing
+  useEffect(() => {
+    if (editingTraining) {
+      // Determine if it's a scene or act training
+      const value = editingTraining.sceneId 
+        ? `scene-${editingTraining.sceneId}` 
+        : editingTraining.actId || "";
+      
+      setSelectedActId(value);
+      setSelectedLocationId(editingTraining.locationId || "");
+      setStartTime(editingTraining.startTime);
+      setEndTime(editingTraining.endTime);
+      setTrainingNotes(editingTraining.notes || "");
+      setShowAddTraining(true);
+    }
+  }, [editingTraining]);
 
   // Fetch departments when scene or act is selected
   useEffect(() => {
@@ -162,6 +180,7 @@ export default function ReportEditor() {
       queryClient.invalidateQueries({ queryKey: ['/api/reports', reportId, 'trainings'] });
       toast({ title: "Training added successfully" });
       setShowAddTraining(false);
+      setEditingTraining(null);
       setSelectedActId("");
       setSelectedLocationId("");
       setStartTime("14:00");
@@ -171,6 +190,28 @@ export default function ReportEditor() {
     },
     onError: () => {
       toast({ title: "Failed to add training", variant: "destructive" });
+    },
+  });
+
+  const updateTrainingMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest('PATCH', `/api/trainings/${editingTraining!.id}`, data);
+      return await res.json() as Training;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/reports', reportId, 'trainings'] });
+      toast({ title: "Training updated successfully" });
+      setShowAddTraining(false);
+      setEditingTraining(null);
+      setSelectedActId("");
+      setSelectedLocationId("");
+      setStartTime("14:00");
+      setEndTime("16:30");
+      setTrainingNotes("");
+      setActDepartmentIds([]);
+    },
+    onError: () => {
+      toast({ title: "Failed to update training", variant: "destructive" });
     },
   });
 
@@ -189,8 +230,8 @@ export default function ReportEditor() {
     }
   };
 
-  const handleAddTraining = async () => {
-    if (!reportId) {
+  const handleSubmitTraining = async () => {
+    if (!reportId && !editingTraining) {
       toast({ title: "Please save the report first", variant: "destructive" });
       return;
     }
@@ -228,8 +269,8 @@ export default function ReportEditor() {
     const actId = isScene ? null : selectedActId;
 
     const duration = calculateDuration();
-    createTrainingMutation.mutate({
-      reportId,
+    const trainingData = {
+      reportId: reportId || editingTraining?.reportId,
       sceneId: sceneId || undefined,
       actId: actId || undefined,
       locationId: finalLocationId || null,
@@ -237,7 +278,17 @@ export default function ReportEditor() {
       endTime,
       durationMinutes: duration,
       notes: trainingNotes,
-    });
+    };
+
+    if (editingTraining) {
+      updateTrainingMutation.mutate(trainingData);
+    } else {
+      createTrainingMutation.mutate(trainingData);
+    }
+  };
+
+  const handleEditTraining = (training: Training) => {
+    setEditingTraining(training);
   };
 
   const calculateDuration = () => {
@@ -348,7 +399,17 @@ export default function ReportEditor() {
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Training Sessions</h2>
-              <Dialog open={showAddTraining} onOpenChange={setShowAddTraining}>
+              <Dialog open={showAddTraining} onOpenChange={(open) => {
+                setShowAddTraining(open);
+                if (!open) {
+                  setEditingTraining(null);
+                  setSelectedActId("");
+                  setSelectedLocationId("");
+                  setStartTime("14:00");
+                  setEndTime("16:30");
+                  setTrainingNotes("");
+                }
+              }}>
                 <DialogTrigger asChild>
                   <Button data-testid="button-add-training">
                     <Plus className="h-4 w-4 mr-2 text-primary-foreground" />
@@ -357,7 +418,7 @@ export default function ReportEditor() {
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl">
                   <DialogHeader>
-                    <DialogTitle>Add Training Session</DialogTitle>
+                    <DialogTitle>{editingTraining ? "Edit Training Session" : "Add Training Session"}</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -373,9 +434,8 @@ export default function ReportEditor() {
                               if (sceneActs.length === 0) return null;
                               return (
                                 <SelectGroup key={scene.id}>
-                                  <SelectLabel>{scene.name}</SelectLabel>
-                                  <SelectItem value={`scene-${scene.id}`} className="font-semibold">
-                                    {scene.name} (Full Scene)
+                                  <SelectItem value={`scene-${scene.id}`}>
+                                    {scene.name}
                                   </SelectItem>
                                   {sceneActs.map((act) => (
                                     <SelectItem key={act.id} value={act.id} className="pl-12">
@@ -490,14 +550,14 @@ export default function ReportEditor() {
                         Cancel
                       </Button>
                       <Button
-                        onClick={handleAddTraining}
-                        disabled={createTrainingMutation.isPending || !selectedActId}
+                        onClick={handleSubmitTraining}
+                        disabled={createTrainingMutation.isPending || updateTrainingMutation.isPending || !selectedActId}
                         data-testid="button-confirm-training"
                       >
-                        {createTrainingMutation.isPending && (
+                        {(createTrainingMutation.isPending || updateTrainingMutation.isPending) && (
                           <Loader2 className="h-4 w-4 animate-spin mr-2 text-primary-foreground" />
                         )}
-                        Add Training
+                        {editingTraining ? "Update Training" : "Add Training"}
                       </Button>
                     </div>
                   </div>
@@ -522,6 +582,7 @@ export default function ReportEditor() {
                     artists={artists}
                     technicians={technicians}
                     users={users}
+                    onEdit={handleEditTraining}
                   />
                 ))
               )}

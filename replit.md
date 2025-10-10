@@ -31,11 +31,13 @@ A production-ready full-stack web application for theatrical production training
 - ✅ Mobile-first responsive design
 - ✅ Image upload for report template (left/right images)
 - ✅ **Hierarchical dropdowns in training modal**:
-  - **Scene/Act dropdown**: Shows scenes as group labels with indented acts nested underneath
-    - **Scenes are selectable**: Can select full scene for training (shows as "{Scene Name} (Full Scene)" with font-semibold)
-    - **Acts are selectable**: Can select individual acts for training (indented under their parent scene)
+  - **Scene/Act dropdown**: Scenes shown as selectable items with indented acts nested underneath
+    - **Scenes are selectable**: Can select full scene for training (shows just scene name, no suffix)
+    - **Acts are selectable**: Can select individual acts for training (indented under their parent scene with `pl-12`)
+    - Each scene appears only once (no duplicate as group label)
   - **Location dropdown**: "FULL STAGE" option at top, then location types as group labels with indented locations nested underneath
   - Visual indentation (`pl-12`) applied to nested items for better readability
+- ✅ **Training edit functionality**: Edit existing trainings with pre-populated form data and proper update flow
 
 ## Design Decisions
 - **One report per day** containing all trainings (simplified model)
@@ -154,3 +156,4 @@ A production-ready full-stack web application for theatrical production training
 - All queries use TanStack Query for data fetching with automatic caching
 - All mutations invalidate relevant query caches for real-time updates
 - Toast notifications for all user actions (create, update, delete)
+- Training schema uses `insertTrainingSchema` for creation (with scene/act validation via `.refine()`) and `updateTrainingSchema` for partial updates
