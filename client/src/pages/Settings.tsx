@@ -254,12 +254,19 @@ export default function Settings() {
 
   // Create mutations
   const createSceneMutation = useMutation({
-    mutationFn: async (data: { name: string; sortOrder: number }) => {
-      return await apiRequest("POST", "/api/scenes", data);
+    mutationFn: async (data: { name: string; sortOrder: number; departmentIds: string[]; artistGroupIds: string[]; artistIds: string[] }) => {
+      const scene = await apiRequest("POST", "/api/scenes", { name: data.name, sortOrder: data.sortOrder });
+      await apiRequest("POST", `/api/scenes/${scene.id}/departments`, { departmentIds: data.departmentIds });
+      await apiRequest("POST", `/api/scenes/${scene.id}/artist-groups`, { artistGroupIds: data.artistGroupIds });
+      await apiRequest("POST", `/api/scenes/${scene.id}/artists`, { artistIds: data.artistIds });
+      return scene;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/scenes"] });
       setSceneDialogOpen(false);
+      setSelectedSceneDepartmentIds([]);
+      setSelectedSceneArtistGroupIds([]);
+      setSelectedSceneArtistIds([]);
       toast({ title: "Scene created successfully" });
     },
   });
@@ -382,13 +389,20 @@ export default function Settings() {
   });
 
   const updateSceneMutation = useMutation({
-    mutationFn: async (data: { id: string; name: string; sortOrder: number }) => {
-      return await apiRequest("PATCH", `/api/scenes/${data.id}`, { name: data.name, sortOrder: data.sortOrder });
+    mutationFn: async (data: { id: string; name: string; sortOrder: number; departmentIds: string[]; artistGroupIds: string[]; artistIds: string[] }) => {
+      const scene = await apiRequest("PATCH", `/api/scenes/${data.id}`, { name: data.name, sortOrder: data.sortOrder });
+      await apiRequest("POST", `/api/scenes/${data.id}/departments`, { departmentIds: data.departmentIds });
+      await apiRequest("POST", `/api/scenes/${data.id}/artist-groups`, { artistGroupIds: data.artistGroupIds });
+      await apiRequest("POST", `/api/scenes/${data.id}/artists`, { artistIds: data.artistIds });
+      return scene;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/scenes"] });
       setSceneDialogOpen(false);
       setEditTarget(null);
+      setSelectedSceneDepartmentIds([]);
+      setSelectedSceneArtistGroupIds([]);
+      setSelectedSceneArtistIds([]);
       toast({ title: "Scene updated successfully" });
     },
   });
@@ -1078,33 +1092,39 @@ export default function Settings() {
                       Scenes
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Manage Scenes</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                      <form
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          const formData = new FormData(e.currentTarget);
-                          const name = formData.get("name") as string;
-                          
-                          if (editTarget?.type === "scene") {
-                            updateSceneMutation.mutate({
-                              id: editTarget.id,
-                              name,
-                              sortOrder: editTarget.data.sortOrder,
-                            });
-                          } else {
-                            createSceneMutation.mutate({
-                              name,
-                              sortOrder: scenes.length,
-                            });
-                          }
-                          e.currentTarget.reset();
-                        }}
-                      >
-                        <div className="flex gap-2">
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.currentTarget);
+                        const name = formData.get("name") as string;
+                        
+                        if (editTarget?.type === "scene") {
+                          updateSceneMutation.mutate({
+                            id: editTarget.id,
+                            name,
+                            sortOrder: editTarget.data.sortOrder,
+                            departmentIds: selectedSceneDepartmentIds,
+                            artistGroupIds: selectedSceneArtistGroupIds,
+                            artistIds: selectedSceneArtistIds,
+                          });
+                        } else {
+                          createSceneMutation.mutate({
+                            name,
+                            sortOrder: scenes.length,
+                            departmentIds: selectedSceneDepartmentIds,
+                            artistGroupIds: selectedSceneArtistGroupIds,
+                            artistIds: selectedSceneArtistIds,
+                          });
+                        }
+                      }}
+                    >
+                      <DialogHeader>
+                        <DialogTitle>{editTarget?.type === "scene" ? "Edit Scene" : "Add Scene"}</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="scene-name">Scene Name</Label>
                           <Input
                             id="scene-name"
                             name="name"
@@ -1113,51 +1133,207 @@ export default function Settings() {
                             required
                             data-testid="input-scene-name"
                           />
-                          <Button 
-                            type="submit"
-                            disabled={createSceneMutation.isPending || updateSceneMutation.isPending}
-                            data-testid="button-save-scene"
-                          >
-                            {editTarget?.type === "scene" ? "Update" : "Add"}
-                          </Button>
                         </div>
-                      </form>
-                      <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                        {scenes.map((scene) => (
-                          <Card key={scene.id} className="p-3 flex items-center justify-between" data-testid={`card-scene-${scene.id}`}>
-                            <p className="font-medium">{scene.name}</p>
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setEditTarget({ type: "scene", id: scene.id, data: scene });
-                                }}
-                                data-testid={`button-edit-scene-${scene.id}`}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setDeleteTarget({ type: "scene", id: scene.id });
-                                  setDeleteDialogOpen(true);
-                                }}
-                                data-testid={`button-delete-scene-${scene.id}`}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </Card>
-                        ))}
-                        {scenes.length === 0 && (
-                          <Card className="p-6 text-center text-muted-foreground">
-                            <p>No scenes yet. Add one above.</p>
-                          </Card>
-                        )}
+
+                        <div className="space-y-2">
+                          <Label>Departments</Label>
+                          <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
+                            {departments.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">No departments available</p>
+                            ) : (
+                              departments.map((dept) => (
+                                <div key={dept.id} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`scene-dept-${dept.id}`}
+                                    checked={selectedSceneDepartmentIds.includes(dept.id)}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        setSelectedSceneDepartmentIds([...selectedSceneDepartmentIds, dept.id]);
+                                      } else {
+                                        setSelectedSceneDepartmentIds(selectedSceneDepartmentIds.filter(id => id !== dept.id));
+                                      }
+                                    }}
+                                    data-testid={`checkbox-scene-dept-${dept.id}`}
+                                  />
+                                  <Label
+                                    htmlFor={`scene-dept-${dept.id}`}
+                                    className="text-sm font-normal cursor-pointer flex-1"
+                                  >
+                                    {dept.name}
+                                  </Label>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Artist Groups & Artists</Label>
+                          <div className="border rounded-md p-3 space-y-3 max-h-64 overflow-y-auto">
+                            {artists.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">No artists available</p>
+                            ) : (
+                              <>
+                                {artistGroups.map((group) => {
+                                  const groupArtists = artists.filter(a => a.artistGroupId === group.id);
+                                  if (groupArtists.length === 0) return null;
+                                  
+                                  const allArtistsSelected = groupArtists.every(a => selectedSceneArtistIds.includes(a.id));
+                                  const someArtistsSelected = groupArtists.some(a => selectedSceneArtistIds.includes(a.id)) && !allArtistsSelected;
+                                  
+                                  return (
+                                    <div key={group.id} className="space-y-2">
+                                      <div className="flex items-center space-x-2 pb-1 border-b">
+                                        <Checkbox
+                                          id={`scene-artist-group-${group.id}`}
+                                          checked={selectedSceneArtistGroupIds.includes(group.id) || allArtistsSelected}
+                                          data-state={someArtistsSelected ? "indeterminate" : undefined}
+                                          onCheckedChange={(checked) => {
+                                            if (checked) {
+                                              setSelectedSceneArtistGroupIds([...selectedSceneArtistGroupIds, group.id]);
+                                              const groupArtistIds = groupArtists.map(a => a.id);
+                                              setSelectedSceneArtistIds([...new Set([...selectedSceneArtistIds, ...groupArtistIds])]);
+                                            } else {
+                                              setSelectedSceneArtistGroupIds(selectedSceneArtistGroupIds.filter(id => id !== group.id));
+                                              const groupArtistIds = groupArtists.map(a => a.id);
+                                              setSelectedSceneArtistIds(selectedSceneArtistIds.filter(id => !groupArtistIds.includes(id)));
+                                            }
+                                          }}
+                                          data-testid={`checkbox-scene-artist-group-${group.id}`}
+                                        />
+                                        <Label
+                                          htmlFor={`scene-artist-group-${group.id}`}
+                                          className="text-sm font-semibold cursor-pointer flex-1"
+                                        >
+                                          {group.name}
+                                        </Label>
+                                      </div>
+                                      
+                                      <div className="pl-6 space-y-2">
+                                        {groupArtists.map((artist) => {
+                                          const displayName = artist.stageName || `${artist.firstName} ${artist.lastName}`;
+                                          return (
+                                            <div key={artist.id} className="flex items-center space-x-2">
+                                              <Checkbox
+                                                id={`scene-artist-${artist.id}`}
+                                                checked={selectedSceneArtistIds.includes(artist.id)}
+                                                onCheckedChange={(checked) => {
+                                                  if (checked) {
+                                                    setSelectedSceneArtistIds([...selectedSceneArtistIds, artist.id]);
+                                                  } else {
+                                                    setSelectedSceneArtistIds(selectedSceneArtistIds.filter(id => id !== artist.id));
+                                                    setSelectedSceneArtistGroupIds(selectedSceneArtistGroupIds.filter(id => id !== group.id));
+                                                  }
+                                                }}
+                                                data-testid={`checkbox-scene-artist-${artist.id}`}
+                                              />
+                                              <Label
+                                                htmlFor={`scene-artist-${artist.id}`}
+                                                className="text-sm font-normal cursor-pointer flex-1"
+                                              >
+                                                <div>
+                                                  <div>{displayName}</div>
+                                                  {artist.role && (
+                                                    <div className="text-xs text-muted-foreground">{artist.role}</div>
+                                                  )}
+                                                </div>
+                                              </Label>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                                
+                                {artists.filter(a => !a.artistGroupId).length > 0 && (
+                                  <div className="space-y-2">
+                                    <div className="text-sm font-semibold pb-1 border-b">No Group</div>
+                                    <div className="space-y-2">
+                                      {artists.filter(a => !a.artistGroupId).map((artist) => {
+                                        const displayName = artist.stageName || `${artist.firstName} ${artist.lastName}`;
+                                        return (
+                                          <div key={artist.id} className="flex items-center space-x-2">
+                                            <Checkbox
+                                              id={`scene-artist-${artist.id}`}
+                                              checked={selectedSceneArtistIds.includes(artist.id)}
+                                              onCheckedChange={(checked) => {
+                                                if (checked) {
+                                                  setSelectedSceneArtistIds([...selectedSceneArtistIds, artist.id]);
+                                                } else {
+                                                  setSelectedSceneArtistIds(selectedSceneArtistIds.filter(id => id !== artist.id));
+                                                }
+                                              }}
+                                              data-testid={`checkbox-scene-artist-${artist.id}`}
+                                            />
+                                            <Label
+                                              htmlFor={`scene-artist-${artist.id}`}
+                                              className="text-sm font-normal cursor-pointer flex-1"
+                                            >
+                                              <div>
+                                                <div>{displayName}</div>
+                                                {artist.role && (
+                                                  <div className="text-xs text-muted-foreground">{artist.role}</div>
+                                                )}
+                                              </div>
+                                            </Label>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                      <DialogFooter>
+                        <Button 
+                          type="submit" 
+                          disabled={createSceneMutation.isPending || updateSceneMutation.isPending}
+                          data-testid="button-save-scene"
+                        >
+                          {editTarget?.type === "scene" ? "Update Scene" : "Add Scene"}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                    
+                    {!editTarget && scenes.length > 0 && (
+                      <div className="border-t pt-4">
+                        <h3 className="font-semibold mb-3">Existing Scenes</h3>
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                          {scenes.map((scene) => (
+                            <Card key={scene.id} className="p-3 flex items-center justify-between" data-testid={`card-scene-${scene.id}`}>
+                              <p className="font-medium">{scene.name}</p>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditTarget({ type: "scene", id: scene.id, data: scene });
+                                  }}
+                                  data-testid={`button-edit-scene-${scene.id}`}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setDeleteTarget({ type: "scene", id: scene.id });
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                  data-testid={`button-delete-scene-${scene.id}`}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </DialogContent>
                 </Dialog>
                 <Dialog 
