@@ -2,6 +2,8 @@ import { Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { useRef } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ReportHeaderProps {
   leftImageUrl?: string;
@@ -22,6 +24,60 @@ export default function ReportHeader({
   onMiddleTitleChange,
   onRightImageChange,
 }: ReportHeaderProps) {
+  const leftFileInputRef = useRef<HTMLInputElement>(null);
+  const rightFileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    onImageChange?: (url: string) => void
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
+      event.target.value = ''; // Clear input
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 2MB",
+        variant: "destructive",
+      });
+      event.target.value = ''; // Clear input
+      return;
+    }
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64String = e.target?.result as string;
+      onImageChange?.(base64String);
+      toast({
+        title: "Image uploaded successfully",
+      });
+      event.target.value = ''; // Clear input to allow re-uploading same file
+    };
+    reader.onerror = () => {
+      toast({
+        title: "Upload failed",
+        description: "Failed to read the image file",
+        variant: "destructive",
+      });
+      event.target.value = ''; // Clear input
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="border border-border rounded-md p-6 bg-card">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -31,14 +87,27 @@ export default function ReportHeader({
             <Input
               id="left-image"
               type="text"
-              placeholder="Image URL"
+              placeholder="Image URL or upload below"
               value={leftImageUrl || ''}
               onChange={(e) => onLeftImageChange?.(e.target.value)}
               data-testid="input-left-image"
             />
-            <Button variant="outline" size="sm" data-testid="button-upload-left">
-              <Upload className="w-4 h-4 mr-2" />
-              Upload
+            <input
+              ref={leftFileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleFileUpload(e, onLeftImageChange)}
+              data-testid="file-input-left"
+            />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => leftFileInputRef.current?.click()}
+              data-testid="button-upload-left"
+            >
+              <Upload className="w-4 h-4 mr-2 text-foreground" />
+              Upload Image
             </Button>
             {leftImageUrl && (
               <img
@@ -70,14 +139,27 @@ export default function ReportHeader({
             <Input
               id="right-image"
               type="text"
-              placeholder="Image URL"
+              placeholder="Image URL or upload below"
               value={rightImageUrl || ''}
               onChange={(e) => onRightImageChange?.(e.target.value)}
               data-testid="input-right-image"
             />
-            <Button variant="outline" size="sm" data-testid="button-upload-right">
-              <Upload className="w-4 h-4 mr-2" />
-              Upload
+            <input
+              ref={rightFileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleFileUpload(e, onRightImageChange)}
+              data-testid="file-input-right"
+            />
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => rightFileInputRef.current?.click()}
+              data-testid="button-upload-right"
+            >
+              <Upload className="w-4 h-4 mr-2 text-foreground" />
+              Upload Image
             </Button>
             {rightImageUrl && (
               <img
