@@ -11,6 +11,9 @@ import {
   insertArtistSchema,
   insertTechnicianSchema,
   insertReportTemplateSchema,
+  insertReportSchema,
+  insertTrainingSchema,
+  insertDepartmentAssignmentSchema,
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -304,6 +307,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const template = await storage.updateReportTemplate(validation.data, req.user!.id);
     res.json(template);
+  });
+
+  // Reports routes
+  app.get("/api/reports", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const reports = await storage.getAllReports();
+    res.json(reports);
+  });
+
+  app.get("/api/reports/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const report = await storage.getReport(req.params.id);
+    if (!report) return res.sendStatus(404);
+    res.json(report);
+  });
+
+  app.get("/api/reports/date/:date", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const report = await storage.getReportByDate(req.params.date);
+    res.json(report || null);
+  });
+
+  app.post("/api/reports", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const validation = insertReportSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const report = await storage.createReport(validation.data, req.user!.id);
+    res.json(report);
+  });
+
+  app.patch("/api/reports/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const validation = insertReportSchema.partial().omit({ createdBy: true }).safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const report = await storage.updateReport(req.params.id, validation.data, req.user!.id);
+    if (!report) return res.sendStatus(404);
+    res.json(report);
+  });
+
+  app.delete("/api/reports/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    await storage.deleteReport(req.params.id);
+    res.sendStatus(204);
+  });
+
+  // Trainings routes
+  app.get("/api/reports/:reportId/trainings", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const trainings = await storage.getTrainingsByReportId(req.params.reportId);
+    res.json(trainings);
+  });
+
+  app.get("/api/trainings/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const training = await storage.getTraining(req.params.id);
+    if (!training) return res.sendStatus(404);
+    res.json(training);
+  });
+
+  app.post("/api/trainings", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const validation = insertTrainingSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const training = await storage.createTraining(validation.data, req.user!.id);
+    res.json(training);
+  });
+
+  app.patch("/api/trainings/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const validation = insertTrainingSchema.partial().omit({ createdBy: true, reportId: true }).safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const training = await storage.updateTraining(req.params.id, validation.data, req.user!.id);
+    if (!training) return res.sendStatus(404);
+    res.json(training);
+  });
+
+  app.delete("/api/trainings/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    await storage.deleteTraining(req.params.id);
+    res.sendStatus(204);
+  });
+
+  // Department Assignments routes
+  app.get("/api/trainings/:trainingId/assignments", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const assignments = await storage.getAssignmentsByTrainingId(req.params.trainingId);
+    res.json(assignments);
+  });
+
+  app.post("/api/assignments", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const validation = insertDepartmentAssignmentSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const assignment = await storage.createAssignment(validation.data);
+    res.json(assignment);
+  });
+
+  app.patch("/api/assignments/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const validation = insertDepartmentAssignmentSchema.partial().safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const assignment = await storage.updateAssignment(req.params.id, validation.data);
+    if (!assignment) return res.sendStatus(404);
+    res.json(assignment);
+  });
+
+  app.delete("/api/assignments/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    await storage.deleteAssignment(req.params.id);
+    res.sendStatus(204);
   });
 
   const httpServer = createServer(app);

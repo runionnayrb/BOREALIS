@@ -7,9 +7,12 @@ import {
   type Artist, type InsertArtist, artists,
   type Technician, type InsertTechnician, technicians,
   type ReportTemplate, type InsertReportTemplate, reportTemplate,
+  type Report, type InsertReport, reports,
+  type Training, type InsertTraining, trainings,
+  type DepartmentAssignment, type InsertDepartmentAssignment, departmentAssignments,
 } from "@shared/schema";
 import { db, pool } from "./db";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, desc } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import type { Store } from "express-session";
@@ -69,6 +72,27 @@ export interface IStorage {
   // Report Template
   getReportTemplate(): Promise<ReportTemplate | undefined>;
   updateReportTemplate(updates: Partial<InsertReportTemplate>, userId: string): Promise<ReportTemplate>;
+  
+  // Reports
+  getAllReports(): Promise<Report[]>;
+  getReport(id: string): Promise<Report | undefined>;
+  getReportByDate(date: string): Promise<Report | undefined>;
+  createReport(report: InsertReport, userId: string): Promise<Report>;
+  updateReport(id: string, updates: Partial<Omit<InsertReport, 'createdBy'>>, userId: string): Promise<Report | undefined>;
+  deleteReport(id: string): Promise<void>;
+  
+  // Trainings
+  getTrainingsByReportId(reportId: string): Promise<Training[]>;
+  getTraining(id: string): Promise<Training | undefined>;
+  createTraining(training: InsertTraining, userId: string): Promise<Training>;
+  updateTraining(id: string, updates: Partial<Omit<InsertTraining, 'createdBy' | 'reportId'>>, userId: string): Promise<Training | undefined>;
+  deleteTraining(id: string): Promise<void>;
+  
+  // Department Assignments
+  getAssignmentsByTrainingId(trainingId: string): Promise<DepartmentAssignment[]>;
+  createAssignment(assignment: InsertDepartmentAssignment): Promise<DepartmentAssignment>;
+  updateAssignment(id: string, updates: Partial<InsertDepartmentAssignment>): Promise<DepartmentAssignment | undefined>;
+  deleteAssignment(id: string): Promise<void>;
   
   sessionStore: Store;
 }
@@ -280,6 +304,92 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return result[0];
     }
+  }
+
+  // Reports
+  async getAllReports(): Promise<Report[]> {
+    return await db.select().from(reports).orderBy(desc(reports.date));
+  }
+
+  async getReport(id: string): Promise<Report | undefined> {
+    const result = await db.select().from(reports).where(eq(reports.id, id));
+    return result[0];
+  }
+
+  async getReportByDate(date: string): Promise<Report | undefined> {
+    const result = await db.select().from(reports).where(eq(reports.date, date));
+    return result[0];
+  }
+
+  async createReport(report: InsertReport, userId: string): Promise<Report> {
+    const result = await db
+      .insert(reports)
+      .values({ ...report, createdBy: userId, updatedBy: userId })
+      .returning();
+    return result[0];
+  }
+
+  async updateReport(id: string, updates: Partial<Omit<InsertReport, 'createdBy'>>, userId: string): Promise<Report | undefined> {
+    const result = await db
+      .update(reports)
+      .set({ ...updates, updatedBy: userId, updatedAt: new Date() })
+      .where(eq(reports.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteReport(id: string): Promise<void> {
+    await db.delete(reports).where(eq(reports.id, id));
+  }
+
+  // Trainings
+  async getTrainingsByReportId(reportId: string): Promise<Training[]> {
+    return await db.select().from(trainings).where(eq(trainings.reportId, reportId));
+  }
+
+  async getTraining(id: string): Promise<Training | undefined> {
+    const result = await db.select().from(trainings).where(eq(trainings.id, id));
+    return result[0];
+  }
+
+  async createTraining(training: InsertTraining, userId: string): Promise<Training> {
+    const result = await db
+      .insert(trainings)
+      .values({ ...training, createdBy: userId, updatedBy: userId })
+      .returning();
+    return result[0];
+  }
+
+  async updateTraining(id: string, updates: Partial<Omit<InsertTraining, 'createdBy' | 'reportId'>>, userId: string): Promise<Training | undefined> {
+    const result = await db
+      .update(trainings)
+      .set({ ...updates, updatedBy: userId, updatedAt: new Date() })
+      .where(eq(trainings.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteTraining(id: string): Promise<void> {
+    await db.delete(trainings).where(eq(trainings.id, id));
+  }
+
+  // Department Assignments
+  async getAssignmentsByTrainingId(trainingId: string): Promise<DepartmentAssignment[]> {
+    return await db.select().from(departmentAssignments).where(eq(departmentAssignments.trainingId, trainingId));
+  }
+
+  async createAssignment(assignment: InsertDepartmentAssignment): Promise<DepartmentAssignment> {
+    const result = await db.insert(departmentAssignments).values(assignment).returning();
+    return result[0];
+  }
+
+  async updateAssignment(id: string, updates: Partial<InsertDepartmentAssignment>): Promise<DepartmentAssignment | undefined> {
+    const result = await db.update(departmentAssignments).set(updates).where(eq(departmentAssignments.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteAssignment(id: string): Promise<void> {
+    await db.delete(departmentAssignments).where(eq(departmentAssignments.id, id));
   }
 }
 
