@@ -22,6 +22,7 @@ A production-ready full-stack web application for theatrical production training
 ## Design Decisions
 - **One report per day** containing all trainings (simplified model)
 - **Location assigned to training** (training happens at a location)
+- **Locations grouped by type**: In Settings, locations are organized by their assigned location types for better visibility
 - **All Stage Managers see same interface** (no user-based filtering)
 - **Global report header/footer template** in Settings (applies to all reports)
 - **Audit trail enabled**: All reports and trainings track who created/updated them with timestamps
