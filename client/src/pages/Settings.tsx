@@ -1417,7 +1417,6 @@ export default function Settings() {
                           const formData = new FormData(e.currentTarget);
                           const firstName = formData.get("firstName") as string;
                           const lastName = formData.get("lastName") as string;
-                          const technicianName = (formData.get("technicianName") as string) || undefined;
                           const role = (formData.get("role") as string) || undefined;
                           const departmentId = (formData.get("departmentId") as string) || undefined;
 
@@ -1426,14 +1425,14 @@ export default function Settings() {
                               id: editTarget.id,
                               firstName,
                               lastName,
-                              role: technicianName || role,
+                              role,
                               departmentId,
                             });
                           } else {
                             createTechMutation.mutate({
                               firstName,
                               lastName,
-                              role: technicianName || role,
+                              role,
                               departmentId,
                             });
                           }
@@ -1443,15 +1442,6 @@ export default function Settings() {
                           <DialogTitle>{editTarget?.type === "technician" ? "Edit Technician" : "Add Technician"}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
-                          <div className="space-y-2">
-                            <Label>Technician Name</Label>
-                            <Input 
-                              name="technicianName" 
-                              placeholder="Technician name" 
-                              defaultValue={editTarget?.type === "technician" ? editTarget.data.role || "" : ""}
-                              data-testid="input-tech-name" 
-                            />
-                          </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label>First Name</Label>
