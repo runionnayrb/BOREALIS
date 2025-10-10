@@ -35,7 +35,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { 
-  Act, Department, Location, ArtistGroup, Artist, Technician, ReportTemplate, SafeUser 
+  Act, Department, LocationType, Location, ArtistGroup, Artist, Technician, ReportTemplate, SafeUser 
 } from "@shared/schema";
 
 type SimpleItem = {
@@ -48,6 +48,7 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState("acts");
   const [actDialogOpen, setActDialogOpen] = useState(false);
   const [deptDialogOpen, setDeptDialogOpen] = useState(false);
+  const [locationTypeDialogOpen, setLocationTypeDialogOpen] = useState(false);
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   const [artistDialogOpen, setArtistDialogOpen] = useState(false);
@@ -61,6 +62,7 @@ export default function Settings() {
   // Fetch all settings data
   const { data: acts = [] } = useQuery<Act[]>({ queryKey: ["/api/acts"] });
   const { data: departments = [] } = useQuery<Department[]>({ queryKey: ["/api/departments"] });
+  const { data: locationTypes = [] } = useQuery<LocationType[]>({ queryKey: ["/api/location-types"] });
   const { data: locations = [] } = useQuery<Location[]>({ queryKey: ["/api/locations"] });
   const { data: artistGroups = [] } = useQuery<ArtistGroup[]>({ queryKey: ["/api/artist-groups"] });
   const { data: artists = [] } = useQuery<Artist[]>({ queryKey: ["/api/artists"] });
@@ -102,6 +104,17 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
       setDeptDialogOpen(false);
       toast({ title: "Department created successfully" });
+    },
+  });
+
+  const createLocationTypeMutation = useMutation({
+    mutationFn: async (data: { name: string; sortOrder: number }) => {
+      return await apiRequest("POST", "/api/location-types", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/location-types"] });
+      setLocationTypeDialogOpen(false);
+      toast({ title: "Location type created successfully" });
     },
   });
 
@@ -171,6 +184,18 @@ export default function Settings() {
       setDeptDialogOpen(false);
       setEditTarget(null);
       toast({ title: "Department updated successfully" });
+    },
+  });
+
+  const updateLocationTypeMutation = useMutation({
+    mutationFn: async (data: { id: string; name: string; sortOrder: number }) => {
+      return await apiRequest("PATCH", `/api/location-types/${data.id}`, { name: data.name, sortOrder: data.sortOrder });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/location-types"] });
+      setLocationTypeDialogOpen(false);
+      setEditTarget(null);
+      toast({ title: "Location type updated successfully" });
     },
   });
 
@@ -253,6 +278,16 @@ export default function Settings() {
     },
   });
 
+  const deleteLocationTypeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/location-types/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/location-types"] });
+      toast({ title: "Location type deleted successfully" });
+    },
+  });
+
   const deleteLocationMutation = useMutation({
     mutationFn: async (id: string) => {
       return await apiRequest("DELETE", `/api/locations/${id}`);
@@ -325,6 +360,7 @@ export default function Settings() {
     const mutations: Record<string, any> = {
       act: deleteActMutation,
       department: deleteDeptMutation,
+      "location-type": deleteLocationTypeMutation,
       location: deleteLocationMutation,
       group: deleteGroupMutation,
       artist: deleteArtistMutation,
@@ -354,6 +390,7 @@ export default function Settings() {
                   setEditTarget({ type, id: item.id, data: item });
                   if (type === "act") setActDialogOpen(true);
                   else if (type === "department") setDeptDialogOpen(true);
+                  else if (type === "location-type") setLocationTypeDialogOpen(true);
                   else if (type === "location") setLocationDialogOpen(true);
                   else if (type === "group") setGroupDialogOpen(true);
                 }}
@@ -589,68 +626,165 @@ export default function Settings() {
           <TabsContent value="locations" className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Training Locations</h2>
-              <Dialog 
-                open={locationDialogOpen} 
-                onOpenChange={(open) => {
-                  setLocationDialogOpen(open);
-                  if (!open) setEditTarget(null);
-                }}
-              >
-                <DialogTrigger asChild>
-                  <Button data-testid="button-add-location">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Location
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const formData = new FormData(e.currentTarget);
-                      const name = formData.get("name") as string;
-                      
-                      if (editTarget?.type === "location") {
-                        updateLocationMutation.mutate({
-                          id: editTarget.id,
-                          name,
-                          sortOrder: editTarget.data.sortOrder,
-                        });
-                      } else {
-                        createLocationMutation.mutate({
-                          name,
-                          sortOrder: locations.length,
-                        });
-                      }
-                    }}
-                  >
+              <div className="flex items-center gap-2">
+                <Dialog 
+                  open={locationTypeDialogOpen} 
+                  onOpenChange={(open) => {
+                    setLocationTypeDialogOpen(open);
+                    if (!open) setEditTarget(null);
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button variant="outline" data-testid="button-manage-location-types">
+                      <SettingsIcon className="w-4 h-4 mr-2" />
+                      Location Types
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
                     <DialogHeader>
-                      <DialogTitle>{editTarget?.type === "location" ? "Edit Training Location" : "Add Training Location"}</DialogTitle>
+                      <DialogTitle>Manage Location Types</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="location-name">Location Name</Label>
-                        <Input
-                          id="location-name"
-                          name="name"
-                          placeholder="e.g., Main Stage, Rehearsal Hall A"
-                          required
-                          defaultValue={editTarget?.type === "location" ? editTarget.data.name : ""}
-                          data-testid="input-location-name"
-                        />
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const formData = new FormData(e.currentTarget);
+                          const name = formData.get("type-name") as string;
+                          
+                          if (editTarget?.type === "location-type") {
+                            updateLocationTypeMutation.mutate({
+                              id: editTarget.id,
+                              name,
+                              sortOrder: editTarget.data.sortOrder,
+                            });
+                          } else {
+                            createLocationTypeMutation.mutate({
+                              name,
+                              sortOrder: locationTypes.length,
+                            });
+                          }
+                          e.currentTarget.reset();
+                        }}
+                      >
+                        <div className="flex gap-2">
+                          <Input
+                            id="type-name"
+                            name="type-name"
+                            placeholder={editTarget?.type === "location-type" ? "Update type name" : "e.g., Onstage, Rehearsal Room"}
+                            required
+                            defaultValue={editTarget?.type === "location-type" ? editTarget.data.name : ""}
+                            data-testid="input-location-type-name"
+                          />
+                          <Button 
+                            type="submit" 
+                            disabled={createLocationTypeMutation.isPending || updateLocationTypeMutation.isPending}
+                            data-testid="button-save-location-type"
+                          >
+                            {editTarget?.type === "location-type" ? "Update" : "Add"}
+                          </Button>
+                        </div>
+                      </form>
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                        {locationTypes.map((locType) => (
+                          <Card key={locType.id} className="p-3 flex items-center justify-between" data-testid={`card-location-type-${locType.id}`}>
+                            <p className="font-medium">{locType.name}</p>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setEditTarget({ type: "location-type", id: locType.id, data: locType });
+                                }}
+                                data-testid={`button-edit-location-type-${locType.id}`}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setDeleteTarget({ type: "location-type", id: locType.id });
+                                  setDeleteDialogOpen(true);
+                                }}
+                                data-testid={`button-delete-location-type-${locType.id}`}
+                              >
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </Card>
+                        ))}
+                        {locationTypes.length === 0 && (
+                          <Card className="p-6 text-center text-muted-foreground">
+                            <p>No location types yet. Add one above.</p>
+                          </Card>
+                        )}
                       </div>
                     </div>
-                    <DialogFooter>
-                      <Button 
-                        type="submit" 
-                        disabled={createLocationMutation.isPending || updateLocationMutation.isPending} 
-                        data-testid="button-save-location"
+                  </DialogContent>
+                </Dialog>
+                <Dialog 
+                  open={locationDialogOpen} 
+                  onOpenChange={(open) => {
+                    setLocationDialogOpen(open);
+                    if (!open) setEditTarget(null);
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button data-testid="button-add-location">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Location
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const formData = new FormData(e.currentTarget);
+                          const name = formData.get("name") as string;
+                          
+                          if (editTarget?.type === "location") {
+                            updateLocationMutation.mutate({
+                              id: editTarget.id,
+                              name,
+                              sortOrder: editTarget.data.sortOrder,
+                            });
+                          } else {
+                            createLocationMutation.mutate({
+                              name,
+                              sortOrder: locations.length,
+                            });
+                          }
+                        }}
                       >
-                        {(createLocationMutation.isPending || updateLocationMutation.isPending) ? "Saving..." : editTarget?.type === "location" ? "Update Location" : "Save Location"}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
+                        <DialogHeader>
+                          <DialogTitle>{editTarget?.type === "location" ? "Edit Training Location" : "Add Training Location"}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="location-name">Location Name</Label>
+                            <Input
+                              id="location-name"
+                              name="name"
+                              placeholder="e.g., Main Stage, Rehearsal Hall A"
+                              required
+                              defaultValue={editTarget?.type === "location" ? editTarget.data.name : ""}
+                              data-testid="input-location-name"
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button 
+                            type="submit" 
+                            disabled={createLocationMutation.isPending || updateLocationMutation.isPending} 
+                            data-testid="button-save-location"
+                          >
+                            {(createLocationMutation.isPending || updateLocationMutation.isPending) ? "Saving..." : editTarget?.type === "location" ? "Update Location" : "Save Location"}
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
             </div>
             {renderSimpleList(locations, "location")}
           </TabsContent>
