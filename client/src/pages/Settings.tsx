@@ -1312,6 +1312,15 @@ export default function Settings() {
                             </div>
                           </div>
                           <div className="space-y-2">
+                            <Label>Role</Label>
+                            <Input 
+                              name="role" 
+                              placeholder="Character name or position" 
+                              defaultValue={editTarget?.type === "artist" ? editTarget.data.role || "" : ""}
+                              data-testid="input-artist-role" 
+                            />
+                          </div>
+                          <div className="space-y-2">
                             <Label>Group</Label>
                             <Select 
                               name="groupId" 
@@ -1329,15 +1338,6 @@ export default function Settings() {
                                 ))}
                               </SelectContent>
                             </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Role</Label>
-                            <Input 
-                              name="role" 
-                              placeholder="Character name or position" 
-                              defaultValue={editTarget?.type === "artist" ? editTarget.data.role || "" : ""}
-                              data-testid="input-artist-role" 
-                            />
                           </div>
                         </div>
                         <DialogFooter>
