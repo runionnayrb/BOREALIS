@@ -19,16 +19,16 @@ export default function MobileNav() {
           const isActive = location === tab.path || (tab.path === "/settings" && location.startsWith("/settings"));
           
           return (
-            <Link key={tab.path} href={tab.path}>
-              <a
-                data-testid={`tab-${tab.label.toLowerCase().replace(" ", "-")}`}
-                className={`flex flex-col items-center justify-center gap-1 hover-elevate transition-colors ${
-                  isActive ? "text-primary" : "text-muted-foreground"
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="text-xs font-medium">{tab.label}</span>
-              </a>
+            <Link
+              key={tab.path}
+              href={tab.path}
+              data-testid={`tab-${tab.label.toLowerCase().replace(" ", "-")}`}
+              className={`flex flex-col items-center justify-center gap-1 hover-elevate transition-colors ${
+                isActive ? "text-primary" : "text-muted-foreground"
+              }`}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="text-xs font-medium">{tab.label}</span>
             </Link>
           );
         })}

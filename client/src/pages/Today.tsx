@@ -3,7 +3,7 @@ import TrainingCard from "@/components/TrainingCard";
 import EmptyState from "@/components/EmptyState";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import type { Report, Training, Act, Department, Location, Artist, Technician, User } from "@shared/schema";
+import type { Report, Training, Scene, Act, Department, Location, Artist, Technician, User } from "@shared/schema";
 
 export default function Today() {
   const [, setLocation] = useLocation();
@@ -18,6 +18,7 @@ export default function Today() {
     enabled: !!todayReport?.id,
   });
 
+  const { data: scenes = [] } = useQuery<Scene[]>({ queryKey: ['/api/scenes'] });
   const { data: acts = [] } = useQuery<Act[]>({ queryKey: ['/api/acts'] });
   const { data: departments = [] } = useQuery<Department[]>({ queryKey: ['/api/departments'] });
   const { data: locations = [] } = useQuery<Location[]>({ queryKey: ['/api/locations'] });
@@ -32,6 +33,12 @@ export default function Today() {
     month: 'long', 
     day: 'numeric' 
   });
+
+  const handleEditTraining = (training: Training) => {
+    if (todayReport) {
+      setLocation(`/reports/${todayReport.date}`);
+    }
+  };
 
   return (
     <div className="flex-1 overflow-auto pb-20 md:pb-4">
@@ -51,12 +58,14 @@ export default function Today() {
               <TrainingCard
                 key={training.id}
                 training={training}
+                scenes={scenes}
                 acts={acts}
                 locations={locations}
                 departments={departments}
                 artists={artists}
                 technicians={technicians}
                 users={users}
+                onEdit={handleEditTraining}
               />
             ))}
           </div>
