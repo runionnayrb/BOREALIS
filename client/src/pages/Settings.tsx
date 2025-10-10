@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Users, Briefcase, Theater, UsersRound } from "lucide-react";
+import { Plus, Users, Briefcase, Theater, UsersRound, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import ReportHeader from "@/components/ReportHeader";
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("acts");
@@ -38,18 +39,26 @@ export default function Settings() {
     { id: '3', content: <Card className="p-3 flex-1"><p className="font-medium">Wheel Team</p></Card> },
   ]);
 
+  const [leftImage, setLeftImage] = useState("");
+  const [title, setTitle] = useState("Training Report");
+  const [rightImage, setRightImage] = useState("");
+
   return (
     <div className="flex-1 overflow-auto pb-20 md:pb-4">
       <div className="max-w-6xl mx-auto p-4 md:p-8">
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-bold mb-2">Settings</h1>
           <p className="text-sm text-muted-foreground">
-            Manage acts, departments, artists, and technicians
+            Manage acts, departments, artists, technicians, and report template
           </p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-5 mb-6">
+            <TabsTrigger value="report-template" data-testid="tab-report-template">
+              <FileText className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Template</span>
+            </TabsTrigger>
             <TabsTrigger value="acts" data-testid="tab-acts">
               <Theater className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Acts</span>
@@ -67,6 +76,29 @@ export default function Settings() {
               <span className="hidden sm:inline">People</span>
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="report-template" className="space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold mb-2">Report Template</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                This header design will be used for all training reports
+              </p>
+              <ReportHeader
+                leftImageUrl={leftImage}
+                middleTitle={title}
+                rightImageUrl={rightImage}
+                dateString="Thursday, October 9, 2025"
+                onLeftImageChange={setLeftImage}
+                onMiddleTitleChange={setTitle}
+                onRightImageChange={setRightImage}
+              />
+              <div className="mt-4">
+                <Button data-testid="button-save-template">
+                  Save Template
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
 
           <TabsContent value="acts" className="space-y-4">
             <div className="flex items-center justify-between">

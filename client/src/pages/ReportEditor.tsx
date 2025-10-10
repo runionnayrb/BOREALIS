@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { ArrowLeft, Download, Plus, Save } from "lucide-react";
+import { ArrowLeft, Download, Plus, Save, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ReportHeader from "@/components/ReportHeader";
 import RichTextEditor from "@/components/RichTextEditor";
 import TrainingCard from "@/components/TrainingCard";
 import { useLocation } from "wouter";
@@ -25,11 +24,9 @@ import { Textarea } from "@/components/ui/textarea";
 
 export default function ReportEditor() {
   const [, setLocation] = useLocation();
-  const [leftImage, setLeftImage] = useState("");
-  const [title, setTitle] = useState("Training Report");
-  const [rightImage, setRightImage] = useState("");
   const [content, setContent] = useState("");
   const [showAddTraining, setShowAddTraining] = useState(false);
+  const [reportDate, setReportDate] = useState("2025-10-09");
 
   //todo: remove mock functionality
   const [selectedAct, setSelectedAct] = useState("");
@@ -67,6 +64,16 @@ export default function ReportEditor() {
         { departmentName: "Safety", leadName: "Mike Chen" },
       ],
     },
+    {
+      id: "2",
+      actName: "Wheel",
+      startTime: "17:00",
+      endTime: "18:30",
+      durationMinutes: 90,
+      departments: [
+        { departmentName: "Lighting", leadName: "Alex Rivera" },
+      ],
+    },
   ];
 
   const calculateDuration = () => {
@@ -101,24 +108,42 @@ export default function ReportEditor() {
         </div>
 
         <div className="space-y-6">
-          <ReportHeader
-            leftImageUrl={leftImage}
-            middleTitle={title}
-            rightImageUrl={rightImage}
-            dateString="Thursday, October 9, 2025"
-            onLeftImageChange={setLeftImage}
-            onMiddleTitleChange={setTitle}
-            onRightImageChange={setRightImage}
-          />
+          <div className="border border-border rounded-md p-6 bg-card">
+            <div className="flex items-center gap-4 mb-4">
+              <Calendar className="w-5 h-5 text-muted-foreground" />
+              <div className="flex-1">
+                <Label htmlFor="report-date" className="text-base font-semibold">Report Date</Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  All trainings for this day will be included in one report
+                </p>
+              </div>
+            </div>
+            <Input
+              id="report-date"
+              type="date"
+              value={reportDate}
+              onChange={(e) => setReportDate(e.target.value)}
+              data-testid="input-report-date"
+              className="max-w-xs"
+            />
+            <p className="text-sm text-muted-foreground mt-2" data-testid="text-formatted-date">
+              Thursday, October 9, 2025
+            </p>
+          </div>
 
           <div>
-            <h2 className="text-lg font-semibold mb-4">Report Body</h2>
+            <h2 className="text-lg font-semibold mb-4">Report Notes</h2>
             <RichTextEditor content={content} onChange={setContent} />
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Trainings</h2>
+              <div>
+                <h2 className="text-lg font-semibold">Trainings for This Day</h2>
+                <p className="text-sm text-muted-foreground">
+                  All trainings scheduled for October 9, 2025
+                </p>
+              </div>
               <Dialog open={showAddTraining} onOpenChange={setShowAddTraining}>
                 <DialogTrigger asChild>
                   <Button data-testid="button-add-training">

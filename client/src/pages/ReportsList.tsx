@@ -11,11 +11,11 @@ export default function ReportsList() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
 
-  //todo: remove mock functionality
+  //todo: remove mock functionality - each report represents ONE day with all trainings
   const mockReports = [
-    { id: "1", title: "High Dive Training Report", date: "Thursday, October 9, 2025", trainingsCount: 3 },
-    { id: "2", title: "Wheel Act Training", date: "Wednesday, October 8, 2025", trainingsCount: 2 },
-    { id: "3", title: "House Sync Rehearsal", date: "Tuesday, October 7, 2025", trainingsCount: 1 },
+    { id: "1", title: "Thursday, October 9, 2025", date: "Thursday, October 9, 2025", trainingsCount: 3 },
+    { id: "2", title: "Wednesday, October 8, 2025", date: "Wednesday, October 8, 2025", trainingsCount: 2 },
+    { id: "3", title: "Tuesday, October 7, 2025", date: "Tuesday, October 7, 2025", trainingsCount: 1 },
   ];
 
   const filteredReports = mockReports.filter((report) =>
@@ -29,7 +29,7 @@ export default function ReportsList() {
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-2">Training Reports</h1>
             <p className="text-sm text-muted-foreground">
-              Manage and track all training documentation
+              One report per day with all trainings
             </p>
           </div>
           <Button onClick={() => setLocation("/new-report")} data-testid="button-create-report" className="hidden md:flex">
@@ -42,7 +42,7 @@ export default function ReportsList() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search reports..."
+            placeholder="Search reports by date..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
