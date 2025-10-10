@@ -79,12 +79,29 @@ export default function Settings() {
   // Load act departments when editing an act
   useEffect(() => {
     if (editTarget?.type === "act" && editTarget.id) {
-      fetch(`/api/acts/${editTarget.id}/departments`)
-        .then(res => res.json())
+      fetch(`/api/acts/${editTarget.id}/departments`, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        }
+      })
+        .then(async res => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Response is not JSON');
+          }
+          return res.json();
+        })
         .then(data => {
           setSelectedDepartmentIds(data.map((ad: any) => ad.departmentId));
         })
-        .catch(err => console.error("Error loading act departments:", err));
+        .catch(err => {
+          console.error("Error loading act departments:", err);
+          setSelectedDepartmentIds([]);
+        });
     } else if (!editTarget || editTarget.type !== "act") {
       setSelectedDepartmentIds([]);
     }

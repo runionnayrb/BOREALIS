@@ -42,6 +42,7 @@ export default function ReportEditor() {
   const [startTime, setStartTime] = useState("14:00");
   const [endTime, setEndTime] = useState("16:30");
   const [trainingNotes, setTrainingNotes] = useState("");
+  const [actDepartmentIds, setActDepartmentIds] = useState<string[]>([]);
 
   const { data: report, isLoading: reportLoading } = useQuery<Report>({
     queryKey: ['/api/reports', reportId!],
@@ -70,6 +71,37 @@ export default function ReportEditor() {
       setStageManagerOnDuty(report.stageManagerOnDuty || "");
     }
   }, [report]);
+
+  // Fetch act departments when act is selected
+  useEffect(() => {
+    if (selectedActId) {
+      fetch(`/api/acts/${selectedActId}/departments`, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        }
+      })
+        .then(async res => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Response is not JSON');
+          }
+          return res.json();
+        })
+        .then(data => {
+          setActDepartmentIds(data.map((ad: any) => ad.departmentId));
+        })
+        .catch(err => {
+          console.error("Error loading act departments:", err);
+          setActDepartmentIds([]);
+        });
+    } else {
+      setActDepartmentIds([]);
+    }
+  }, [selectedActId]);
 
   const createReportMutation = useMutation({
     mutationFn: async (data: { date: string; notes: string; stageManagerOnDuty: string }) => {
@@ -103,7 +135,20 @@ export default function ReportEditor() {
   const createTrainingMutation = useMutation({
     mutationFn: async (data: any) => {
       const res = await apiRequest('POST', '/api/trainings', data);
-      return await res.json() as Training;
+      const training = await res.json() as Training;
+      
+      // Auto-create department assignments for the act's required departments
+      if (actDepartmentIds.length > 0) {
+        for (const departmentId of actDepartmentIds) {
+          await apiRequest('POST', `/api/trainings/${training.id}/assignments`, {
+            departmentId,
+            leadTechnicianId: null,
+            notes: "",
+          });
+        }
+      }
+      
+      return training;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/reports', reportId, 'trainings'] });
@@ -114,6 +159,7 @@ export default function ReportEditor() {
       setStartTime("14:00");
       setEndTime("16:30");
       setTrainingNotes("");
+      setActDepartmentIds([]);
     },
     onError: () => {
       toast({ title: "Failed to add training", variant: "destructive" });
