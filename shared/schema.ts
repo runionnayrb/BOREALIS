@@ -11,6 +11,7 @@ export const users = pgTable("users", {
   name: text("name"),
   position: text("position"),
   pronouns: text("pronouns"),
+  active: integer("active").notNull().default(1), // 1 = active, 0 = inactive
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
