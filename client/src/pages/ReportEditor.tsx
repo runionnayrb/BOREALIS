@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Download, Plus, Save, Calendar } from "lucide-react";
+import { ArrowLeft, Download, Plus, Save, Calendar, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import RichTextEditor from "@/components/RichTextEditor";
 import TrainingCard from "@/components/TrainingCard";
@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 
 export default function ReportEditor() {
   const [, setLocation] = useLocation();
@@ -34,22 +35,56 @@ export default function ReportEditor() {
   const [endTime, setEndTime] = useState("16:30");
 
   const mockActs = [
-    { id: "1", name: "High Dive" },
-    { id: "2", name: "Wheel" },
-    { id: "3", name: "House Sync" },
-    { id: "4", name: "Finale" },
-  ];
-
-  const mockDepartments = [
-    { id: "1", name: "Rigging" },
-    { id: "2", name: "Safety" },
-    { id: "3", name: "Lighting" },
+    { 
+      id: "1", 
+      name: "High Dive",
+      departments: [
+        { id: "1", name: "Rigging" },
+        { id: "2", name: "Safety" },
+        { id: "3", name: "Lighting" },
+      ],
+      artists: [
+        { id: "1", name: "Elena Martinez", group: "Divers" },
+        { id: "2", name: "Marcus Chen", group: "Divers" },
+        { id: "3", name: "Sophia Kim", group: "Divers" },
+      ]
+    },
+    { 
+      id: "2", 
+      name: "Wheel",
+      departments: [
+        { id: "4", name: "Automation" },
+        { id: "3", name: "Lighting" },
+        { id: "5", name: "Sound" },
+      ],
+      artists: [
+        { id: "4", name: "Andre Silva", group: "Wheel Team" },
+        { id: "5", name: "Maya Patel", group: "Wheel Team" },
+      ]
+    },
+    { 
+      id: "3", 
+      name: "House Sync",
+      departments: [
+        { id: "1", name: "Rigging" },
+        { id: "4", name: "Automation" },
+        { id: "6", name: "Stage Management" },
+      ],
+      artists: [
+        { id: "6", name: "Lucas Torres", group: "Flyers" },
+        { id: "7", name: "Amara Johnson", group: "Flyers" },
+        { id: "8", name: "Jin Park", group: null },
+      ]
+    },
   ];
 
   const mockTechnicians = [
-    { id: "1", name: "Sarah Johnson", departmentId: "1" },
-    { id: "2", name: "Mike Chen", departmentId: "2" },
-    { id: "3", name: "Alex Rivera", departmentId: "3" },
+    { id: "1", name: "Sarah Johnson", departmentId: "1", role: "Rigging Lead" },
+    { id: "2", name: "Mike Chen", departmentId: "2", role: "Safety Officer" },
+    { id: "3", name: "Alex Rivera", departmentId: "3", role: "Lighting Director" },
+    { id: "4", name: "Jamie Lee", departmentId: "4", role: "Automation Tech" },
+    { id: "5", name: "Chris Taylor", departmentId: "5", role: "Sound Engineer" },
+    { id: "6", name: "Pat Morgan", departmentId: "6", role: "Stage Manager" },
   ];
 
   const mockTrainings = [
@@ -82,6 +117,8 @@ export default function ReportEditor() {
     const duration = (endHour * 60 + endMin) - (startHour * 60 + startMin);
     return duration;
   };
+
+  const selectedActData = mockActs.find(act => act.id === selectedAct);
 
   return (
     <div className="flex-1 overflow-auto pb-20 md:pb-4">
@@ -151,16 +188,16 @@ export default function ReportEditor() {
                     Add Training
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Add Training</DialogTitle>
                   </DialogHeader>
-                  <div className="space-y-4 py-4">
+                  <div className="space-y-6 py-4">
                     <div className="space-y-2">
-                      <Label>Act</Label>
+                      <Label>Select Act</Label>
                       <Select value={selectedAct} onValueChange={setSelectedAct}>
                         <SelectTrigger data-testid="select-act">
-                          <SelectValue placeholder="Select act" />
+                          <SelectValue placeholder="Choose an act for this training" />
                         </SelectTrigger>
                         <SelectContent>
                           {mockActs.map((act) => (
@@ -172,72 +209,131 @@ export default function ReportEditor() {
                       </Select>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Start Time</Label>
-                        <Input
-                          type="time"
-                          value={startTime}
-                          onChange={(e) => setStartTime(e.target.value)}
-                          data-testid="input-start-time"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>End Time</Label>
-                        <Input
-                          type="time"
-                          value={endTime}
-                          onChange={(e) => setEndTime(e.target.value)}
-                          data-testid="input-end-time"
-                        />
-                      </div>
-                    </div>
+                    {selectedActData && (
+                      <>
+                        <div className="border border-border rounded-md p-4 bg-muted/30 space-y-3">
+                          <div>
+                            <h3 className="text-sm font-semibold mb-2">Assigned Departments</h3>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedActData.departments.map((dept) => (
+                                <Badge key={dept.id} variant="secondary">
+                                  {dept.name}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <Users className="w-4 h-4" />
+                              <h3 className="text-sm font-semibold">Assigned Artists</h3>
+                            </div>
+                            <div className="space-y-1">
+                              {selectedActData.artists.map((artist) => (
+                                <div key={artist.id} className="text-sm flex items-center gap-2">
+                                  <span>{artist.name}</span>
+                                  {artist.group && (
+                                    <Badge variant="outline" className="text-xs">
+                                      {artist.group}
+                                    </Badge>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
 
-                    <div className="p-3 bg-muted rounded-md">
-                      <p className="text-sm font-medium">
-                        Duration: <span className="font-mono">{calculateDuration()} minutes</span>
-                      </p>
-                    </div>
-
-                    {selectedAct && (
-                      <div className="space-y-3">
-                        <Label>Department Leads</Label>
-                        {mockDepartments.map((dept) => (
-                          <div key={dept.id} className="p-3 border border-border rounded-md space-y-2">
-                            <p className="font-medium">{dept.name}</p>
-                            <Select>
-                              <SelectTrigger data-testid={`select-lead-${dept.id}`}>
-                                <SelectValue placeholder="Select lead technician" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {mockTechnicians
-                                  .filter((tech) => tech.departmentId === dept.id)
-                                  .map((tech) => (
-                                    <SelectItem key={tech.id} value={tech.id}>
-                                      {tech.name}
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
-                            <Textarea
-                              placeholder="Notes (optional)"
-                              data-testid={`input-notes-${dept.id}`}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Start Time</Label>
+                            <Input
+                              type="time"
+                              value={startTime}
+                              onChange={(e) => setStartTime(e.target.value)}
+                              data-testid="input-start-time"
                             />
                           </div>
-                        ))}
-                      </div>
+                          <div className="space-y-2">
+                            <Label>End Time</Label>
+                            <Input
+                              type="time"
+                              value={endTime}
+                              onChange={(e) => setEndTime(e.target.value)}
+                              data-testid="input-end-time"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="p-3 bg-primary/10 rounded-md border border-primary/20">
+                          <p className="text-sm font-medium">
+                            Duration: <span className="font-mono text-primary">{calculateDuration()} minutes</span>
+                          </p>
+                        </div>
+
+                        <div className="space-y-3">
+                          <Label>Department Lead Assignments</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Assign a lead technician for each department in this training
+                          </p>
+                          {selectedActData.departments.map((dept) => {
+                            const deptTechs = mockTechnicians.filter(
+                              (tech) => tech.departmentId === dept.id
+                            );
+                            
+                            return (
+                              <div key={dept.id} className="p-4 border border-border rounded-md space-y-3 bg-card">
+                                <div className="flex items-center justify-between">
+                                  <h4 className="font-medium">{dept.name}</h4>
+                                  <Badge variant="secondary" className="text-xs">
+                                    {deptTechs.length} technician{deptTechs.length !== 1 ? 's' : ''}
+                                  </Badge>
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-sm">Lead Technician</Label>
+                                  <Select>
+                                    <SelectTrigger data-testid={`select-lead-${dept.id}`}>
+                                      <SelectValue placeholder="Select lead technician" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {deptTechs.map((tech) => (
+                                        <SelectItem key={tech.id} value={tech.id}>
+                                          {tech.name} {tech.role && `- ${tech.role}`}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-sm">Notes (Optional)</Label>
+                                  <Textarea
+                                    placeholder="Special instructions or notes for this department..."
+                                    data-testid={`input-notes-${dept.id}`}
+                                    className="resize-none"
+                                    rows={2}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <Button
+                          className="w-full"
+                          onClick={() => {
+                            console.log("Save training");
+                            setShowAddTraining(false);
+                          }}
+                          data-testid="button-save-training"
+                        >
+                          Save Training
+                        </Button>
+                      </>
                     )}
 
-                    <Button
-                      className="w-full"
-                      onClick={() => {
-                        console.log("Save training");
-                        setShowAddTraining(false);
-                      }}
-                      data-testid="button-save-training"
-                    >
-                      Save Training
-                    </Button>
+                    {!selectedActData && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <p>Select an act to see assigned departments and artists</p>
+                      </div>
+                    )}
                   </div>
                 </DialogContent>
               </Dialog>
