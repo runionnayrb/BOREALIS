@@ -157,6 +157,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(204);
   });
 
+  // Scene Departments routes
+  app.get("/api/scenes/:id/departments", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const sceneDepartments = await storage.getSceneDepartments(req.params.id);
+    res.json(sceneDepartments);
+  });
+
+  app.post("/api/scenes/:id/departments", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const { departmentIds } = req.body;
+    if (!Array.isArray(departmentIds)) {
+      return res.status(400).json({ error: "departmentIds must be an array" });
+    }
+    await storage.setSceneDepartments(req.params.id, departmentIds);
+    const sceneDepartments = await storage.getSceneDepartments(req.params.id);
+    res.json(sceneDepartments);
+  });
+
+  // Scene Artist Groups routes
+  app.get("/api/scenes/:id/artist-groups", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const sceneArtistGroups = await storage.getSceneArtistGroups(req.params.id);
+    res.json(sceneArtistGroups);
+  });
+
+  app.post("/api/scenes/:id/artist-groups", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const { artistGroupIds } = req.body;
+    if (!Array.isArray(artistGroupIds)) {
+      return res.status(400).json({ error: "artistGroupIds must be an array" });
+    }
+    await storage.setSceneArtistGroups(req.params.id, artistGroupIds);
+    const sceneArtistGroups = await storage.getSceneArtistGroups(req.params.id);
+    res.json(sceneArtistGroups);
+  });
+
+  // Scene Artists routes
+  app.get("/api/scenes/:id/artists", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const sceneArtists = await storage.getSceneArtists(req.params.id);
+    res.json(sceneArtists);
+  });
+
+  app.post("/api/scenes/:id/artists", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const { artistIds } = req.body;
+    if (!Array.isArray(artistIds)) {
+      return res.status(400).json({ error: "artistIds must be an array" });
+    }
+    await storage.setSceneArtists(req.params.id, artistIds);
+    const sceneArtists = await storage.getSceneArtists(req.params.id);
+    res.json(sceneArtists);
+  });
+
   // Acts routes
   app.get("/api/acts", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -225,6 +279,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await storage.setActArtists(req.params.id, artistIds);
     const actArtists = await storage.getActArtists(req.params.id);
     res.json(actArtists);
+  });
+
+  // Act Artist Groups routes
+  app.get("/api/acts/:id/artist-groups", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const actArtistGroups = await storage.getActArtistGroups(req.params.id);
+    res.json(actArtistGroups);
+  });
+
+  app.post("/api/acts/:id/artist-groups", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const { artistGroupIds } = req.body;
+    if (!Array.isArray(artistGroupIds)) {
+      return res.status(400).json({ error: "artistGroupIds must be an array" });
+    }
+    await storage.setActArtistGroups(req.params.id, artistGroupIds);
+    const actArtistGroups = await storage.getActArtistGroups(req.params.id);
+    res.json(actArtistGroups);
   });
 
   // Departments routes
