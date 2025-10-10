@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, sanitizeUser, hashPassword } from "./auth";
 import { z } from "zod";
+import { db } from "./db";
+import { trainings } from "@shared/schema";
 import {
   insertActSchema,
   insertDepartmentSchema,
@@ -357,6 +359,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Trainings routes
+  app.get("/api/trainings/all", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const allTrainings = await db.select().from(trainings);
+    res.json(allTrainings);
+  });
+
   app.get("/api/reports/:reportId/trainings", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const trainings = await storage.getTrainingsByReportId(req.params.reportId);

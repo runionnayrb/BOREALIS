@@ -1,6 +1,18 @@
 import { FileText, Download, Pencil, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useState } from "react";
 
 interface ReportCardProps {
   id: string;
@@ -57,15 +69,40 @@ export default function ReportCard({
           >
             <Download className="w-4 h-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onDelete}
-            data-testid={`button-delete-report-${id}`}
-            className="w-9 h-9 text-destructive hover:text-destructive"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                data-testid={`button-delete-report-${id}`}
+                className="w-9 h-9 text-destructive hover:text-destructive"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Report?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this report? This will permanently delete the report and all associated training sessions. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel data-testid={`button-cancel-delete-${id}`}>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  asChild
+                  data-testid={`button-confirm-delete-${id}`}
+                >
+                  <Button
+                    onClick={onDelete}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Delete
+                  </Button>
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </Card>

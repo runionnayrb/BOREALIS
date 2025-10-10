@@ -1,4 +1,4 @@
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ReportCard from "@/components/ReportCard";
@@ -6,21 +6,49 @@ import EmptyState from "@/components/EmptyState";
 import { FileText } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { Report, Training } from "@shared/schema";
 
 export default function ReportsList() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
+  const { toast } = useToast();
 
-  //todo: remove mock functionality - each report represents ONE day with all trainings
-  const mockReports = [
-    { id: "1", title: "Thursday, October 9, 2025", date: "Thursday, October 9, 2025", trainingsCount: 3 },
-    { id: "2", title: "Wednesday, October 8, 2025", date: "Wednesday, October 8, 2025", trainingsCount: 2 },
-    { id: "3", title: "Tuesday, October 7, 2025", date: "Tuesday, October 7, 2025", trainingsCount: 1 },
-  ];
+  const { data: reports = [], isLoading } = useQuery<Report[]>({
+    queryKey: ['/api/reports'],
+  });
 
-  const filteredReports = mockReports.filter((report) =>
-    report.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const { data: allTrainings = [] } = useQuery<Training[]>({
+    queryKey: ['/api/trainings/all'],
+  });
+
+  const deleteReportMutation = useMutation({
+    mutationFn: async (reportId: string) => {
+      await apiRequest('DELETE', `/api/reports/${reportId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/reports'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/trainings/all'] });
+      toast({ title: "Report deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete report", variant: "destructive" });
+    },
+  });
+
+  const filteredReports = reports.filter((report) => {
+    const dateStr = new Date(report.date).toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    return dateStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           report.date.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           report.stageManagerOnDuty?.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   return (
     <div className="flex-1 overflow-auto pb-20 md:pb-4">
@@ -53,7 +81,11 @@ export default function ReportsList() {
           </p>
         </div>
 
-        {filteredReports.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : filteredReports.length === 0 ? (
           <EmptyState
             icon={FileText}
             title="No reports found"
@@ -63,15 +95,27 @@ export default function ReportsList() {
           />
         ) : (
           <div className="space-y-3">
-            {filteredReports.map((report) => (
-              <ReportCard
-                key={report.id}
-                {...report}
-                onEdit={() => setLocation(`/report/${report.id}`)}
-                onDelete={() => console.log("Delete", report.id)}
-                onExport={() => console.log("Export", report.id)}
-              />
-            ))}
+            {filteredReports.map((report) => {
+              const dateStr = new Date(report.date).toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              });
+              const trainingsCount = allTrainings.filter(t => t.reportId === report.id).length;
+              return (
+                <ReportCard
+                  key={report.id}
+                  id={report.id}
+                  title={dateStr}
+                  date={report.date}
+                  trainingsCount={trainingsCount}
+                  onEdit={() => setLocation(`/report/${report.id}`)}
+                  onDelete={() => deleteReportMutation.mutate(report.id)}
+                  onExport={() => console.log("Export", report.id)}
+                />
+              );
+            })}
           </div>
         )}
       </div>
