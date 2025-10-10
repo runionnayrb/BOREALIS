@@ -135,6 +135,7 @@ export const artists = pgTable("artists", {
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   stageName: text("stage_name"),
+  role: text("role"),
   artistGroupId: varchar("artist_group_id").references(() => artistGroups.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

@@ -1252,6 +1252,7 @@ export default function Settings() {
                           const firstName = formData.get("firstName") as string;
                           const lastName = formData.get("lastName") as string;
                           const stageName = formData.get("stageName") as string;
+                          const role = (formData.get("role") as string) || undefined;
                           const artistGroupId = formData.get("groupId") as string;
 
                           if (editTarget?.type === "artist") {
@@ -1260,6 +1261,7 @@ export default function Settings() {
                               firstName,
                               lastName,
                               stageName,
+                              role,
                               artistGroupId,
                             });
                           } else {
@@ -1267,6 +1269,7 @@ export default function Settings() {
                               firstName,
                               lastName,
                               stageName,
+                              role,
                               artistGroupId,
                             });
                           }
@@ -1326,6 +1329,15 @@ export default function Settings() {
                                 ))}
                               </SelectContent>
                             </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Role</Label>
+                            <Input 
+                              name="role" 
+                              placeholder="Character name or position" 
+                              defaultValue={editTarget?.type === "artist" ? editTarget.data.role || "" : ""}
+                              data-testid="input-artist-role" 
+                            />
                           </div>
                         </div>
                         <DialogFooter>
