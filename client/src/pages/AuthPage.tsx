@@ -65,18 +65,17 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          <div className="mb-8 text-center">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <TheaterIcon className="w-8 h-8 text-primary" />
-              <h1 className="text-3xl font-bold">La Perle Training Reports</h1>
-            </div>
-            <p className="text-muted-foreground">Stage Manager Portal</p>
+    <div className="min-h-screen flex items-center justify-center p-8">
+      <div className="w-full max-w-md">
+        <div className="mb-8 text-center">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <TheaterIcon className="w-8 h-8 text-primary" />
+            <h1 className="text-3xl font-bold">La Perle Training Reports</h1>
           </div>
+          <p className="text-muted-foreground">Stage Manager Portal</p>
+        </div>
 
-          <Card className="p-6">
+        <Card className="p-6">
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "login" | "register")}>
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="login" data-testid="tab-login">Login</TabsTrigger>
@@ -143,7 +142,7 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Full Name</FormLabel>
                           <FormControl>
-                            <Input {...field} data-testid="input-register-name" />
+                            <Input {...field} value={field.value || ""} data-testid="input-register-name" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -156,7 +155,7 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input type="email" {...field} data-testid="input-register-email" />
+                            <Input type="email" {...field} value={field.value || ""} data-testid="input-register-email" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -228,35 +227,6 @@ export default function AuthPage() {
             </Tabs>
           </Card>
         </div>
-      </div>
-
-      <div className="hidden lg:flex flex-1 bg-primary/5 items-center justify-center p-12">
-        <div className="max-w-md text-center">
-          <TheaterIcon className="w-16 h-16 text-primary mx-auto mb-6" />
-          <h2 className="text-3xl font-bold mb-4">Theatrical Training Management</h2>
-          <p className="text-lg text-muted-foreground mb-6">
-            Create comprehensive daily training reports with rich text notes, track trainings by act, department, artist, and location.
-          </p>
-          <ul className="text-left space-y-3 text-muted-foreground">
-            <li className="flex items-start gap-2">
-              <span className="text-primary">✓</span>
-              <span>One report per day containing all trainings</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-primary">✓</span>
-              <span>Assign department leads and track technicians</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-primary">✓</span>
-              <span>Comprehensive search across all training data</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-primary">✓</span>
-              <span>Export reports to PDF</span>
-            </li>
-          </ul>
-        </div>
-      </div>
     </div>
   );
 }
