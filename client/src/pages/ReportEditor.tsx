@@ -181,7 +181,7 @@ export default function ReportEditor() {
             onClick={() => setLocation("/")}
             data-testid="button-back"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-5 w-5 text-foreground" />
           </Button>
           <div className="flex items-center gap-3 flex-1">
             <Calendar className="h-5 w-5 text-muted-foreground" />
@@ -213,14 +213,14 @@ export default function ReportEditor() {
             data-testid="button-save-report"
           >
             {(createReportMutation.isPending || updateReportMutation.isPending) ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <Loader2 className="h-4 w-4 animate-spin mr-2 text-primary-foreground" />
             ) : (
-              <Save className="h-4 w-4 mr-2" />
+              <Save className="h-4 w-4 mr-2 text-primary-foreground" />
             )}
             {reportId ? "Save" : "Create Report"}
           </Button>
           <Button variant="outline" data-testid="button-export-pdf">
-            <Download className="h-4 w-4 mr-2" />
+            <Download className="h-4 w-4 mr-2 text-foreground" />
             Export PDF
           </Button>
         </div>
@@ -249,7 +249,7 @@ export default function ReportEditor() {
               <Dialog open={showAddTraining} onOpenChange={setShowAddTraining}>
                 <DialogTrigger asChild>
                   <Button data-testid="button-add-training">
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="h-4 w-4 mr-2 text-primary-foreground" />
                     Add Training
                   </Button>
                 </DialogTrigger>
@@ -345,7 +345,7 @@ export default function ReportEditor() {
                         data-testid="button-confirm-training"
                       >
                         {createTrainingMutation.isPending && (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          <Loader2 className="h-4 w-4 animate-spin mr-2 text-primary-foreground" />
                         )}
                         Add Training
                       </Button>
