@@ -1251,8 +1251,8 @@ export default function Settings() {
                           const formData = new FormData(e.currentTarget);
                           const firstName = formData.get("firstName") as string;
                           const lastName = formData.get("lastName") as string;
-                          const stageName = (formData.get("stageName") as string) || undefined;
-                          const artistGroupId = (formData.get("groupId") as string) || undefined;
+                          const stageName = formData.get("stageName") as string;
+                          const artistGroupId = formData.get("groupId") as string;
 
                           if (editTarget?.type === "artist") {
                             updateArtistMutation.mutate({
@@ -1276,6 +1276,16 @@ export default function Settings() {
                           <DialogTitle>{editTarget?.type === "artist" ? "Edit Artist" : "Add Artist"}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
+                          <div className="space-y-2">
+                            <Label>Artist Name</Label>
+                            <Input 
+                              name="stageName" 
+                              placeholder="Artist name" 
+                              required
+                              defaultValue={editTarget?.type === "artist" ? editTarget.data.stageName || "" : ""}
+                              data-testid="input-artist-stagename" 
+                            />
+                          </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label>First Name</Label>
@@ -1299,18 +1309,10 @@ export default function Settings() {
                             </div>
                           </div>
                           <div className="space-y-2">
-                            <Label>Stage Name (Optional)</Label>
-                            <Input 
-                              name="stageName" 
-                              placeholder="Stage name" 
-                              defaultValue={editTarget?.type === "artist" ? editTarget.data.stageName || "" : ""}
-                              data-testid="input-artist-stagename" 
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Group (Optional)</Label>
+                            <Label>Group</Label>
                             <Select 
                               name="groupId" 
+                              required
                               defaultValue={editTarget?.type === "artist" ? editTarget.data.artistGroupId || "" : ""}
                             >
                               <SelectTrigger data-testid="select-artist-group">
@@ -1428,6 +1430,15 @@ export default function Settings() {
                           <DialogTitle>{editTarget?.type === "technician" ? "Edit Technician" : "Add Technician"}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
+                          <div className="space-y-2">
+                            <Label>Role</Label>
+                            <Input 
+                              name="role" 
+                              placeholder="Role" 
+                              defaultValue={editTarget?.type === "technician" ? editTarget.data.role || "" : ""}
+                              data-testid="input-tech-role" 
+                            />
+                          </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label>First Name</Label>
@@ -1451,16 +1462,7 @@ export default function Settings() {
                             </div>
                           </div>
                           <div className="space-y-2">
-                            <Label>Role (Optional)</Label>
-                            <Input 
-                              name="role" 
-                              placeholder="Role" 
-                              defaultValue={editTarget?.type === "technician" ? editTarget.data.role || "" : ""}
-                              data-testid="input-tech-role" 
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Department (Optional)</Label>
+                            <Label>Department</Label>
                             <Select 
                               name="departmentId" 
                               defaultValue={editTarget?.type === "technician" ? editTarget.data.departmentId || "" : ""}
