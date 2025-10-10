@@ -18,7 +18,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { TheaterIcon } from "lucide-react";
+import logoPath from "@assets/la perle logo no background_1760100596227.png";
 
 const loginSchema = insertUserSchema.pick({ email: true, password: true });
 const registerSchema = insertUserSchema;
@@ -67,10 +67,10 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center p-8">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <TheaterIcon className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl font-bold">La Perle Training Reports</h1>
+          <div className="flex justify-center mb-6">
+            <img src={logoPath} alt="La Perle" className="h-24 w-auto" />
           </div>
+          <h1 className="text-3xl font-bold mb-2">La Perle Training Reports</h1>
           <p className="text-muted-foreground">Stage Manager Portal</p>
         </div>
 
