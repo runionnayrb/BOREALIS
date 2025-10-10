@@ -7,7 +7,7 @@ import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Report, Training, Act, Department, Location, Artist, Technician, DepartmentAssignment, SafeUser } from "@shared/schema";
+import type { Report, Training, Scene, Act, Department, LocationType, Location, Artist, Technician, DepartmentAssignment, SafeUser } from "@shared/schema";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +20,9 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -54,8 +56,10 @@ export default function ReportEditor() {
     enabled: !!reportId,
   });
 
+  const { data: scenes = [] } = useQuery<Scene[]>({ queryKey: ['/api/scenes'] });
   const { data: acts = [] } = useQuery<Act[]>({ queryKey: ['/api/acts'] });
   const { data: departments = [] } = useQuery<Department[]>({ queryKey: ['/api/departments'] });
+  const { data: locationTypes = [] } = useQuery<LocationType[]>({ queryKey: ['/api/location-types'] });
   const { data: locations = [] } = useQuery<Location[]>({ queryKey: ['/api/locations'] });
   const { data: artists = [] } = useQuery<Artist[]>({ queryKey: ['/api/artists'] });
   const { data: technicians = [] } = useQuery<Technician[]>({ queryKey: ['/api/technicians'] });
@@ -181,17 +185,44 @@ export default function ReportEditor() {
     }
   };
 
-  const handleAddTraining = () => {
+  const handleAddTraining = async () => {
     if (!reportId) {
       toast({ title: "Please save the report first", variant: "destructive" });
       return;
+    }
+
+    let finalLocationId = selectedLocationId;
+    
+    // Handle FULL_STAGE special case
+    if (selectedLocationId === "FULL_STAGE") {
+      // Find or create the FULL STAGE location
+      let fullStageLocation = locations.find(l => l.name === "FULL STAGE");
+      
+      if (!fullStageLocation) {
+        // Create the FULL STAGE location
+        try {
+          const res = await apiRequest('POST', '/api/locations', {
+            name: "FULL STAGE",
+            locationTypeId: null,
+            sortOrder: -1, // Sort first in the list
+          });
+          fullStageLocation = await res.json();
+          // Invalidate locations cache to update the list
+          queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
+        } catch (error) {
+          toast({ title: "Failed to create FULL STAGE location", variant: "destructive" });
+          return;
+        }
+      }
+      
+      finalLocationId = fullStageLocation.id;
     }
 
     const duration = calculateDuration();
     createTrainingMutation.mutate({
       reportId,
       actId: selectedActId,
-      locationId: selectedLocationId || null,
+      locationId: finalLocationId || null,
       startTime,
       endTime,
       durationMinutes: duration,
@@ -321,17 +352,37 @@ export default function ReportEditor() {
                   <div className="space-y-4 py-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>Act</Label>
+                        <Label>Scene / Act</Label>
                         <Select value={selectedActId} onValueChange={setSelectedActId}>
                           <SelectTrigger data-testid="select-act">
-                            <SelectValue placeholder="Select act" />
+                            <SelectValue placeholder="Select scene or act" />
                           </SelectTrigger>
                           <SelectContent>
-                            {acts.map((act) => (
-                              <SelectItem key={act.id} value={act.id}>
-                                {act.name}
-                              </SelectItem>
-                            ))}
+                            {scenes.map((scene) => {
+                              const sceneActs = acts.filter(a => a.sceneId === scene.id);
+                              if (sceneActs.length === 0) return null;
+                              return (
+                                <SelectGroup key={scene.id}>
+                                  <SelectLabel>{scene.name}</SelectLabel>
+                                  {sceneActs.map((act) => (
+                                    <SelectItem key={act.id} value={act.id} className="pl-12">
+                                      {act.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectGroup>
+                              );
+                            })}
+                            {/* Acts without a scene */}
+                            {acts.filter(a => !a.sceneId).length > 0 && (
+                              <SelectGroup>
+                                <SelectLabel>No Scene</SelectLabel>
+                                {acts.filter(a => !a.sceneId).map((act) => (
+                                  <SelectItem key={act.id} value={act.id} className="pl-12">
+                                    {act.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
@@ -342,11 +393,36 @@ export default function ReportEditor() {
                             <SelectValue placeholder="Select location" />
                           </SelectTrigger>
                           <SelectContent>
-                            {locations.map((location) => (
-                              <SelectItem key={location.id} value={location.id}>
-                                {location.name}
-                              </SelectItem>
-                            ))}
+                            {/* Special FULL STAGE option */}
+                            <SelectItem value="FULL_STAGE" className="font-semibold">
+                              FULL STAGE (All Onstage Areas)
+                            </SelectItem>
+                            
+                            {locationTypes.map((type) => {
+                              const typeLocations = locations.filter(l => l.locationTypeId === type.id);
+                              if (typeLocations.length === 0) return null;
+                              return (
+                                <SelectGroup key={type.id}>
+                                  <SelectLabel>{type.name}</SelectLabel>
+                                  {typeLocations.map((location) => (
+                                    <SelectItem key={location.id} value={location.id} className="pl-12">
+                                      {location.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectGroup>
+                              );
+                            })}
+                            {/* Locations without a type */}
+                            {locations.filter(l => !l.locationTypeId).length > 0 && (
+                              <SelectGroup>
+                                <SelectLabel>Other</SelectLabel>
+                                {locations.filter(l => !l.locationTypeId).map((location) => (
+                                  <SelectItem key={location.id} value={location.id} className="pl-12">
+                                    {location.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            )}
                           </SelectContent>
                         </Select>
                       </div>

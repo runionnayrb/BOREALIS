@@ -30,6 +30,10 @@ A production-ready full-stack web application for theatrical production training
 - ✅ Linear-inspired professional dark mode UI with Inter/JetBrains Mono fonts and cyan accent
 - ✅ Mobile-first responsive design
 - ✅ Image upload for report template (left/right images)
+- ✅ **Hierarchical dropdowns in training modal**:
+  - **Scene/Act dropdown**: Shows scenes as group labels with indented acts nested underneath
+  - **Location dropdown**: "FULL STAGE" option at top, then location types as group labels with indented locations nested underneath
+  - Visual indentation (`pl-12`) applied to nested items for better readability
 
 ## Design Decisions
 - **One report per day** containing all trainings (simplified model)
