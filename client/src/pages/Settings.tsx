@@ -423,6 +423,91 @@ export default function Settings() {
     </div>
   );
 
+  const renderGroupedLocations = () => {
+    if (locations.length === 0) {
+      return (
+        <Card className="p-6 text-center text-muted-foreground">
+          <p>No locations yet. Click "Add Location" to create one.</p>
+        </Card>
+      );
+    }
+
+    // Group locations by locationTypeId
+    const grouped = locations.reduce((acc, location) => {
+      const key = location.locationTypeId || 'no-type';
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(location);
+      return acc;
+    }, {} as Record<string, Location[]>);
+
+    // Sort location types by their sortOrder
+    const sortedTypeIds = Object.keys(grouped).sort((a, b) => {
+      if (a === 'no-type') return 1; // Always put "no-type" last
+      if (b === 'no-type') return -1;
+      
+      const typeA = locationTypes.find(t => t.id === a);
+      const typeB = locationTypes.find(t => t.id === b);
+      
+      return (typeA?.sortOrder || 0) - (typeB?.sortOrder || 0);
+    });
+
+    return (
+      <div className="space-y-6">
+        {sortedTypeIds.map((typeId) => {
+          const locationsInGroup = grouped[typeId];
+          const locationType = locationTypes.find(t => t.id === typeId);
+          const typeName = typeId === 'no-type' ? 'No Type' : locationType?.name || 'Unknown';
+
+          return (
+            <div key={typeId} className="space-y-2">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  {typeName}
+                </h3>
+                <span className="text-xs text-muted-foreground">
+                  ({locationsInGroup.length})
+                </span>
+              </div>
+              <div className="space-y-2">
+                {locationsInGroup.map((location) => (
+                  <Card key={location.id} className="p-3 flex items-center justify-between hover-elevate" data-testid={`card-location-${location.id}`}>
+                    <p className="font-medium">{location.name}</p>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setEditTarget({ type: 'location', id: location.id, data: location });
+                          setLocationDialogOpen(true);
+                        }}
+                        data-testid={`button-edit-location-${location.id}`}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setDeleteTarget({ type: 'location', id: location.id });
+                          setDeleteDialogOpen(true);
+                        }}
+                        data-testid={`button-delete-location-${location.id}`}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="flex-1 overflow-auto pb-20 md:pb-4">
       <div className="max-w-6xl mx-auto p-4 md:p-8">
@@ -819,7 +904,7 @@ export default function Settings() {
                   </Dialog>
                 </div>
             </div>
-            {renderSimpleList(locations, "location")}
+            {renderGroupedLocations()}
           </TabsContent>
 
           <TabsContent value="artist-groups" className="space-y-4">
