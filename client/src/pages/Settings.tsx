@@ -61,6 +61,7 @@ export default function Settings() {
   const [selectedLocationTypeId, setSelectedLocationTypeId] = useState<string | undefined>(undefined);
   const [selectedSceneId, setSelectedSceneId] = useState<string | undefined>(undefined);
   const [selectedDepartmentIds, setSelectedDepartmentIds] = useState<string[]>([]);
+  const [selectedArtistIds, setSelectedArtistIds] = useState<string[]>([]);
 
   const { toast } = useToast();
 
@@ -107,6 +108,37 @@ export default function Settings() {
     }
   }, [editTarget]);
 
+  // Load act artists when editing an act
+  useEffect(() => {
+    if (editTarget?.type === "act" && editTarget.id) {
+      fetch(`/api/acts/${editTarget.id}/artists`, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        }
+      })
+        .then(async res => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Response is not JSON');
+          }
+          return res.json();
+        })
+        .then(data => {
+          setSelectedArtistIds(data.map((aa: any) => aa.artistId));
+        })
+        .catch(err => {
+          console.error("Error loading act artists:", err);
+          setSelectedArtistIds([]);
+        });
+    } else if (!editTarget || editTarget.type !== "act") {
+      setSelectedArtistIds([]);
+    }
+  }, [editTarget]);
+
   // Report Template state
   const [leftImage, setLeftImage] = useState(reportTemplate?.leftImageUrl || "");
   const [title, setTitle] = useState(reportTemplate?.title || "Training Report");
@@ -134,15 +166,17 @@ export default function Settings() {
   });
 
   const createActMutation = useMutation({
-    mutationFn: async (data: { name: string; sortOrder: number; sceneId?: string; departmentIds: string[] }) => {
+    mutationFn: async (data: { name: string; sortOrder: number; sceneId?: string; departmentIds: string[]; artistIds: string[] }) => {
       const act = await apiRequest("POST", "/api/acts", { name: data.name, sortOrder: data.sortOrder, sceneId: data.sceneId });
       await apiRequest("POST", `/api/acts/${act.id}/departments`, { departmentIds: data.departmentIds });
+      await apiRequest("POST", `/api/acts/${act.id}/artists`, { artistIds: data.artistIds });
       return act;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/acts"] });
       setActDialogOpen(false);
       setSelectedDepartmentIds([]);
+      setSelectedArtistIds([]);
       toast({ title: "Act created successfully" });
     },
   });
@@ -216,9 +250,10 @@ export default function Settings() {
 
   // Update mutations
   const updateActMutation = useMutation({
-    mutationFn: async (data: { id: string; name: string; sceneId?: string | null; sortOrder: number; departmentIds: string[] }) => {
+    mutationFn: async (data: { id: string; name: string; sceneId?: string | null; sortOrder: number; departmentIds: string[]; artistIds: string[] }) => {
       const act = await apiRequest("PATCH", `/api/acts/${data.id}`, { name: data.name, sceneId: data.sceneId, sortOrder: data.sortOrder });
       await apiRequest("POST", `/api/acts/${data.id}/departments`, { departmentIds: data.departmentIds });
+      await apiRequest("POST", `/api/acts/${data.id}/artists`, { artistIds: data.artistIds });
       return act;
     },
     onSuccess: () => {
@@ -226,6 +261,7 @@ export default function Settings() {
       setActDialogOpen(false);
       setEditTarget(null);
       setSelectedDepartmentIds([]);
+      setSelectedArtistIds([]);
       toast({ title: "Act updated successfully" });
     },
   });
@@ -1048,6 +1084,7 @@ export default function Settings() {
                           sceneId: editTarget.data.sceneId === "none" || !editTarget.data.sceneId ? null : editTarget.data.sceneId,
                           sortOrder: editTarget.data.sortOrder,
                           departmentIds: selectedDepartmentIds,
+                          artistIds: selectedArtistIds,
                         });
                       } else {
                         createActMutation.mutate({
@@ -1055,6 +1092,7 @@ export default function Settings() {
                           sceneId: selectedSceneId === "none" || !selectedSceneId ? undefined : selectedSceneId,
                           sortOrder: acts.length,
                           departmentIds: selectedDepartmentIds,
+                          artistIds: selectedArtistIds,
                         });
                       }
                     }}
@@ -1125,6 +1163,46 @@ export default function Settings() {
                               </Label>
                             </div>
                           ))}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Artists</Label>
+                        <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
+                          {artists.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">No artists available</p>
+                          ) : (
+                            artists.map((artist) => {
+                              const displayName = artist.stageName || `${artist.firstName} ${artist.lastName}`;
+                              const group = artistGroups.find(g => g.id === artist.artistGroupId);
+                              const groupName = group?.name || 'No Group';
+                              
+                              return (
+                                <div key={artist.id} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`artist-${artist.id}`}
+                                    checked={selectedArtistIds.includes(artist.id)}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        setSelectedArtistIds([...selectedArtistIds, artist.id]);
+                                      } else {
+                                        setSelectedArtistIds(selectedArtistIds.filter(id => id !== artist.id));
+                                      }
+                                    }}
+                                    data-testid={`checkbox-artist-${artist.id}`}
+                                  />
+                                  <Label
+                                    htmlFor={`artist-${artist.id}`}
+                                    className="text-sm font-normal cursor-pointer flex-1"
+                                  >
+                                    <div>
+                                      <div>{displayName}</div>
+                                      <div className="text-xs text-muted-foreground">{groupName}</div>
+                                    </div>
+                                  </Label>
+                                </div>
+                              );
+                            })
+                          )}
                         </div>
                       </div>
                     </div>

@@ -180,6 +180,70 @@ export const insertActArtistSchema = createInsertSchema(actArtists).omit({
 export type InsertActArtist = z.infer<typeof insertActArtistSchema>;
 export type ActArtist = typeof actArtists.$inferSelect;
 
+// Act Artist Groups (junction table for many-to-many relationship)
+export const actArtistGroups = pgTable("act_artist_groups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  actId: varchar("act_id").notNull().references(() => acts.id),
+  artistGroupId: varchar("artist_group_id").notNull().references(() => artistGroups.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertActArtistGroupSchema = createInsertSchema(actArtistGroups).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertActArtistGroup = z.infer<typeof insertActArtistGroupSchema>;
+export type ActArtistGroup = typeof actArtistGroups.$inferSelect;
+
+// Scene Departments (junction table for many-to-many relationship)
+export const sceneDepartments = pgTable("scene_departments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sceneId: varchar("scene_id").notNull().references(() => scenes.id),
+  departmentId: varchar("department_id").notNull().references(() => departments.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertSceneDepartmentSchema = createInsertSchema(sceneDepartments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertSceneDepartment = z.infer<typeof insertSceneDepartmentSchema>;
+export type SceneDepartment = typeof sceneDepartments.$inferSelect;
+
+// Scene Artist Groups (junction table for many-to-many relationship)
+export const sceneArtistGroups = pgTable("scene_artist_groups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sceneId: varchar("scene_id").notNull().references(() => scenes.id),
+  artistGroupId: varchar("artist_group_id").notNull().references(() => artistGroups.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertSceneArtistGroupSchema = createInsertSchema(sceneArtistGroups).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertSceneArtistGroup = z.infer<typeof insertSceneArtistGroupSchema>;
+export type SceneArtistGroup = typeof sceneArtistGroups.$inferSelect;
+
+// Scene Artists (junction table for many-to-many relationship)
+export const sceneArtists = pgTable("scene_artists", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sceneId: varchar("scene_id").notNull().references(() => scenes.id),
+  artistId: varchar("artist_id").notNull().references(() => artists.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertSceneArtistSchema = createInsertSchema(sceneArtists).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertSceneArtist = z.infer<typeof insertSceneArtistSchema>;
+export type SceneArtist = typeof sceneArtists.$inferSelect;
+
 // Technicians
 export const technicians = pgTable("technicians", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
