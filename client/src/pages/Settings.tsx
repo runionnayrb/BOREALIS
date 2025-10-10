@@ -168,7 +168,7 @@ export default function Settings() {
   });
 
   const createTechMutation = useMutation({
-    mutationFn: async (data: { firstName: string; lastName: string; role?: string; departmentId?: string }) => {
+    mutationFn: async (data: { firstName: string; lastName: string; technicianName?: string; role?: string; departmentId?: string }) => {
       return await apiRequest("POST", "/api/technicians", data);
     },
     onSuccess: () => {
@@ -275,10 +275,11 @@ export default function Settings() {
   });
 
   const updateTechMutation = useMutation({
-    mutationFn: async (data: { id: string; firstName: string; lastName: string; role?: string; departmentId?: string }) => {
+    mutationFn: async (data: { id: string; firstName: string; lastName: string; technicianName?: string; role?: string; departmentId?: string }) => {
       return await apiRequest("PATCH", `/api/technicians/${data.id}`, {
         firstName: data.firstName,
         lastName: data.lastName,
+        technicianName: data.technicianName,
         role: data.role,
         departmentId: data.departmentId,
       });
@@ -1485,6 +1486,7 @@ export default function Settings() {
                           const formData = new FormData(e.currentTarget);
                           const firstName = formData.get("firstName") as string;
                           const lastName = formData.get("lastName") as string;
+                          const technicianName = (formData.get("technicianName") as string) || undefined;
                           const role = (formData.get("role") as string) || undefined;
                           const departmentId = (formData.get("departmentId") as string) || undefined;
 
@@ -1493,6 +1495,7 @@ export default function Settings() {
                               id: editTarget.id,
                               firstName,
                               lastName,
+                              technicianName,
                               role,
                               departmentId,
                             });
@@ -1500,6 +1503,7 @@ export default function Settings() {
                             createTechMutation.mutate({
                               firstName,
                               lastName,
+                              technicianName,
                               role,
                               departmentId,
                             });
@@ -1510,6 +1514,15 @@ export default function Settings() {
                           <DialogTitle>{editTarget?.type === "technician" ? "Edit Technician" : "Add Technician"}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
+                          <div className="space-y-2">
+                            <Label>Technician Name</Label>
+                            <Input 
+                              name="technicianName" 
+                              placeholder="Technician name"
+                              defaultValue={editTarget?.type === "technician" ? editTarget.data.technicianName || "" : ""}
+                              data-testid="input-tech-name" 
+                            />
+                          </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label>First Name</Label>
@@ -1536,7 +1549,7 @@ export default function Settings() {
                             <Label>Role</Label>
                             <Input 
                               name="role" 
-                              placeholder="Role" 
+                              placeholder="Position or specialty" 
                               defaultValue={editTarget?.type === "technician" ? editTarget.data.role || "" : ""}
                               data-testid="input-tech-role" 
                             />
@@ -1582,7 +1595,7 @@ export default function Settings() {
                     technicians.map((tech) => (
                       <Card key={tech.id} className="p-3 flex items-center justify-between hover-elevate" data-testid={`card-technician-${tech.id}`}>
                         <div>
-                          <p className="font-medium">{tech.firstName} {tech.lastName}</p>
+                          <p className="font-medium">{tech.technicianName || `${tech.firstName} ${tech.lastName}`}</p>
                           {tech.role && <p className="text-sm text-muted-foreground">{tech.role}</p>}
                         </div>
                         <div className="flex items-center gap-1">

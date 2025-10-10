@@ -153,6 +153,7 @@ export const technicians = pgTable("technicians", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
+  technicianName: text("technician_name"),
   role: text("role"),
   departmentId: varchar("department_id").references(() => departments.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
