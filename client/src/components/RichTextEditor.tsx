@@ -135,11 +135,16 @@ export default function RichTextEditor({ content = '', onChange }: RichTextEdito
           </SelectContent>
         </Select>
       </div>
-      <EditorContent
-        editor={editor}
-        className="prose prose-sm max-w-none p-4 min-h-64 focus:outline-none"
-        data-testid="editor-content"
-      />
+      <div 
+        onClick={() => editor.commands.focus()}
+        className="cursor-text"
+      >
+        <EditorContent
+          editor={editor}
+          className="prose prose-sm max-w-none p-4 min-h-64 focus:outline-none [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0 [&_li]:mb-1"
+          data-testid="editor-content"
+        />
+      </div>
     </div>
   );
 }
