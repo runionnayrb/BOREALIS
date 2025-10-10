@@ -48,6 +48,7 @@ type SimpleItem = {
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("acts");
   const [sceneDialogOpen, setSceneDialogOpen] = useState(false);
+  const [sceneFormOpen, setSceneFormOpen] = useState(false);
   const [actDialogOpen, setActDialogOpen] = useState(false);
   const [deptDialogOpen, setDeptDialogOpen] = useState(false);
   const [locationTypeDialogOpen, setLocationTypeDialogOpen] = useState(false);
@@ -263,7 +264,7 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/scenes"] });
-      setSceneDialogOpen(false);
+      setSceneFormOpen(false);
       setSelectedSceneDepartmentIds([]);
       setSelectedSceneArtistGroupIds([]);
       setSelectedSceneArtistIds([]);
@@ -398,7 +399,7 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/scenes"] });
-      setSceneDialogOpen(false);
+      setSceneFormOpen(false);
       setEditTarget(null);
       setSelectedSceneDepartmentIds([]);
       setSelectedSceneArtistGroupIds([]);
@@ -1084,7 +1085,10 @@ export default function Settings() {
                   open={sceneDialogOpen}
                   onOpenChange={(open) => {
                     setSceneDialogOpen(open);
-                    if (!open) setEditTarget(null);
+                    if (!open) {
+                      setSceneFormOpen(false);
+                      setEditTarget(null);
+                    }
                   }}
                 >
                   <DialogTrigger asChild>
@@ -1092,6 +1096,67 @@ export default function Settings() {
                       Scenes
                     </Button>
                   </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Manage Scenes</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <Button 
+                        onClick={() => setSceneFormOpen(true)} 
+                        className="w-full"
+                        data-testid="button-add-scene"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Scene
+                      </Button>
+                      <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                        {scenes.map((scene) => (
+                          <Card key={scene.id} className="p-3 flex items-center justify-between" data-testid={`card-scene-${scene.id}`}>
+                            <p className="font-medium">{scene.name}</p>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setEditTarget({ type: "scene", id: scene.id, data: scene });
+                                  setSceneFormOpen(true);
+                                }}
+                                data-testid={`button-edit-scene-${scene.id}`}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setDeleteTarget({ type: "scene", id: scene.id });
+                                  setDeleteDialogOpen(true);
+                                }}
+                                data-testid={`button-delete-scene-${scene.id}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </Card>
+                        ))}
+                        {scenes.length === 0 && (
+                          <Card className="p-6 text-center text-muted-foreground">
+                            <p>No scenes yet. Add one above.</p>
+                          </Card>
+                        )}
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Scene Add/Edit Form Dialog */}
+                <Dialog
+                  open={sceneFormOpen}
+                  onOpenChange={(open) => {
+                    setSceneFormOpen(open);
+                    if (!open) setEditTarget(null);
+                  }}
+                >
                   <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <form
                       onSubmit={(e) => {
@@ -1298,42 +1363,6 @@ export default function Settings() {
                         </Button>
                       </DialogFooter>
                     </form>
-                    
-                    {!editTarget && scenes.length > 0 && (
-                      <div className="border-t pt-4">
-                        <h3 className="font-semibold mb-3">Existing Scenes</h3>
-                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                          {scenes.map((scene) => (
-                            <Card key={scene.id} className="p-3 flex items-center justify-between" data-testid={`card-scene-${scene.id}`}>
-                              <p className="font-medium">{scene.name}</p>
-                              <div className="flex items-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setEditTarget({ type: "scene", id: scene.id, data: scene });
-                                  }}
-                                  data-testid={`button-edit-scene-${scene.id}`}
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setDeleteTarget({ type: "scene", id: scene.id });
-                                    setDeleteDialogOpen(true);
-                                  }}
-                                  data-testid={`button-delete-scene-${scene.id}`}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </Card>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </DialogContent>
                 </Dialog>
                 <Dialog 
