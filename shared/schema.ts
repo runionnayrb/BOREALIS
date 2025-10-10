@@ -80,6 +80,22 @@ export const insertDepartmentSchema = createInsertSchema(departments).omit({
 export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
 export type Department = typeof departments.$inferSelect;
 
+// Act Departments (junction table for many-to-many relationship)
+export const actDepartments = pgTable("act_departments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  actId: varchar("act_id").notNull().references(() => acts.id),
+  departmentId: varchar("department_id").notNull().references(() => departments.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertActDepartmentSchema = createInsertSchema(actDepartments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertActDepartment = z.infer<typeof insertActDepartmentSchema>;
+export type ActDepartment = typeof actDepartments.$inferSelect;
+
 // Location Types
 export const locationTypes = pgTable("location_types", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
