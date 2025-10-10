@@ -63,10 +63,27 @@ export const insertDepartmentSchema = createInsertSchema(departments).omit({
 export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
 export type Department = typeof departments.$inferSelect;
 
+// Location Types
+export const locationTypes = pgTable("location_types", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertLocationTypeSchema = createInsertSchema(locationTypes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertLocationType = z.infer<typeof insertLocationTypeSchema>;
+export type LocationType = typeof locationTypes.$inferSelect;
+
 // Locations
 export const locations = pgTable("locations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  locationTypeId: varchar("location_type_id").references(() => locationTypes.id),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
