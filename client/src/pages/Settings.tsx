@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -59,6 +60,7 @@ export default function Settings() {
   const [editTarget, setEditTarget] = useState<{ type: string; id: string; data: any } | null>(null);
   const [selectedLocationTypeId, setSelectedLocationTypeId] = useState<string | undefined>(undefined);
   const [selectedSceneId, setSelectedSceneId] = useState<string | undefined>(undefined);
+  const [selectedDepartmentIds, setSelectedDepartmentIds] = useState<string[]>([]);
 
   const { toast } = useToast();
 
@@ -73,6 +75,20 @@ export default function Settings() {
   const { data: technicians = [] } = useQuery<Technician[]>({ queryKey: ["/api/technicians"] });
   const { data: reportTemplate } = useQuery<ReportTemplate | null>({ queryKey: ["/api/report-template"] });
   const { data: users = [] } = useQuery<SafeUser[]>({ queryKey: ["/api/users"] });
+
+  // Load act departments when editing an act
+  useEffect(() => {
+    if (editTarget?.type === "act" && editTarget.id) {
+      fetch(`/api/acts/${editTarget.id}/departments`)
+        .then(res => res.json())
+        .then(data => {
+          setSelectedDepartmentIds(data.map((ad: any) => ad.departmentId));
+        })
+        .catch(err => console.error("Error loading act departments:", err));
+    } else if (!editTarget || editTarget.type !== "act") {
+      setSelectedDepartmentIds([]);
+    }
+  }, [editTarget]);
 
   // Report Template state
   const [leftImage, setLeftImage] = useState(reportTemplate?.leftImageUrl || "");
@@ -101,12 +117,15 @@ export default function Settings() {
   });
 
   const createActMutation = useMutation({
-    mutationFn: async (data: { name: string; sortOrder: number; sceneId?: string }) => {
-      return await apiRequest("POST", "/api/acts", data);
+    mutationFn: async (data: { name: string; sortOrder: number; sceneId?: string; departmentIds: string[] }) => {
+      const act = await apiRequest("POST", "/api/acts", { name: data.name, sortOrder: data.sortOrder, sceneId: data.sceneId });
+      await apiRequest("POST", `/api/acts/${act.id}/departments`, { departmentIds: data.departmentIds });
+      return act;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/acts"] });
       setActDialogOpen(false);
+      setSelectedDepartmentIds([]);
       toast({ title: "Act created successfully" });
     },
   });
@@ -180,13 +199,16 @@ export default function Settings() {
 
   // Update mutations
   const updateActMutation = useMutation({
-    mutationFn: async (data: { id: string; name: string; sceneId?: string | null; sortOrder: number }) => {
-      return await apiRequest("PATCH", `/api/acts/${data.id}`, { name: data.name, sceneId: data.sceneId, sortOrder: data.sortOrder });
+    mutationFn: async (data: { id: string; name: string; sceneId?: string | null; sortOrder: number; departmentIds: string[] }) => {
+      const act = await apiRequest("PATCH", `/api/acts/${data.id}`, { name: data.name, sceneId: data.sceneId, sortOrder: data.sortOrder });
+      await apiRequest("POST", `/api/acts/${data.id}/departments`, { departmentIds: data.departmentIds });
+      return act;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/acts"] });
       setActDialogOpen(false);
       setEditTarget(null);
+      setSelectedDepartmentIds([]);
       toast({ title: "Act updated successfully" });
     },
   });
@@ -1008,12 +1030,14 @@ export default function Settings() {
                           name,
                           sceneId: editTarget.data.sceneId === "none" || !editTarget.data.sceneId ? null : editTarget.data.sceneId,
                           sortOrder: editTarget.data.sortOrder,
+                          departmentIds: selectedDepartmentIds,
                         });
                       } else {
                         createActMutation.mutate({
                           name,
                           sceneId: selectedSceneId === "none" || !selectedSceneId ? undefined : selectedSceneId,
                           sortOrder: acts.length,
+                          departmentIds: selectedDepartmentIds,
                         });
                       }
                     }}
@@ -1058,6 +1082,33 @@ export default function Settings() {
                             ))}
                           </SelectContent>
                         </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Required Departments</Label>
+                        <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
+                          {departments.map((dept) => (
+                            <div key={dept.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`dept-${dept.id}`}
+                                checked={selectedDepartmentIds.includes(dept.id)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedDepartmentIds([...selectedDepartmentIds, dept.id]);
+                                  } else {
+                                    setSelectedDepartmentIds(selectedDepartmentIds.filter(id => id !== dept.id));
+                                  }
+                                }}
+                                data-testid={`checkbox-dept-${dept.id}`}
+                              />
+                              <Label
+                                htmlFor={`dept-${dept.id}`}
+                                className="text-sm font-normal cursor-pointer flex-1"
+                              >
+                                {dept.name}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                     <DialogFooter>
