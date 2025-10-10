@@ -720,6 +720,105 @@ export default function Settings() {
     );
   };
 
+  const renderGroupedTechnicians = () => {
+    if (technicians.length === 0) {
+      return (
+        <Card className="p-6 text-center text-muted-foreground">
+          <p>No technicians yet. Click "Add Technician" to create one.</p>
+        </Card>
+      );
+    }
+
+    // Group technicians by departmentId
+    const grouped = technicians.reduce((acc, tech) => {
+      const key = tech.departmentId || 'no-department';
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(tech);
+      return acc;
+    }, {} as Record<string, Technician[]>);
+
+    // Sort technicians within each group by technicianName alphabetically
+    Object.keys(grouped).forEach(key => {
+      grouped[key].sort((a, b) => {
+        const nameA = a.technicianName || `${a.firstName} ${a.lastName}`;
+        const nameB = b.technicianName || `${b.firstName} ${b.lastName}`;
+        return nameA.localeCompare(nameB);
+      });
+    });
+
+    // Sort department groups alphabetically by name, with "no-department" first
+    const sortedDeptIds = Object.keys(grouped).sort((a, b) => {
+      if (a === 'no-department') return -1; // Always put "no-department" first
+      if (b === 'no-department') return 1;
+      
+      const deptA = departments.find(d => d.id === a);
+      const deptB = departments.find(d => d.id === b);
+      
+      return (deptA?.name || '').localeCompare(deptB?.name || '');
+    });
+
+    return (
+      <div className="space-y-6">
+        {sortedDeptIds.map((deptId) => {
+          const techsInDept = grouped[deptId];
+          const dept = departments.find(d => d.id === deptId);
+          const isNoDept = deptId === 'no-department';
+
+          return (
+            <div key={deptId} className="space-y-2">
+              {!isNoDept && (
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    {dept?.name || 'Unknown'}
+                  </h3>
+                  <span className="text-xs text-muted-foreground">
+                    ({techsInDept.length})
+                  </span>
+                </div>
+              )}
+              <div className="space-y-2">
+                {techsInDept.map((tech) => (
+                  <Card key={tech.id} className="p-3 flex items-center justify-between hover-elevate" data-testid={`card-technician-${tech.id}`}>
+                    <div>
+                      <p className="font-medium">{tech.technicianName || `${tech.firstName} ${tech.lastName}`}</p>
+                      {tech.role && <p className="text-sm text-muted-foreground">{tech.role}</p>}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setEditTarget({ type: "technician", id: tech.id, data: tech });
+                          setTechDialogOpen(true);
+                        }}
+                        data-testid={`button-edit-technician-${tech.id}`}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setDeleteTarget({ type: "technician", id: tech.id });
+                          setDeleteDialogOpen(true);
+                        }}
+                        data-testid={`button-delete-technician-${tech.id}`}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="flex-1 overflow-auto pb-20 md:pb-4">
       <div className="max-w-6xl mx-auto p-4 md:p-8">
@@ -1586,46 +1685,7 @@ export default function Settings() {
                     </DialogContent>
                   </Dialog>
                 </div>
-                <div className="space-y-2">
-                  {technicians.length === 0 ? (
-                    <Card className="p-6 text-center text-muted-foreground">
-                      <p>No technicians yet. Click "Add Technician" to create one.</p>
-                    </Card>
-                  ) : (
-                    technicians.map((tech) => (
-                      <Card key={tech.id} className="p-3 flex items-center justify-between hover-elevate" data-testid={`card-technician-${tech.id}`}>
-                        <div>
-                          <p className="font-medium">{tech.technicianName || `${tech.firstName} ${tech.lastName}`}</p>
-                          {tech.role && <p className="text-sm text-muted-foreground">{tech.role}</p>}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setEditTarget({ type: "technician", id: tech.id, data: tech });
-                              setTechDialogOpen(true);
-                            }}
-                            data-testid={`button-edit-technician-${tech.id}`}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setDeleteTarget({ type: "technician", id: tech.id });
-                              setDeleteDialogOpen(true);
-                            }}
-                            data-testid={`button-delete-technician-${tech.id}`}
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </Card>
-                    ))
-                  )}
-                </div>
+                {renderGroupedTechnicians()}
               </TabsContent>
             </Tabs>
           </TabsContent>
