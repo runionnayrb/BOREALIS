@@ -1034,15 +1034,16 @@ export default function Settings() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="scene-select">Scene (Optional)</Label>
+                        <Label htmlFor="scene-select">Scene</Label>
                         <Select
                           name="sceneId"
-                          value={editTarget?.type === "act" ? (editTarget.data.sceneId || "none") : selectedSceneId || "none"}
+                          required
+                          value={editTarget?.type === "act" ? editTarget.data.sceneId : selectedSceneId}
                           onValueChange={(value) => {
                             if (editTarget?.type === "act") {
-                              setEditTarget({ ...editTarget, data: { ...editTarget.data, sceneId: value === "none" ? null : value } });
+                              setEditTarget({ ...editTarget, data: { ...editTarget.data, sceneId: value } });
                             } else {
-                              setSelectedSceneId(value === "none" ? undefined : value);
+                              setSelectedSceneId(value);
                             }
                           }}
                         >
@@ -1050,7 +1051,6 @@ export default function Settings() {
                             <SelectValue placeholder="Select a scene" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="none">None</SelectItem>
                             {scenes.map((scene) => (
                               <SelectItem key={scene.id} value={scene.id}>
                                 {scene.name}
