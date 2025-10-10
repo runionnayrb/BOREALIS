@@ -4,11 +4,12 @@
 A production-ready full-stack web application for theatrical production training management. Stage Managers create daily training reports with rich text notes, track trainings by act/department/artist/location, assign technician leads, and export to PDF.
 
 ## Current State (Updated Oct 10, 2025)
-- ✅ PostgreSQL database with complete schema (users, acts, departments, locations, artists, technicians, reports, trainings, assignments)
+- ✅ PostgreSQL database with complete schema (users, acts, departments, location_types, locations, artists, technicians, reports, trainings, assignments)
 - ✅ Secure authentication system (login/signup with hashed passwords, session-based)
 - ✅ Profile management (update name, position, pronouns, email, password)
-- ✅ Settings management with full CRUD for all entities (acts, departments, locations, artist groups, artists, technicians, report template)
+- ✅ Settings management with full CRUD for all entities (acts, departments, location types, locations, artist groups, artists, technicians, report template)
 - ✅ User management with active/inactive status control
+- ✅ Location types categorization (onstage, rehearsal room, dance studio, offstage, meetings, etc.)
 - ✅ Reports CRUD with audit trail (createdBy, updatedBy, timestamps)
 - ✅ Trainings CRUD with location assignment and audit trail
 - ✅ Department assignments per training
@@ -35,7 +36,8 @@ A production-ready full-stack web application for theatrical production training
 - `users` - Stage Managers with auth and profile info (id, email, password, name, position, pronouns, active)
 - `acts` - Performance acts (id, name, sortOrder)
 - `departments` - Technical departments (id, name, sortOrder)
-- `locations` - Training locations (id, name, sortOrder)
+- `location_types` - Location categories (id, name, sortOrder) - e.g., onstage, rehearsal room, dance studio, offstage, meetings
+- `locations` - Training locations (id, name, locationTypeId, sortOrder) - locationTypeId is optional foreign key to location_types
 - `artist_groups` - Artist groups/ensembles (id, name, sortOrder)
 - `artists` - Individual performers (id, firstName, lastName, stageName, artistGroupId)
 - `technicians` - Technical leads (id, firstName, lastName, role, departmentId)
@@ -64,7 +66,8 @@ A production-ready full-stack web application for theatrical production training
 ### Settings (All with CRUD)
 - `/api/acts` - Acts management
 - `/api/departments` - Departments management
-- `/api/locations` - Locations management
+- `/api/location-types` - Location types management (categories for organizing locations)
+- `/api/locations` - Locations management (with optional locationTypeId)
 - `/api/artist-groups` - Artist groups management
 - `/api/artists` - Artists management
 - `/api/technicians` - Technicians management
