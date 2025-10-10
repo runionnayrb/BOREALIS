@@ -1,0 +1,230 @@
+You are building a production ready full stack web app called “La Perle Training Reports.” It must look native on desktop and mobile, feel fast, and export beautiful paginated PDFs.
+
+Tech choices
+
+• Frontend: React with Vite, React Router, TypeScript, Tailwind CSS for a clean responsive UI
+• State: React Query for server cache and optimistic updates, Zod for client validation
+• Rich text: TipTap editor with bullet and number lists, alignment controls, font size in px
+• Date time: date fns with timezone via Intl API using Asia Dubai
+• Backend: Node, Express, TypeScript
+• Database: SQLite with Prisma ORM
+• PDF: server side export using Playwright for high fidelity printing and CSS page breaks. Also provide client print styles as a fallback
+• Auth: simple passcode gate now, prepared for JWT later
+• Testing: a small Playwright test that confirms header date format and pagination
+
+Core data model with Prisma
+
+Implement these entities and relationships. Use singular table names. All entities include createdAt and updatedAt.
+
+Act
+• id, name, orderIndex
+• many Departments through ActDepartment
+• many Artists through ActArtist
+• visibility and ordering controls in settings
+
+Department
+• id, name, orderIndex
+• many Technicians
+• belongs to many Acts through ActDepartment
+
+ArtistGroup
+• id, name, orderIndex
+• many Artists
+
+Artist
+• id, firstName, lastName, stageName optional, orderIndex
+• belongs to zero or one ArtistGroup
+• belongs to many Acts through ActArtist
+
+Technician
+• id, firstName, lastName, role optional, orderIndex
+• belongs to one Department
+• can be assigned to positions on a Training
+
+Report
+• id, title, createdAt, updatedAt
+• headerLeftImageUrl optional
+• headerMiddleTitle default “Training Report”
+• headerRightImageUrl optional
+• headerDateString stored as a formatted string
+• richBody JSON from TipTap
+
+Training
+• id, reportId FK
+• actId FK
+• startTime ISO string
+• endTime ISO string
+• durationMinutes computed on save and exposed by API
+• departmentPositions array of entries like
+{ departmentId, leadTechnicianId, notes optional }
+Only departments assigned to the chosen act may appear
+For the lead dropdown only technicians from that department are selectable
+• scheduledFor DateTime optional to support future schedule integration. This indicates when the training is planned to occur in local time for Asia Dubai
+• scheduleId String optional to reference an external schedule item later
+
+ActDepartment join table
+• id, actId, departmentId
+
+ActArtist join table
+• id, actId, artistId
+
+API design with Zod validation under  /api
+
+General
+• All list endpoints support pagination and basic search where applicable
+• Validate inputs with identical Zod schemas on client and server
+
+Settings
+• Acts: list, create, update, delete, reorder
+• Departments: list, create, update, delete, reorder
+• ArtistGroups: list, create, update, delete, reorder
+• Artists: list, create, update, delete, reorder
+• Technicians: list, create, update, delete, reorder
+• Assignment endpoints
+POST /api/acts/:id/assignDepartments accepts array of departmentIds
+POST /api/acts/:id/assignArtists accepts array of artistIds
+POST /api/artistGroups/:id/assignArtists accepts array of artistIds
+
+Reports
+• GET /api/reports list with pagination and search
+• POST /api/reports creates a new report with default headerMiddleTitle and headerDateString formatted as “EEEE, MMMM d, yyyy” using Asia Dubai timezone. Example “Thursday, October 9, 2025”
+• GET /api/reports/:id
+• PUT /api/reports/:id updates header images, title, rich body
+• DELETE /api/reports/:id
+
+Trainings
+• POST /api/trainings creates a training for a report and act with startTime and endTime. Compute durationMinutes as end minus start
+• PUT /api/trainings/:id updates start or end and recomputes durationMinutes
+• PUT /api/trainings/:id/positions updates departmentPositions. Server must validate that departmentId is assigned to the selected act and that leadTechnicianId belongs to that department
+• GET /api/trainings/:id
+• DELETE /api/trainings/:id
+
+Scheduling friendly filters
+• GET /api/trainings?date=YYYY MM DD returns trainings whose scheduledFor falls on that calendar day in Asia Dubai
+• GET /api/trainings?from=YYYY MM DD&to=YYYY MM DD returns trainings whose scheduledFor falls within the inclusive date range in Asia Dubai
+• All training create and update endpoints accept optional scheduledFor and scheduleId. If scheduledFor is omitted it remains null
+
+PDF
+• GET /api/reports/:id/pdf returns a PDF rendered server side with the exact print layout
+• Use consistent margins and CSS page break rules
+• Include page numbers in the footer
+
+UI flows
+
+Global layout
+• Top bar with app name
+• Left navigation on desktop and a bottom tab bar on mobile
+• Tabs: Reports, New Report, Today, Settings
+
+Settings area with four screens
+• Acts management screen. Create, rename, delete, reorder via drag and drop. Assign departments to acts. Assign artists to acts
+• Departments management screen. Create, rename, delete, reorder. Assign technicians to departments
+• Artist Groups management screen. Create, rename, delete, reorder. Assign artists to groups
+• People screen with two tabs: Artists and Technicians. Create, edit, delete, reorder
+
+Reports area
+• Reports list with search, infinite scroll, and quick actions to view, edit, export PDF, delete
+• Report editor has two panels
+Header panel with three columns
+Left image pick or URL input
+Middle text field for the center title with default “Training Report”
+Right image pick or URL input
+Below the middle field show read only date string formatted using Asia Dubai. Example “Thursday, October 9, 2025”
+Body panel with TipTap rich editor supporting bullets, numbered lists, alignment left or center or right, font size control in px for selected text, bold, italic, underline
+
+Training creator inside a report
+• Button Add Training
+• Step 1 choose the Act
+• Step 2 pick start time and end time using a time picker and show live computed durationMinutes
+• Step 3 Department leaders. For each department that is assigned to this act render a row with
+Department name
+Lead dropdown with technicians from that department
+Notes text area optional
+• Optional field scheduledFor using a date and time picker in Asia Dubai
+• Save creates the Training and returns to the report view where Trainings are listed in chronological order
+
+Today view for future schedule integration
+• New Today tab that calls GET /api/trainings?date=today in Asia Dubai
+• Displays only trainings whose scheduledFor is today
+• If no trainings exist for today show an empty state message and a quick link to open a report and add a training
+
+Filtering rules
+• When creating or editing a training, only show departments that are assigned to the selected act
+• The lead dropdown only shows technicians assigned to that department
+• If the act changes recompute the visible rows
+
+Export and printing
+• Implement a dedicated printable layout for reports and their trainings
+• Header with three columns. Left image, middle title and the date string on the next line, right image
+• Body renders TipTap content
+• Trainings list shows Act name, start, end, duration, plus a table of departments with lead names and notes
+• Use CSS print styles with page break before headers when needed
+• Ensure consistent pagination with page numbers in the footer
+• Provide a button Export as PDF that calls the server endpoint
+
+UX details
+
+• Mobile first responsive layout with large touch targets and sticky actions on the bottom for Save and Export on mobile
+• Keyboard and picker UX tuned for phones
+• Drag handles for reordering in settings
+• Empty states with short helpful copy
+• Toasts for success and error
+• Confirm dialogs for destructive actions
+
+Date and time rules
+
+• Store all times as ISO strings in UTC
+• Display and input use Asia Dubai timezone
+• The header date string on a report must always be formatted as “EEEE, MMMM d, yyyy” for example “Thursday, October 9, 2025”
+• Provide a small utility formatDubaiDate that takes a Date or ISO string and returns that string
+• On report creation set headerDateString with the creation date in Asia Dubai
+• For scheduledFor, treat values as local Asia Dubai wall time when filtering by date
+
+Data seeding
+
+Create a seed script with believable sample data
+• Acts: House Sync, High Dive, Wheel, Finale
+• Departments: Rigging, Automation, Lighting, Sound, Stage Management, Wardrobe
+• Artist Groups: Flyers, Divers, Wheel Team
+• Artists: at least six with groups and act assignments
+• Technicians: several per department
+• Link a few departments to each act
+• Create one sample report with a couple of trainings including one with scheduledFor set to today in Asia Dubai for the Today view
+
+Validation and errors
+
+• Zod schemas on the client and identical Zod schemas on the server
+• The server rejects a training that references a department not linked to the chosen act or a lead that is not in that department
+• Surface friendly validation messages in the UI
+
+File organization
+
+packages
+• web React app
+• api Express app
+
+web src
+• pages ReportsList, ReportEditor, Today, SettingsActs, SettingsDepartments, SettingsArtistGroups, SettingsPeople
+• components RichEditor, HeaderEditor, TrainingEditor, DataTable, DateTimePicker
+• lib apiClient, reactQuery, formatters
+
+api src
+• routes acts, departments, artistGroups, artists, technicians, reports, trainings, pdf
+• prisma schema.prisma, seed.ts
+• lib prisma.ts, zodSchemas.ts, pdf.ts, auth.ts, time.ts
+
+Acceptance checks
+
+• I can create an act, assign departments to it, assign artists to it, and reorder it
+• I can create departments and add technicians
+• I can create artist groups and assign artists
+• I can create a report and the header shows today in Asia Dubai as “EEEE, MMMM d, yyyy”
+• I can add a training for a chosen act, set start and end, see duration compute, and pick leads from filtered dropdowns by department
+• Departments that are not assigned to the act do not appear in the training editor
+• I can optionally set scheduledFor on a training
+• The Today tab shows only trainings whose scheduledFor is today in Asia Dubai using the date filter endpoint
+• Export as PDF creates a paginated PDF with the three column header, body content, trainings list, and page numbers
+• Printing from the browser produces the same layout
+• The app looks native on iPhone and on a laptop
+
+Generate the complete project, install scripts, and a README with how to run dev servers for web and api, how to seed the database, and how to build and run the PDF service on Replit.
