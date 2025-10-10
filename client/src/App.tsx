@@ -11,6 +11,7 @@ import ReportsList from "@/pages/ReportsList";
 import ReportEditor from "@/pages/ReportEditor";
 import Today from "@/pages/Today";
 import Settings from "@/pages/Settings";
+import Profile from "@/pages/Profile";
 import AuthPage from "@/pages/AuthPage";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
@@ -56,6 +57,7 @@ function AuthenticatedApp() {
               <Route path="/report/:id" component={ReportEditor} />
               <Route path="/today" component={Today} />
               <Route path="/settings" component={Settings} />
+              <Route path="/profile" component={Profile} />
             </Switch>
           </main>
           <MobileNav />
