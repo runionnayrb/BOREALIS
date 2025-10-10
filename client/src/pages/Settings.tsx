@@ -157,7 +157,7 @@ export default function Settings() {
   });
 
   const createArtistMutation = useMutation({
-    mutationFn: async (data: { firstName: string; lastName: string; stageName?: string; artistGroupId?: string }) => {
+    mutationFn: async (data: { firstName: string; lastName: string; stageName?: string; role?: string; artistGroupId?: string }) => {
       return await apiRequest("POST", "/api/artists", data);
     },
     onSuccess: () => {
@@ -257,11 +257,12 @@ export default function Settings() {
   });
 
   const updateArtistMutation = useMutation({
-    mutationFn: async (data: { id: string; firstName: string; lastName: string; stageName?: string; artistGroupId?: string }) => {
+    mutationFn: async (data: { id: string; firstName: string; lastName: string; stageName?: string; role?: string; artistGroupId?: string }) => {
       return await apiRequest("PATCH", `/api/artists/${data.id}`, {
         firstName: data.firstName,
         lastName: data.lastName,
         stageName: data.stageName,
+        role: data.role,
         artistGroupId: data.artistGroupId,
       });
     },
