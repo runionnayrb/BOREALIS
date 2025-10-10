@@ -1,9 +1,13 @@
-import { useState } from "react";
-import { ArrowLeft, Download, Plus, Save, Calendar, Users, MapPin } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, Download, Plus, Save, Calendar, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import RichTextEditor from "@/components/RichTextEditor";
 import TrainingCard from "@/components/TrainingCard";
-import { useLocation } from "wouter";
+import { useLocation, useParams } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { Report, Training, Act, Department, Location, Artist, Technician, DepartmentAssignment, User } from "@shared/schema";
 import {
   Dialog,
   DialogContent,
@@ -21,373 +25,359 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 
 export default function ReportEditor() {
+  const params = useParams();
+  const reportId = params.id;
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  
   const [content, setContent] = useState("");
+  const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
+  const [stageManagerOnDuty, setStageManagerOnDuty] = useState("");
   const [showAddTraining, setShowAddTraining] = useState(false);
-  const [reportDate, setReportDate] = useState("2025-10-09");
-
-  //todo: remove mock functionality
-  const [selectedAct, setSelectedAct] = useState("");
-  const [selectedLocation, setSelectedLocation] = useState("");
+  
+  const [selectedActId, setSelectedActId] = useState("");
+  const [selectedLocationId, setSelectedLocationId] = useState("");
   const [startTime, setStartTime] = useState("14:00");
   const [endTime, setEndTime] = useState("16:30");
+  const [trainingNotes, setTrainingNotes] = useState("");
 
-  const mockLocations = [
-    { id: "1", name: "Main Stage" },
-    { id: "2", name: "Rehearsal Hall A" },
-    { id: "3", name: "Rehearsal Hall B" },
-    { id: "4", name: "Pool Area" },
-  ];
+  const { data: report, isLoading: reportLoading } = useQuery<Report>({
+    queryKey: ['/api/reports', reportId!],
+    enabled: !!reportId,
+  });
 
-  const mockActs = [
-    { 
-      id: "1", 
-      name: "High Dive",
-      departments: [
-        { id: "1", name: "Rigging" },
-        { id: "2", name: "Safety" },
-        { id: "3", name: "Lighting" },
-      ],
-      artists: [
-        { id: "1", name: "Elena Martinez", group: "Divers" },
-        { id: "2", name: "Marcus Chen", group: "Divers" },
-        { id: "3", name: "Sophia Kim", group: "Divers" },
-      ]
-    },
-    { 
-      id: "2", 
-      name: "Wheel",
-      departments: [
-        { id: "4", name: "Automation" },
-        { id: "3", name: "Lighting" },
-        { id: "5", name: "Sound" },
-      ],
-      artists: [
-        { id: "4", name: "Andre Silva", group: "Wheel Team" },
-        { id: "5", name: "Maya Patel", group: "Wheel Team" },
-      ]
-    },
-    { 
-      id: "3", 
-      name: "House Sync",
-      departments: [
-        { id: "1", name: "Rigging" },
-        { id: "4", name: "Automation" },
-        { id: "6", name: "Stage Management" },
-      ],
-      artists: [
-        { id: "6", name: "Lucas Torres", group: "Flyers" },
-        { id: "7", name: "Amara Johnson", group: "Flyers" },
-        { id: "8", name: "Jin Park", group: null },
-      ]
-    },
-  ];
+  const { data: trainings = [], isLoading: trainingsLoading } = useQuery<Training[]>({
+    queryKey: ['/api/reports', reportId!, 'trainings'],
+    enabled: !!reportId,
+  });
 
-  const mockTechnicians = [
-    { id: "1", name: "Sarah Johnson", departmentId: "1", role: "Rigging Lead" },
-    { id: "2", name: "Mike Chen", departmentId: "2", role: "Safety Officer" },
-    { id: "3", name: "Alex Rivera", departmentId: "3", role: "Lighting Director" },
-    { id: "4", name: "Jamie Lee", departmentId: "4", role: "Automation Tech" },
-    { id: "5", name: "Chris Taylor", departmentId: "5", role: "Sound Engineer" },
-    { id: "6", name: "Pat Morgan", departmentId: "6", role: "Stage Manager" },
-  ];
+  const { data: acts = [] } = useQuery<Act[]>({ queryKey: ['/api/acts'] });
+  const { data: departments = [] } = useQuery<Department[]>({ queryKey: ['/api/departments'] });
+  const { data: locations = [] } = useQuery<Location[]>({ queryKey: ['/api/locations'] });
+  const { data: artists = [] } = useQuery<Artist[]>({ queryKey: ['/api/artists'] });
+  const { data: technicians = [] } = useQuery<Technician[]>({ queryKey: ['/api/technicians'] });
+  const { data: users = [] } = useQuery<User[]>({ queryKey: ['/api/users'] });
 
-  const mockTrainings = [
-    {
-      id: "1",
-      actName: "High Dive",
-      startTime: "14:00",
-      endTime: "16:30",
-      durationMinutes: 150,
-      location: "Pool Area",
-      departments: [
-        { departmentName: "Rigging", leadName: "Sarah Johnson", notes: "Check harness tension" },
-        { departmentName: "Safety", leadName: "Mike Chen" },
-      ],
+  useEffect(() => {
+    if (report) {
+      setContent(report.notes || "");
+      setReportDate(report.date);
+      setStageManagerOnDuty(report.stageManagerOnDuty || "");
+    }
+  }, [report]);
+
+  const createReportMutation = useMutation({
+    mutationFn: async (data: { date: string; notes: string; stageManagerOnDuty: string }) => {
+      const res = await apiRequest('POST', '/api/reports', data);
+      return await res.json() as Report;
     },
-    {
-      id: "2",
-      actName: "Wheel",
-      startTime: "17:00",
-      endTime: "18:30",
-      durationMinutes: 90,
-      location: "Main Stage",
-      departments: [
-        { departmentName: "Lighting", leadName: "Alex Rivera" },
-      ],
+    onSuccess: (newReport) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/reports'] });
+      toast({ title: "Report created successfully" });
+      setLocation(`/report/${newReport.id}`);
     },
-  ];
+    onError: () => {
+      toast({ title: "Failed to create report", variant: "destructive" });
+    },
+  });
+
+  const updateReportMutation = useMutation({
+    mutationFn: async (data: { notes: string; stageManagerOnDuty: string }) => {
+      const res = await apiRequest('PATCH', `/api/reports/${reportId}`, data);
+      return await res.json() as Report;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/reports', reportId] });
+      toast({ title: "Report saved successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to save report", variant: "destructive" });
+    },
+  });
+
+  const createTrainingMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest('POST', '/api/trainings', data);
+      return await res.json() as Training;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/reports', reportId, 'trainings'] });
+      toast({ title: "Training added successfully" });
+      setShowAddTraining(false);
+      setSelectedActId("");
+      setSelectedLocationId("");
+      setStartTime("14:00");
+      setEndTime("16:30");
+      setTrainingNotes("");
+    },
+    onError: () => {
+      toast({ title: "Failed to add training", variant: "destructive" });
+    },
+  });
+
+  const handleSaveReport = async () => {
+    if (reportId) {
+      updateReportMutation.mutate({
+        notes: content,
+        stageManagerOnDuty,
+      });
+    } else {
+      createReportMutation.mutate({
+        date: reportDate,
+        notes: content,
+        stageManagerOnDuty,
+      });
+    }
+  };
+
+  const handleAddTraining = () => {
+    if (!reportId) {
+      toast({ title: "Please save the report first", variant: "destructive" });
+      return;
+    }
+
+    const duration = calculateDuration();
+    createTrainingMutation.mutate({
+      reportId,
+      actId: selectedActId,
+      locationId: selectedLocationId || null,
+      startTime,
+      endTime,
+      durationMinutes: duration,
+      notes: trainingNotes,
+    });
+  };
 
   const calculateDuration = () => {
     const [startHour, startMin] = startTime.split(':').map(Number);
     const [endHour, endMin] = endTime.split(':').map(Number);
-    const duration = (endHour * 60 + endMin) - (startHour * 60 + startMin);
-    return duration;
+    const totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+    return totalMinutes;
   };
 
-  const selectedActData = mockActs.find(act => act.id === selectedAct);
+  const getCreatorName = (userId: string | null) => {
+    if (!userId) return "Unknown";
+    const user = users.find(u => u.id === userId);
+    return user?.name || user?.username || "Unknown";
+  };
+
+  if (reportLoading || trainingsLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex-1 overflow-auto pb-20 md:pb-4">
-      <div className="max-w-6xl mx-auto p-4 md:p-8">
-        <div className="flex items-center justify-between gap-4 mb-6">
+    <div className="flex flex-col h-screen bg-background">
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b bg-card px-6 py-4">
+        <div className="flex items-center gap-4 flex-1">
           <Button
             variant="ghost"
+            size="icon"
             onClick={() => setLocation("/")}
             data-testid="button-back"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
+            <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" data-testid="button-export-pdf">
-              <Download className="w-4 h-4 mr-2" />
-              Export PDF
-            </Button>
-            <Button data-testid="button-save">
-              <Save className="w-4 h-4 mr-2" />
-              Save
-            </Button>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div className="border border-border rounded-md p-6 bg-card">
-            <div className="flex items-center gap-4 mb-4">
-              <Calendar className="w-5 h-5 text-muted-foreground" />
-              <div className="flex-1">
-                <Label htmlFor="report-date" className="text-base font-semibold">Report Date</Label>
-                <p className="text-sm text-muted-foreground mt-1">
-                  All trainings for this day will be included in one report
-                </p>
-              </div>
-            </div>
+          <div className="flex items-center gap-3 flex-1">
+            <Calendar className="h-5 w-5 text-muted-foreground" />
             <Input
-              id="report-date"
               type="date"
               value={reportDate}
               onChange={(e) => setReportDate(e.target.value)}
+              className="max-w-[200px]"
+              disabled={!!reportId}
               data-testid="input-report-date"
-              className="max-w-xs"
             />
-            <p className="text-sm text-muted-foreground mt-2" data-testid="text-formatted-date">
-              Thursday, October 9, 2025
-            </p>
+            <div className="flex items-center gap-2 flex-1">
+              <Label className="text-sm text-muted-foreground whitespace-nowrap">SM on Duty:</Label>
+              <Input
+                type="text"
+                value={stageManagerOnDuty}
+                onChange={(e) => setStageManagerOnDuty(e.target.value)}
+                placeholder="Enter name"
+                className="max-w-[250px]"
+                data-testid="input-sm-on-duty"
+              />
+            </div>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleSaveReport}
+            disabled={createReportMutation.isPending || updateReportMutation.isPending}
+            data-testid="button-save-report"
+          >
+            {(createReportMutation.isPending || updateReportMutation.isPending) ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            {reportId ? "Save" : "Create Report"}
+          </Button>
+          <Button variant="outline" data-testid="button-export-pdf">
+            <Download className="h-4 w-4 mr-2" />
+            Export PDF
+          </Button>
+        </div>
+      </header>
 
-          <div>
-            <h2 className="text-lg font-semibold mb-4">Report Notes</h2>
-            <RichTextEditor content={content} onChange={setContent} />
-          </div>
-
-          <div>
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-6xl mx-auto p-6 space-y-8">
+          <section>
             <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-semibold">Trainings for This Day</h2>
-                <p className="text-sm text-muted-foreground">
-                  All trainings scheduled for October 9, 2025
-                </p>
-              </div>
+              <h2 className="text-xl font-semibold">Report Notes</h2>
+              {report && (
+                <div className="text-sm text-muted-foreground">
+                  Last updated by {getCreatorName(report.updatedBy)} on {new Date(report.updatedAt).toLocaleString()}
+                </div>
+              )}
+            </div>
+            <RichTextEditor
+              content={content}
+              onChange={setContent}
+            />
+          </section>
+
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Training Sessions</h2>
               <Dialog open={showAddTraining} onOpenChange={setShowAddTraining}>
                 <DialogTrigger asChild>
                   <Button data-testid="button-add-training">
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Plus className="h-4 w-4 mr-2" />
                     Add Training
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+                <DialogContent className="max-w-2xl">
                   <DialogHeader>
-                    <DialogTitle>Add Training</DialogTitle>
+                    <DialogTitle>Add Training Session</DialogTitle>
                   </DialogHeader>
-                  <div className="space-y-6 py-4">
-                    <div className="space-y-2">
-                      <Label>Select Act</Label>
-                      <Select value={selectedAct} onValueChange={setSelectedAct}>
-                        <SelectTrigger data-testid="select-act">
-                          <SelectValue placeholder="Choose an act for this training" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {mockActs.map((act) => (
-                            <SelectItem key={act.id} value={act.id}>
-                              {act.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Training Location</Label>
-                      <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                        <SelectTrigger data-testid="select-location">
-                          <SelectValue placeholder="Select training location" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {mockLocations.map((location) => (
-                            <SelectItem key={location.id} value={location.id}>
-                              <div className="flex items-center gap-2">
-                                <MapPin className="w-4 h-4" />
-                                {location.name}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {selectedActData && (
-                      <>
-                        <div className="border border-border rounded-md p-4 bg-muted/30 space-y-3">
-                          <div>
-                            <h3 className="text-sm font-semibold mb-2">Assigned Departments</h3>
-                            <div className="flex flex-wrap gap-2">
-                              {selectedActData.departments.map((dept) => (
-                                <Badge key={dept.id} variant="secondary">
-                                  {dept.name}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <Users className="w-4 h-4" />
-                              <h3 className="text-sm font-semibold">Assigned Artists</h3>
-                            </div>
-                            <div className="space-y-1">
-                              {selectedActData.artists.map((artist) => (
-                                <div key={artist.id} className="text-sm flex items-center gap-2">
-                                  <span>{artist.name}</span>
-                                  {artist.group && (
-                                    <Badge variant="outline" className="text-xs">
-                                      {artist.group}
-                                    </Badge>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Start Time</Label>
-                            <Input
-                              type="time"
-                              value={startTime}
-                              onChange={(e) => setStartTime(e.target.value)}
-                              data-testid="input-start-time"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>End Time</Label>
-                            <Input
-                              type="time"
-                              value={endTime}
-                              onChange={(e) => setEndTime(e.target.value)}
-                              data-testid="input-end-time"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="p-3 bg-primary/10 rounded-md border border-primary/20">
-                          <p className="text-sm font-medium">
-                            Duration: <span className="font-mono text-primary">{calculateDuration()} minutes</span>
-                          </p>
-                        </div>
-
-                        <div className="space-y-3">
-                          <Label>Department Lead Assignments</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Assign a lead technician for each department in this training
-                          </p>
-                          {selectedActData.departments.map((dept) => {
-                            const deptTechs = mockTechnicians.filter(
-                              (tech) => tech.departmentId === dept.id
-                            );
-                            
-                            return (
-                              <div key={dept.id} className="p-4 border border-border rounded-md space-y-3 bg-card">
-                                <div className="flex items-center justify-between">
-                                  <h4 className="font-medium">{dept.name}</h4>
-                                  <Badge variant="secondary" className="text-xs">
-                                    {deptTechs.length} technician{deptTechs.length !== 1 ? 's' : ''}
-                                  </Badge>
-                                </div>
-                                <div className="space-y-2">
-                                  <Label className="text-sm">Lead Technician</Label>
-                                  <Select>
-                                    <SelectTrigger data-testid={`select-lead-${dept.id}`}>
-                                      <SelectValue placeholder="Select lead technician" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {deptTechs.map((tech) => (
-                                        <SelectItem key={tech.id} value={tech.id}>
-                                          {tech.name} {tech.role && `- ${tech.role}`}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                <div className="space-y-2">
-                                  <Label className="text-sm">Notes (Optional)</Label>
-                                  <Textarea
-                                    placeholder="Special instructions or notes for this department..."
-                                    data-testid={`input-notes-${dept.id}`}
-                                    className="resize-none"
-                                    rows={2}
-                                  />
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        <Button
-                          className="w-full"
-                          onClick={() => {
-                            console.log("Save training");
-                            setShowAddTraining(false);
-                          }}
-                          data-testid="button-save-training"
-                        >
-                          Save Training
-                        </Button>
-                      </>
-                    )}
-
-                    {!selectedActData && (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <p>Select an act to see assigned departments and artists</p>
+                  <div className="space-y-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Act</Label>
+                        <Select value={selectedActId} onValueChange={setSelectedActId}>
+                          <SelectTrigger data-testid="select-act">
+                            <SelectValue placeholder="Select act" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {acts.map((act) => (
+                              <SelectItem key={act.id} value={act.id}>
+                                {act.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                    )}
+                      <div className="space-y-2">
+                        <Label>Location</Label>
+                        <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+                          <SelectTrigger data-testid="select-location">
+                            <SelectValue placeholder="Select location" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {locations.map((location) => (
+                              <SelectItem key={location.id} value={location.id}>
+                                {location.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Start Time</Label>
+                        <Input
+                          type="time"
+                          value={startTime}
+                          onChange={(e) => setStartTime(e.target.value)}
+                          data-testid="input-start-time"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>End Time</Label>
+                        <Input
+                          type="time"
+                          value={endTime}
+                          onChange={(e) => setEndTime(e.target.value)}
+                          data-testid="input-end-time"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Duration</Label>
+                        <Input
+                          value={`${calculateDuration()} min`}
+                          disabled
+                          data-testid="text-duration"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Training Notes</Label>
+                      <Textarea
+                        value={trainingNotes}
+                        onChange={(e) => setTrainingNotes(e.target.value)}
+                        placeholder="Add any notes about this training session..."
+                        rows={4}
+                        data-testid="textarea-training-notes"
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowAddTraining(false)}
+                        data-testid="button-cancel-training"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handleAddTraining}
+                        disabled={createTrainingMutation.isPending || !selectedActId}
+                        data-testid="button-confirm-training"
+                      >
+                        {createTrainingMutation.isPending && (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        )}
+                        Add Training
+                      </Button>
+                    </div>
                   </div>
                 </DialogContent>
               </Dialog>
             </div>
 
-            <div className="space-y-3">
-              {mockTrainings.map((training) => (
-                <TrainingCard
-                  key={training.id}
-                  {...training}
-                  onEdit={() => console.log("Edit", training.id)}
-                  onDelete={() => console.log("Delete", training.id)}
-                />
-              ))}
+            <div className="space-y-4">
+              {trainings.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  No training sessions added yet. Click "Add Training" to get started.
+                </div>
+              ) : (
+                trainings.map((training) => (
+                  <TrainingCard
+                    key={training.id}
+                    training={training}
+                    acts={acts}
+                    locations={locations}
+                    departments={departments}
+                    artists={artists}
+                    technicians={technicians}
+                    users={users}
+                  />
+                ))
+              )}
             </div>
-          </div>
+          </section>
         </div>
-
-        <div className="fixed bottom-20 md:bottom-4 right-4 md:right-8 flex gap-2">
-          <Button size="lg" className="shadow-lg" data-testid="button-save-mobile">
-            <Save className="w-4 h-4 mr-2" />
-            Save
-          </Button>
-        </div>
-      </div>
+      </main>
     </div>
   );
 }

@@ -154,6 +154,7 @@ export type ReportTemplate = typeof reportTemplate.$inferSelect;
 export const reports = pgTable("reports", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   date: text("date").notNull().unique(), // YYYY-MM-DD format
+  stageManagerOnDuty: text("stage_manager_on_duty"),
   notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   createdBy: varchar("created_by").references(() => users.id),
@@ -179,6 +180,7 @@ export const trainings = pgTable("trainings", {
   startTime: text("start_time").notNull(), // HH:MM format
   endTime: text("end_time").notNull(), // HH:MM format
   durationMinutes: integer("duration_minutes").notNull(),
+  notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   createdBy: varchar("created_by").references(() => users.id),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
