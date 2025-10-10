@@ -9,6 +9,10 @@ import {
   type ArtistGroup, type InsertArtistGroup, artistGroups,
   type Artist, type InsertArtist, artists,
   type ActArtist, type InsertActArtist, actArtists,
+  type ActArtistGroup, type InsertActArtistGroup, actArtistGroups,
+  type SceneDepartment, type InsertSceneDepartment, sceneDepartments,
+  type SceneArtistGroup, type InsertSceneArtistGroup, sceneArtistGroups,
+  type SceneArtist, type InsertSceneArtist, sceneArtists,
   type Technician, type InsertTechnician, technicians,
   type ReportTemplate, type InsertReportTemplate, reportTemplate,
   type Report, type InsertReport, reports,
@@ -37,6 +41,18 @@ export interface IStorage {
   createScene(scene: InsertScene): Promise<Scene>;
   updateScene(id: string, updates: Partial<InsertScene>): Promise<Scene | undefined>;
   deleteScene(id: string): Promise<void>;
+  
+  // Scene Departments
+  getSceneDepartments(sceneId: string): Promise<SceneDepartment[]>;
+  setSceneDepartments(sceneId: string, departmentIds: string[]): Promise<void>;
+  
+  // Scene Artist Groups
+  getSceneArtistGroups(sceneId: string): Promise<SceneArtistGroup[]>;
+  setSceneArtistGroups(sceneId: string, artistGroupIds: string[]): Promise<void>;
+  
+  // Scene Artists
+  getSceneArtists(sceneId: string): Promise<SceneArtist[]>;
+  setSceneArtists(sceneId: string, artistIds: string[]): Promise<void>;
   
   // Acts
   getAllActs(): Promise<Act[]>;
@@ -87,6 +103,10 @@ export interface IStorage {
   // Act Artists
   getActArtists(actId: string): Promise<ActArtist[]>;
   setActArtists(actId: string, artistIds: string[]): Promise<void>;
+  
+  // Act Artist Groups
+  getActArtistGroups(actId: string): Promise<ActArtistGroup[]>;
+  setActArtistGroups(actId: string, artistGroupIds: string[]): Promise<void>;
   
   // Technicians
   getAllTechnicians(): Promise<Technician[]>;
@@ -179,6 +199,48 @@ export class DatabaseStorage implements IStorage {
 
   async deleteScene(id: string): Promise<void> {
     await db.delete(scenes).where(eq(scenes.id, id));
+  }
+
+  // Scene Departments
+  async getSceneDepartments(sceneId: string): Promise<SceneDepartment[]> {
+    return await db.select().from(sceneDepartments).where(eq(sceneDepartments.sceneId, sceneId));
+  }
+
+  async setSceneDepartments(sceneId: string, departmentIds: string[]): Promise<void> {
+    await db.delete(sceneDepartments).where(eq(sceneDepartments.sceneId, sceneId));
+    if (departmentIds.length > 0) {
+      await db.insert(sceneDepartments).values(
+        departmentIds.map(departmentId => ({ sceneId, departmentId }))
+      );
+    }
+  }
+
+  // Scene Artist Groups
+  async getSceneArtistGroups(sceneId: string): Promise<SceneArtistGroup[]> {
+    return await db.select().from(sceneArtistGroups).where(eq(sceneArtistGroups.sceneId, sceneId));
+  }
+
+  async setSceneArtistGroups(sceneId: string, artistGroupIds: string[]): Promise<void> {
+    await db.delete(sceneArtistGroups).where(eq(sceneArtistGroups.sceneId, sceneId));
+    if (artistGroupIds.length > 0) {
+      await db.insert(sceneArtistGroups).values(
+        artistGroupIds.map(artistGroupId => ({ sceneId, artistGroupId }))
+      );
+    }
+  }
+
+  // Scene Artists
+  async getSceneArtists(sceneId: string): Promise<SceneArtist[]> {
+    return await db.select().from(sceneArtists).where(eq(sceneArtists.sceneId, sceneId));
+  }
+
+  async setSceneArtists(sceneId: string, artistIds: string[]): Promise<void> {
+    await db.delete(sceneArtists).where(eq(sceneArtists.sceneId, sceneId));
+    if (artistIds.length > 0) {
+      await db.insert(sceneArtists).values(
+        artistIds.map(artistId => ({ sceneId, artistId }))
+      );
+    }
   }
 
   // Acts
@@ -352,6 +414,20 @@ export class DatabaseStorage implements IStorage {
     if (artistIds.length > 0) {
       await db.insert(actArtists).values(
         artistIds.map(artistId => ({ actId, artistId }))
+      );
+    }
+  }
+
+  // Act Artist Groups
+  async getActArtistGroups(actId: string): Promise<ActArtistGroup[]> {
+    return await db.select().from(actArtistGroups).where(eq(actArtistGroups.actId, actId));
+  }
+
+  async setActArtistGroups(actId: string, artistGroupIds: string[]): Promise<void> {
+    await db.delete(actArtistGroups).where(eq(actArtistGroups.actId, actId));
+    if (artistGroupIds.length > 0) {
+      await db.insert(actArtistGroups).values(
+        artistGroupIds.map(artistGroupId => ({ actId, artistGroupId }))
       );
     }
   }
