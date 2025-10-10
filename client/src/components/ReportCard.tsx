@@ -23,9 +23,9 @@ export default function ReportCard({
 }: ReportCardProps) {
   return (
     <Card className="p-4 hover-elevate" data-testid={`card-report-${id}`}>
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3 flex-1">
-          <div className="p-2 rounded-md bg-primary/10 text-primary">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="p-2 rounded-md bg-primary/10 text-primary shrink-0">
             <FileText className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
@@ -38,7 +38,7 @@ export default function ReportCard({
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           <Button
             variant="ghost"
             size="icon"
