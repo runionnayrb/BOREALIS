@@ -145,6 +145,99 @@ export default function Settings() {
     }
   }, [editTarget]);
 
+  // Load act artist groups when editing an act
+  useEffect(() => {
+    if (editTarget?.type === "act" && editTarget.id) {
+      fetch(`/api/acts/${editTarget.id}/artist-groups`, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        }
+      })
+        .then(async res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) throw new Error('Response is not JSON');
+          return res.json();
+        })
+        .then(data => {
+          setSelectedArtistGroupIds(data.map((aag: any) => aag.artistGroupId));
+        })
+        .catch(err => {
+          console.error("Error loading act artist groups:", err);
+          setSelectedArtistGroupIds([]);
+        });
+    } else if (!editTarget || editTarget.type !== "act") {
+      setSelectedArtistGroupIds([]);
+    }
+  }, [editTarget]);
+
+  // Load scene assignments when editing a scene
+  useEffect(() => {
+    if (editTarget?.type === "scene" && editTarget.id) {
+      // Load departments
+      fetch(`/api/scenes/${editTarget.id}/departments`, {
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(async res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) throw new Error('Response is not JSON');
+          return res.json();
+        })
+        .then(data => {
+          setSelectedSceneDepartmentIds(data.map((sd: any) => sd.departmentId));
+        })
+        .catch(err => {
+          console.error("Error loading scene departments:", err);
+          setSelectedSceneDepartmentIds([]);
+        });
+
+      // Load artist groups
+      fetch(`/api/scenes/${editTarget.id}/artist-groups`, {
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(async res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) throw new Error('Response is not JSON');
+          return res.json();
+        })
+        .then(data => {
+          setSelectedSceneArtistGroupIds(data.map((sag: any) => sag.artistGroupId));
+        })
+        .catch(err => {
+          console.error("Error loading scene artist groups:", err);
+          setSelectedSceneArtistGroupIds([]);
+        });
+
+      // Load artists
+      fetch(`/api/scenes/${editTarget.id}/artists`, {
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(async res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) throw new Error('Response is not JSON');
+          return res.json();
+        })
+        .then(data => {
+          setSelectedSceneArtistIds(data.map((sa: any) => sa.artistId));
+        })
+        .catch(err => {
+          console.error("Error loading scene artists:", err);
+          setSelectedSceneArtistIds([]);
+        });
+    } else if (!editTarget || editTarget.type !== "scene") {
+      setSelectedSceneDepartmentIds([]);
+      setSelectedSceneArtistGroupIds([]);
+      setSelectedSceneArtistIds([]);
+    }
+  }, [editTarget]);
+
   // Report Template state
   const [leftImage, setLeftImage] = useState(reportTemplate?.leftImageUrl || "");
   const [title, setTitle] = useState(reportTemplate?.title || "Training Report");
@@ -172,9 +265,10 @@ export default function Settings() {
   });
 
   const createActMutation = useMutation({
-    mutationFn: async (data: { name: string; sortOrder: number; sceneId?: string; departmentIds: string[]; artistIds: string[] }) => {
+    mutationFn: async (data: { name: string; sortOrder: number; sceneId?: string; departmentIds: string[]; artistGroupIds: string[]; artistIds: string[] }) => {
       const act = await apiRequest("POST", "/api/acts", { name: data.name, sortOrder: data.sortOrder, sceneId: data.sceneId });
       await apiRequest("POST", `/api/acts/${act.id}/departments`, { departmentIds: data.departmentIds });
+      await apiRequest("POST", `/api/acts/${act.id}/artist-groups`, { artistGroupIds: data.artistGroupIds });
       await apiRequest("POST", `/api/acts/${act.id}/artists`, { artistIds: data.artistIds });
       return act;
     },
@@ -182,6 +276,7 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ["/api/acts"] });
       setActDialogOpen(false);
       setSelectedDepartmentIds([]);
+      setSelectedArtistGroupIds([]);
       setSelectedArtistIds([]);
       toast({ title: "Act created successfully" });
     },
@@ -256,9 +351,10 @@ export default function Settings() {
 
   // Update mutations
   const updateActMutation = useMutation({
-    mutationFn: async (data: { id: string; name: string; sceneId?: string | null; sortOrder: number; departmentIds: string[]; artistIds: string[] }) => {
+    mutationFn: async (data: { id: string; name: string; sceneId?: string | null; sortOrder: number; departmentIds: string[]; artistGroupIds: string[]; artistIds: string[] }) => {
       const act = await apiRequest("PATCH", `/api/acts/${data.id}`, { name: data.name, sceneId: data.sceneId, sortOrder: data.sortOrder });
       await apiRequest("POST", `/api/acts/${data.id}/departments`, { departmentIds: data.departmentIds });
+      await apiRequest("POST", `/api/acts/${data.id}/artist-groups`, { artistGroupIds: data.artistGroupIds });
       await apiRequest("POST", `/api/acts/${data.id}/artists`, { artistIds: data.artistIds });
       return act;
     },
@@ -267,6 +363,7 @@ export default function Settings() {
       setActDialogOpen(false);
       setEditTarget(null);
       setSelectedDepartmentIds([]);
+      setSelectedArtistGroupIds([]);
       setSelectedArtistIds([]);
       toast({ title: "Act updated successfully" });
     },
@@ -1090,6 +1187,7 @@ export default function Settings() {
                           sceneId: editTarget.data.sceneId === "none" || !editTarget.data.sceneId ? null : editTarget.data.sceneId,
                           sortOrder: editTarget.data.sortOrder,
                           departmentIds: selectedDepartmentIds,
+                          artistGroupIds: selectedArtistGroupIds,
                           artistIds: selectedArtistIds,
                         });
                       } else {
@@ -1098,6 +1196,7 @@ export default function Settings() {
                           sceneId: selectedSceneId === "none" || !selectedSceneId ? undefined : selectedSceneId,
                           sortOrder: acts.length,
                           departmentIds: selectedDepartmentIds,
+                          artistGroupIds: selectedArtistGroupIds,
                           artistIds: selectedArtistIds,
                         });
                       }
@@ -1172,42 +1271,128 @@ export default function Settings() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label>Artists</Label>
-                        <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
+                        <Label>Artist Groups & Artists</Label>
+                        <div className="border rounded-md p-3 space-y-3 max-h-64 overflow-y-auto">
                           {artists.length === 0 ? (
                             <p className="text-sm text-muted-foreground">No artists available</p>
                           ) : (
-                            artists.map((artist) => {
-                              const displayName = artist.stageName || `${artist.firstName} ${artist.lastName}`;
-                              const group = artistGroups.find(g => g.id === artist.artistGroupId);
-                              const groupName = group?.name || 'No Group';
-                              
-                              return (
-                                <div key={artist.id} className="flex items-center space-x-2">
-                                  <Checkbox
-                                    id={`artist-${artist.id}`}
-                                    checked={selectedArtistIds.includes(artist.id)}
-                                    onCheckedChange={(checked) => {
-                                      if (checked) {
-                                        setSelectedArtistIds([...selectedArtistIds, artist.id]);
-                                      } else {
-                                        setSelectedArtistIds(selectedArtistIds.filter(id => id !== artist.id));
-                                      }
-                                    }}
-                                    data-testid={`checkbox-artist-${artist.id}`}
-                                  />
-                                  <Label
-                                    htmlFor={`artist-${artist.id}`}
-                                    className="text-sm font-normal cursor-pointer flex-1"
-                                  >
-                                    <div>
-                                      <div>{displayName}</div>
-                                      <div className="text-xs text-muted-foreground">{groupName}</div>
+                            <>
+                              {/* Group artists by artist group */}
+                              {artistGroups.map((group) => {
+                                const groupArtists = artists.filter(a => a.artistGroupId === group.id);
+                                if (groupArtists.length === 0) return null;
+                                
+                                const allArtistsSelected = groupArtists.every(a => selectedArtistIds.includes(a.id));
+                                const someArtistsSelected = groupArtists.some(a => selectedArtistIds.includes(a.id)) && !allArtistsSelected;
+                                
+                                return (
+                                  <div key={group.id} className="space-y-2">
+                                    {/* Artist Group Checkbox */}
+                                    <div className="flex items-center space-x-2 pb-1 border-b">
+                                      <Checkbox
+                                        id={`artist-group-${group.id}`}
+                                        checked={selectedArtistGroupIds.includes(group.id) || allArtistsSelected}
+                                        data-state={someArtistsSelected ? "indeterminate" : undefined}
+                                        onCheckedChange={(checked) => {
+                                          if (checked) {
+                                            // Add artist group and all its artists
+                                            setSelectedArtistGroupIds([...selectedArtistGroupIds, group.id]);
+                                            const groupArtistIds = groupArtists.map(a => a.id);
+                                            setSelectedArtistIds([...new Set([...selectedArtistIds, ...groupArtistIds])]);
+                                          } else {
+                                            // Remove artist group and all its artists
+                                            setSelectedArtistGroupIds(selectedArtistGroupIds.filter(id => id !== group.id));
+                                            const groupArtistIds = groupArtists.map(a => a.id);
+                                            setSelectedArtistIds(selectedArtistIds.filter(id => !groupArtistIds.includes(id)));
+                                          }
+                                        }}
+                                        data-testid={`checkbox-artist-group-${group.id}`}
+                                      />
+                                      <Label
+                                        htmlFor={`artist-group-${group.id}`}
+                                        className="text-sm font-semibold cursor-pointer flex-1"
+                                      >
+                                        {group.name}
+                                      </Label>
                                     </div>
-                                  </Label>
+                                    
+                                    {/* Individual Artists */}
+                                    <div className="pl-6 space-y-2">
+                                      {groupArtists.map((artist) => {
+                                        const displayName = artist.stageName || `${artist.firstName} ${artist.lastName}`;
+                                        return (
+                                          <div key={artist.id} className="flex items-center space-x-2">
+                                            <Checkbox
+                                              id={`artist-${artist.id}`}
+                                              checked={selectedArtistIds.includes(artist.id)}
+                                              onCheckedChange={(checked) => {
+                                                if (checked) {
+                                                  setSelectedArtistIds([...selectedArtistIds, artist.id]);
+                                                } else {
+                                                  setSelectedArtistIds(selectedArtistIds.filter(id => id !== artist.id));
+                                                  setSelectedArtistGroupIds(selectedArtistGroupIds.filter(id => id !== group.id));
+                                                }
+                                              }}
+                                              data-testid={`checkbox-artist-${artist.id}`}
+                                            />
+                                            <Label
+                                              htmlFor={`artist-${artist.id}`}
+                                              className="text-sm font-normal cursor-pointer flex-1"
+                                            >
+                                              <div>
+                                                <div>{displayName}</div>
+                                                {artist.role && (
+                                                  <div className="text-xs text-muted-foreground">{artist.role}</div>
+                                                )}
+                                              </div>
+                                            </Label>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                              
+                              {/* Artists without a group */}
+                              {artists.filter(a => !a.artistGroupId).length > 0 && (
+                                <div className="space-y-2">
+                                  <div className="text-sm font-semibold pb-1 border-b">No Group</div>
+                                  <div className="space-y-2">
+                                    {artists.filter(a => !a.artistGroupId).map((artist) => {
+                                      const displayName = artist.stageName || `${artist.firstName} ${artist.lastName}`;
+                                      return (
+                                        <div key={artist.id} className="flex items-center space-x-2">
+                                          <Checkbox
+                                            id={`artist-${artist.id}`}
+                                            checked={selectedArtistIds.includes(artist.id)}
+                                            onCheckedChange={(checked) => {
+                                              if (checked) {
+                                                setSelectedArtistIds([...selectedArtistIds, artist.id]);
+                                              } else {
+                                                setSelectedArtistIds(selectedArtistIds.filter(id => id !== artist.id));
+                                              }
+                                            }}
+                                            data-testid={`checkbox-artist-${artist.id}`}
+                                          />
+                                          <Label
+                                            htmlFor={`artist-${artist.id}`}
+                                            className="text-sm font-normal cursor-pointer flex-1"
+                                          >
+                                            <div>
+                                              <div>{displayName}</div>
+                                              {artist.role && (
+                                                <div className="text-xs text-muted-foreground">{artist.role}</div>
+                                              )}
+                                            </div>
+                                          </Label>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
-                              );
-                            })
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
