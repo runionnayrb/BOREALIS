@@ -56,6 +56,7 @@ export default function Settings() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ type: string; id: string } | null>(null);
   const [editTarget, setEditTarget] = useState<{ type: string; id: string; data: any } | null>(null);
+  const [selectedLocationTypeId, setSelectedLocationTypeId] = useState<string | undefined>(undefined);
 
   const { toast } = useToast();
 
@@ -119,12 +120,13 @@ export default function Settings() {
   });
 
   const createLocationMutation = useMutation({
-    mutationFn: async (data: { name: string; sortOrder: number }) => {
+    mutationFn: async (data: { name: string; locationTypeId: string | null; sortOrder: number }) => {
       return await apiRequest("POST", "/api/locations", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/locations"] });
       setLocationDialogOpen(false);
+      setSelectedLocationTypeId(undefined);
       toast({ title: "Location created successfully" });
     },
   });
@@ -200,13 +202,18 @@ export default function Settings() {
   });
 
   const updateLocationMutation = useMutation({
-    mutationFn: async (data: { id: string; name: string; sortOrder: number }) => {
-      return await apiRequest("PATCH", `/api/locations/${data.id}`, { name: data.name, sortOrder: data.sortOrder });
+    mutationFn: async (data: { id: string; name: string; locationTypeId: string | null; sortOrder: number }) => {
+      return await apiRequest("PATCH", `/api/locations/${data.id}`, { 
+        name: data.name, 
+        locationTypeId: data.locationTypeId,
+        sortOrder: data.sortOrder 
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/locations"] });
       setLocationDialogOpen(false);
       setEditTarget(null);
+      setSelectedLocationTypeId(undefined);
       toast({ title: "Location updated successfully" });
     },
   });
@@ -726,7 +733,12 @@ export default function Settings() {
                   open={locationDialogOpen} 
                   onOpenChange={(open) => {
                     setLocationDialogOpen(open);
-                    if (!open) setEditTarget(null);
+                    if (!open) {
+                      setEditTarget(null);
+                      setSelectedLocationTypeId(undefined);
+                    } else if (open && editTarget?.type === "location") {
+                      setSelectedLocationTypeId(editTarget.data.locationTypeId || undefined);
+                    }
                   }}
                 >
                   <DialogTrigger asChild>
@@ -746,11 +758,13 @@ export default function Settings() {
                             updateLocationMutation.mutate({
                               id: editTarget.id,
                               name,
+                              locationTypeId: selectedLocationTypeId || null,
                               sortOrder: editTarget.data.sortOrder,
                             });
                           } else {
                             createLocationMutation.mutate({
                               name,
+                              locationTypeId: selectedLocationTypeId || null,
                               sortOrder: locations.length,
                             });
                           }
@@ -770,6 +784,25 @@ export default function Settings() {
                               defaultValue={editTarget?.type === "location" ? editTarget.data.name : ""}
                               data-testid="input-location-name"
                             />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="location-type">Location Type (Optional)</Label>
+                            <Select
+                              value={selectedLocationTypeId || "none"}
+                              onValueChange={(value) => setSelectedLocationTypeId(value === "none" ? undefined : value)}
+                            >
+                              <SelectTrigger id="location-type" data-testid="select-location-type">
+                                <SelectValue placeholder="Select a type..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">None</SelectItem>
+                                {locationTypes.map((type) => (
+                                  <SelectItem key={type.id} value={type.id}>
+                                    {type.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
                         <DialogFooter>
