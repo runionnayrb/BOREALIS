@@ -104,16 +104,23 @@ export default function TrainingCard({
     <Card className="p-4" data-testid={`card-training-${training.id}`}>
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex-1">
-          <h3 className="font-semibold text-base mb-1" data-testid={`text-act-${training.id}`}>
-            {scene ? `${scene.name} (Full Scene)` : act?.name || "Unknown"}
-          </h3>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mb-1">
-            <span className="font-mono" data-testid={`text-time-${training.id}`}>
-              {training.startTime} - {training.endTime}
-            </span>
-            <Badge variant="secondary" className="font-mono">
-              {training.durationMinutes} min
-            </Badge>
+          <div className="flex items-center justify-between gap-4">
+            <h3 className="font-semibold text-base flex-shrink-0" data-testid={`text-act-${training.id}`}>
+              {scene ? `${scene.name} (Full Scene)` : act?.name || "Unknown"}
+            </h3>
+            <div className="flex items-center gap-4 flex-shrink-0">
+              <div className="text-sm text-muted-foreground w-48 text-right">
+                <span className="font-medium">SM:</span> <span>{training.stageManagerId ? getUserName(training.stageManagerId) : "None"}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm font-mono text-right min-w-[200px]">
+                <span className="text-muted-foreground" data-testid={`text-time-${training.id}`}>
+                  {training.startTime} - {training.endTime}
+                </span>
+                <Badge variant="secondary" className="font-mono">
+                  {training.durationMinutes} min
+                </Badge>
+              </div>
+            </div>
           </div>
           {trainingLocationsList.length > 0 && (
             <div className="flex items-center gap-1.5 text-sm text-foreground mt-1" data-testid={`text-locations-${training.id}`}>
