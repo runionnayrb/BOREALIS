@@ -331,8 +331,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/departments/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    await storage.deleteDepartment(req.params.id);
-    res.sendStatus(204);
+    try {
+      await storage.deleteDepartment(req.params.id);
+      res.sendStatus(204);
+    } catch (error: any) {
+      if (error.code === '23503') {
+        return res.status(400).json({ 
+          error: "Cannot delete department", 
+          message: "This department is still assigned to technicians. Please reassign or remove the technicians first." 
+        });
+      }
+      throw error;
+    }
   });
 
   // Location Types routes
