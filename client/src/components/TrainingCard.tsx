@@ -238,33 +238,6 @@ export default function TrainingCard({
         </div>
       </div>
 
-      {assignments.length > 0 && (
-        <div className="space-y-2 mt-3 pt-3 border-t border-border">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <Users className="w-4 h-4" />
-            <span>Department Leads</span>
-          </div>
-          <div className="space-y-2">
-            {assignments.map((assignment) => (
-              <div
-                key={assignment.id}
-                className="flex items-start justify-between gap-2 text-sm"
-                data-testid={`dept-assignment-${training.id}-${assignment.id}`}
-              >
-                <div className="flex-1">
-                  <p className="font-medium">{getDepartmentName(assignment.departmentId)}</p>
-                  {assignment.leadTechnicianId && (
-                    <p className="text-muted-foreground">{getTechnicianName(assignment.leadTechnicianId)}</p>
-                  )}
-                  {assignment.notes && (
-                    <p className="text-xs text-muted-foreground mt-1">{assignment.notes}</p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </Card>
   );
 }
