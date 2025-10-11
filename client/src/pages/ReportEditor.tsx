@@ -86,13 +86,21 @@ export default function ReportEditor() {
         : editingTraining.actId || "";
       
       setSelectedActId(value);
-      setSelectedLocationId(editingTraining.locationId || "");
+      
+      // Check if the location is FULL STAGE
+      const trainingLocation = locations.find(l => l.id === editingTraining.locationId);
+      if (trainingLocation?.name === "FULL STAGE") {
+        setSelectedLocationId("FULL_STAGE");
+      } else {
+        setSelectedLocationId(editingTraining.locationId || "");
+      }
+      
       setStartTime(editingTraining.startTime);
       setEndTime(editingTraining.endTime);
       setTrainingNotes(editingTraining.notes || "");
       setShowAddTraining(true);
     }
-  }, [editingTraining]);
+  }, [editingTraining, locations]);
 
   // Fetch departments when scene or act is selected
   useEffect(() => {
