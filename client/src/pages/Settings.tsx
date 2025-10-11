@@ -504,6 +504,14 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
       toast({ title: "Department deleted successfully" });
     },
+    onError: (error: any) => {
+      const errorMessage = error?.message || "This department is still assigned to technicians. Please reassign or remove the technicians first.";
+      toast({ 
+        title: "Cannot delete department", 
+        description: errorMessage,
+        variant: "destructive" 
+      });
+    },
   });
 
   const deleteSceneMutation = useMutation({
