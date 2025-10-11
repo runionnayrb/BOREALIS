@@ -2,6 +2,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
 import { TextStyle } from '@tiptap/extension-text-style';
+import Underline from '@tiptap/extension-underline';
 import {
   Bold,
   Italic,
@@ -28,6 +29,7 @@ export default function RichTextEditor({ content = '', onChange }: RichTextEdito
         types: ['heading', 'paragraph'],
       }),
       TextStyle,
+      Underline,
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -67,8 +69,8 @@ export default function RichTextEditor({ content = '', onChange }: RichTextEdito
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => editor.chain().focus().toggleStrike().run()}
-          className={`w-9 h-9 ${editor.isActive('strike') ? 'bg-accent' : ''}`}
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          className={`w-9 h-9 ${editor.isActive('underline') ? 'bg-accent' : ''}`}
           data-testid="button-underline"
         >
           <UnderlineIcon className="w-4 h-4" />
@@ -141,7 +143,7 @@ export default function RichTextEditor({ content = '', onChange }: RichTextEdito
       >
         <EditorContent
           editor={editor}
-          className="prose prose-sm max-w-none p-4 min-h-64 focus:outline-none [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0 [&_li]:mb-1 text-foreground [&_p]:text-foreground [&_li]:text-foreground [&_ul]:text-foreground [&_ol]:text-foreground"
+          className="prose prose-sm max-w-none p-4 min-h-64 focus:outline-none [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0 [&_li]:mb-1 text-foreground [&_p]:text-foreground [&_li]:text-foreground [&_ul]:text-foreground [&_ol]:text-foreground [&_strong]:text-foreground [&_em]:text-foreground [&_u]:text-foreground [&_s]:text-foreground"
           data-testid="editor-content"
         />
       </div>
