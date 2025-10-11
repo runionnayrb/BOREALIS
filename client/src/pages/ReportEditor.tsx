@@ -501,21 +501,6 @@ export default function ReportEditor() {
         <div className="max-w-6xl mx-auto p-6 space-y-8">
           <section>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Report Notes</h2>
-              {report && (
-                <div className="text-sm text-muted-foreground">
-                  Last updated by {getCreatorName(report.updatedBy)} on {new Date(report.updatedAt).toLocaleString()}
-                </div>
-              )}
-            </div>
-            <RichTextEditor
-              content={content}
-              onChange={setContent}
-            />
-          </section>
-
-          <section>
-            <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Training Sessions</h2>
               <Dialog open={showAddTraining} onOpenChange={(open) => {
                 setShowAddTraining(open);
@@ -851,6 +836,21 @@ export default function ReportEditor() {
                 ))
               )}
             </div>
+          </section>
+
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Report Notes</h2>
+              {report && (
+                <div className="text-sm text-muted-foreground">
+                  Last updated by {getCreatorName(report.updatedBy)} on {new Date(report.updatedAt).toLocaleString()}
+                </div>
+              )}
+            </div>
+            <RichTextEditor
+              content={content}
+              onChange={setContent}
+            />
           </section>
         </div>
       </main>
