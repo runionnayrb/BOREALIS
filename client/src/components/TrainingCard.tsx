@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Training, Scene, Act, Department, Location, Artist, Technician, SafeUser, DepartmentAssignment, TrainingLocation, SceneArtist, ActArtist } from "@shared/schema";
+import type { Training, Scene, Act, Department, Location, Artist, Technician, SafeUser, DepartmentAssignment, TrainingLocation, SceneArtist, ActArtist, SceneDepartment, ActDepartment } from "@shared/schema";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,6 +62,17 @@ export default function TrainingCard({
     enabled: !!training.actId,
   });
 
+  // Fetch departments from scene or act
+  const { data: sceneDepartmentLinks = [] } = useQuery<SceneDepartment[]>({
+    queryKey: ['/api/scenes', training.sceneId, 'departments'],
+    enabled: !!training.sceneId,
+  });
+
+  const { data: actDepartmentLinks = [] } = useQuery<ActDepartment[]>({
+    queryKey: ['/api/acts', training.actId, 'departments'],
+    enabled: !!training.actId,
+  });
+
   const deleteTrainingMutation = useMutation({
     mutationFn: async () => {
       return await apiRequest('DELETE', `/api/trainings/${training.id}`);
@@ -83,8 +94,9 @@ export default function TrainingCard({
   const artistLinks = training.sceneId ? sceneArtistLinks : actArtistLinks;
   const trainingArtists = artistLinks.map(link => artists.find(artist => artist.id === link.artistId)).filter(Boolean) as Artist[];
   
-  // Get departments from assignments
-  const trainingDepartments = assignments.map(a => departments.find(d => d.id === a.departmentId)).filter(Boolean) as Department[];
+  // Get departments from scene or act
+  const departmentLinks = training.sceneId ? sceneDepartmentLinks : actDepartmentLinks;
+  const trainingDepartments = departmentLinks.map(link => departments.find(d => d.id === link.departmentId)).filter(Boolean) as Department[];
   
   const creator = users.find(u => u.id === training.createdBy);
   const updater = users.find(u => u.id === training.updatedBy);
@@ -152,17 +164,17 @@ export default function TrainingCard({
               </p>
             </div>
           )}
-          {trainingDepartments.length > 0 && (
-            <div className="mt-2">
-              <div className="flex items-center gap-1.5 text-sm text-foreground">
-                <Briefcase className="w-4 h-4 text-muted-foreground" />
-                <span className="font-medium">Departments</span>
-              </div>
-              <p className="text-sm text-muted-foreground mt-1 ml-5">
-                {trainingDepartments.map(d => d.name).join(", ")}
-              </p>
+          <div className="mt-2">
+            <div className="flex items-center gap-1.5 text-sm text-foreground">
+              <Briefcase className="w-4 h-4 text-muted-foreground" />
+              <span className="font-medium">Departments</span>
             </div>
-          )}
+            <p className="text-sm text-muted-foreground mt-1 ml-5">
+              {trainingDepartments.length > 0 
+                ? trainingDepartments.map(d => d.name).join(", ")
+                : "No Assigned Departments"}
+            </p>
+          </div>
           <div className="text-xs text-muted-foreground mt-2 space-y-1">
             <p>
               Created by {getUserName(training.createdBy)} on {new Date(training.createdAt).toLocaleString()}
