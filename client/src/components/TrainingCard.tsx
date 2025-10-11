@@ -145,7 +145,7 @@ export default function TrainingCard({
                 <FileText className="w-4 h-4 text-muted-foreground" />
                 <span className="font-medium">Training Notes</span>
               </div>
-              <p className="text-sm text-muted-foreground mt-1 ml-5">
+              <p className="text-sm text-foreground/80 mt-1 ml-5">
                 {training.notes}
               </p>
             </div>
@@ -155,7 +155,7 @@ export default function TrainingCard({
               <Users className="w-4 h-4 text-muted-foreground" />
               <span className="font-medium">Artists</span>
             </div>
-            <p className="text-sm text-muted-foreground mt-1 ml-5">
+            <p className="text-sm text-foreground/80 mt-1 ml-5">
               {trainingArtists.length > 0
                 ? trainingArtists.map(artist => {
                     const name = artist.stageName || `${artist.firstName} ${artist.lastName}`;
@@ -169,13 +169,13 @@ export default function TrainingCard({
               <Briefcase className="w-4 h-4 text-muted-foreground" />
               <span className="font-medium">Departments</span>
             </div>
-            <p className="text-sm text-muted-foreground mt-1 ml-5">
+            <p className="text-sm text-foreground/80 mt-1 ml-5">
               {trainingDepartments.length > 0 
                 ? trainingDepartments.map(d => d.name).join(", ")
                 : "No Assigned Departments"}
             </p>
           </div>
-          <div className="text-xs text-muted-foreground mt-2 space-y-1">
+          <div className="text-xs text-muted-foreground/70 mt-2 space-y-1">
             <p>
               Created by {getUserName(training.createdBy)} on {new Date(training.createdAt).toLocaleString()}
             </p>
