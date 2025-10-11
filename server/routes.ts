@@ -4,8 +4,8 @@ import { storage } from "./storage";
 import { setupAuth, sanitizeUser, hashPassword } from "./auth";
 import { z } from "zod";
 import { db } from "./db";
-import { trainings } from "@shared/schema";
-import { asc } from "drizzle-orm";
+import { trainings, actDepartments, departmentAssignments, technicians } from "@shared/schema";
+import { asc, eq } from "drizzle-orm";
 import {
   insertSceneSchema,
   insertActSchema,
@@ -332,13 +332,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/departments/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
+      // Check for references before attempting deletion
+      const [actDepts, deptAssignments, techs] = await Promise.all([
+        db.select().from(actDepartments).where(eq(actDepartments.departmentId, req.params.id)),
+        db.select().from(departmentAssignments).where(eq(departmentAssignments.departmentId, req.params.id)),
+        db.select().from(technicians).where(eq(technicians.departmentId, req.params.id))
+      ]);
+
+      if (actDepts.length > 0 || deptAssignments.length > 0 || techs.length > 0) {
+        const issues: string[] = [];
+        
+        if (actDepts.length > 0) {
+          issues.push(`${actDepts.length} act/scene assignment${actDepts.length > 1 ? 's' : ''} (remove in Settings → Acts/Scenes)`);
+        }
+        if (deptAssignments.length > 0) {
+          issues.push(`${deptAssignments.length} training assignment${deptAssignments.length > 1 ? 's' : ''} (remove in report training sessions)`);
+        }
+        if (techs.length > 0) {
+          issues.push(`${techs.length} technician${techs.length > 1 ? 's' : ''} (reassign or delete in Settings → Technicians)`);
+        }
+
+        return res.status(400).json({ 
+          error: "Cannot delete department", 
+          message: `This department is still in use by: ${issues.join('; ')}. Please remove these references first.`
+        });
+      }
+
       await storage.deleteDepartment(req.params.id);
       res.sendStatus(204);
     } catch (error: any) {
       if (error.code === '23503') {
         return res.status(400).json({ 
           error: "Cannot delete department", 
-          message: "This department is still assigned to technicians. Please reassign or remove the technicians first." 
+          message: "This department is still being used. Please remove all references first." 
         });
       }
       throw error;
