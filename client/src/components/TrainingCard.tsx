@@ -128,18 +128,20 @@ export default function TrainingCard({
               <span className="font-medium">{trainingLocationsList.map(l => l.name).join(", ")}</span>
             </div>
           )}
-          {training.notes && (
-            <div className="mt-2">
-              <div className="flex items-center gap-1.5 text-sm text-foreground">
-                <FileText className="w-4 h-4 text-muted-foreground" />
-                <span className="font-medium">Training Notes</span>
-              </div>
+          <div className="mt-2">
+            <div className="flex items-center gap-1.5 text-sm text-foreground">
+              <FileText className="w-4 h-4 text-muted-foreground" />
+              <span className="font-medium">Training Notes</span>
+            </div>
+            {training.notes ? (
               <div 
                 className="text-sm text-foreground/80 mt-1 ml-5 prose prose-sm max-w-none [&_ul]:my-1 [&_ul]:text-foreground/80 [&_ol]:my-1 [&_ol]:text-foreground/80 [&_li]:my-0 [&_li]:mb-0.5 [&_p]:my-0.5"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(training.notes) }}
               />
-            </div>
-          )}
+            ) : (
+              <p className="text-sm text-foreground/80 mt-1 ml-5">No training notes.</p>
+            )}
+          </div>
           <div className="mt-2">
             <div className="flex items-center gap-1.5 text-sm text-foreground">
               <Users className="w-4 h-4 text-muted-foreground" />
