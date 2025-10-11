@@ -147,7 +147,7 @@ export default function TrainingCard({
                 <span className="font-medium">Training Notes</span>
               </div>
               <div 
-                className="text-sm text-foreground/80 mt-1 ml-5 prose prose-sm max-w-none [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0 [&_li]:mb-0.5 [&_p]:my-0.5"
+                className="text-sm text-foreground/80 mt-1 ml-5 prose prose-sm max-w-none [&_ul]:my-1 [&_ul]:text-foreground/80 [&_ol]:my-1 [&_ol]:text-foreground/80 [&_li]:my-0 [&_li]:mb-0.5 [&_p]:my-0.5"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(training.notes) }}
               />
             </div>
