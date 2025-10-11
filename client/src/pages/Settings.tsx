@@ -1747,7 +1747,7 @@ export default function Settings() {
                 </DialogContent>
               </Dialog>
             </div>
-            {renderSimpleList(departments, "department")}
+            {renderSimpleList([...departments].sort((a, b) => a.name.localeCompare(b.name)), "department")}
           </TabsContent>
 
           <TabsContent value="locations" className="space-y-4">

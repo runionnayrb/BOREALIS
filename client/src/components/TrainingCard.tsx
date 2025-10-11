@@ -173,7 +173,7 @@ export default function TrainingCard({
             </div>
             <p className="text-sm text-foreground/80 mt-1 ml-5">
               {trainingDepartments.length > 0 
-                ? trainingDepartments.map(d => d.name).join(", ")
+                ? [...trainingDepartments].sort((a, b) => a.name.localeCompare(b.name)).map(d => d.name).join(", ")
                 : "No Assigned Departments"}
             </p>
           </div>
