@@ -49,6 +49,7 @@ export default function ReportEditor() {
   const [trainingNotes, setTrainingNotes] = useState("");
   const [actDepartmentIds, setActDepartmentIds] = useState<string[]>([]);
   const [actArtistIds, setActArtistIds] = useState<string[]>([]);
+  const [trainingAssignments, setTrainingAssignments] = useState<DepartmentAssignment[]>([]);
 
   const { data: report, isLoading: reportLoading } = useQuery<Report>({
     queryKey: ['/api/reports', reportId!],
@@ -107,6 +108,27 @@ export default function ReportEditor() {
           setSelectedLocationIds(locationIds);
         })
         .catch(err => console.error("Error loading training locations:", err));
+
+      // Fetch training artists
+      fetch(`/api/trainings/${editingTraining.id}/artists`, {
+        credentials: 'include',
+      })
+        .then(res => res.json())
+        .then(trainingArtists => {
+          setActArtistIds(trainingArtists.map((ta: any) => ta.artistId));
+        })
+        .catch(err => console.error("Error loading training artists:", err));
+
+      // Fetch training departments (via assignments)
+      fetch(`/api/trainings/${editingTraining.id}/assignments`, {
+        credentials: 'include',
+      })
+        .then(res => res.json())
+        .then(assignments => {
+          setTrainingAssignments(assignments);
+          setActDepartmentIds(assignments.map((a: any) => a.departmentId));
+        })
+        .catch(err => console.error("Error loading training assignments:", err));
       
       setStartTime(editingTraining.startTime);
       setEndTime(editingTraining.endTime);
@@ -115,9 +137,9 @@ export default function ReportEditor() {
     }
   }, [editingTraining, locations]);
 
-  // Fetch departments and artists when scene or act is selected
+  // Fetch departments and artists when scene or act is selected (only when creating, not editing)
   useEffect(() => {
-    if (selectedActId) {
+    if (selectedActId && !editingTraining) {
       const isScene = selectedActId.startsWith("scene-");
       const id = isScene ? selectedActId.replace("scene-", "") : selectedActId;
       const departmentEndpoint = isScene ? `/api/scenes/${id}/departments` : `/api/acts/${id}/departments`;
@@ -237,6 +259,7 @@ export default function ReportEditor() {
       setTrainingNotes("");
       setActDepartmentIds([]);
       setActArtistIds([]);
+      setTrainingAssignments([]);
     },
     onError: () => {
       toast({ title: "Failed to add training", variant: "destructive" });
@@ -260,6 +283,7 @@ export default function ReportEditor() {
       setTrainingNotes("");
       setActDepartmentIds([]);
       setActArtistIds([]);
+      setTrainingAssignments([]);
     },
     onError: () => {
       toast({ title: "Failed to update training", variant: "destructive" });
@@ -278,6 +302,21 @@ export default function ReportEditor() {
         notes: content,
         stageManagerOnDuty,
       });
+    }
+  };
+
+  const handleRemoveDepartment = async (departmentId: string) => {
+    const assignment = trainingAssignments.find(a => a.departmentId === departmentId);
+    if (!assignment) return;
+    
+    try {
+      await apiRequest('DELETE', `/api/assignments/${assignment.id}`);
+      setTrainingAssignments(trainingAssignments.filter(a => a.id !== assignment.id));
+      setActDepartmentIds(actDepartmentIds.filter(id => id !== departmentId));
+      queryClient.invalidateQueries({ queryKey: ['/api/trainings', editingTraining?.id, 'assignments'] });
+      toast({ title: "Department removed successfully" });
+    } catch (error) {
+      toast({ title: "Failed to remove department", variant: "destructive" });
     }
   };
 
@@ -650,6 +689,76 @@ export default function ReportEditor() {
                         onChange={setTrainingNotes}
                       />
                     </div>
+
+                    {editingTraining && (
+                      <div className="space-y-4 border-t pt-4">
+                        <h3 className="font-semibold text-sm">Customize Assignments</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Remove artists or departments that don't apply to this specific training session.
+                        </p>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-xs font-semibold">Artists ({actArtistIds.length})</Label>
+                            <div className="space-y-1 max-h-40 overflow-y-auto">
+                              {actArtistIds.length === 0 ? (
+                                <div className="text-sm text-muted-foreground">No artists assigned</div>
+                              ) : (
+                                actArtistIds.map(artistId => {
+                                  const artist = artists.find(a => a.id === artistId);
+                                  if (!artist) return null;
+                                  return (
+                                    <div key={artistId} className="flex items-center justify-between p-2 rounded hover-elevate">
+                                      <div className="text-sm">
+                                        <div>{`${artist.firstName} ${artist.lastName}`}</div>
+                                        {artist.role && <div className="text-xs text-muted-foreground">{artist.role}</div>}
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 w-7 p-0"
+                                        onClick={() => setActArtistIds(actArtistIds.filter(id => id !== artistId))}
+                                        data-testid={`button-remove-artist-${artistId}`}
+                                      >
+                                        ×
+                                      </Button>
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label className="text-xs font-semibold">Departments ({actDepartmentIds.length})</Label>
+                            <div className="space-y-1 max-h-40 overflow-y-auto">
+                              {actDepartmentIds.length === 0 ? (
+                                <div className="text-sm text-muted-foreground">No departments assigned</div>
+                              ) : (
+                                actDepartmentIds.map(deptId => {
+                                  const dept = departments.find(d => d.id === deptId);
+                                  if (!dept) return null;
+                                  return (
+                                    <div key={deptId} className="flex items-center justify-between p-2 rounded hover-elevate">
+                                      <div className="text-sm">{dept.name}</div>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 w-7 p-0"
+                                        onClick={() => handleRemoveDepartment(deptId)}
+                                        data-testid={`button-remove-department-${deptId}`}
+                                      >
+                                        ×
+                                      </Button>
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex justify-end gap-2 pt-4">
                       <Button
