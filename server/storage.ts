@@ -19,6 +19,7 @@ import {
   type Training, type InsertTraining, trainings,
   type TrainingLocation, type InsertTrainingLocation, trainingLocations,
   type DepartmentAssignment, type InsertDepartmentAssignment, departmentAssignments,
+  type TrainingArtist, type InsertTrainingArtist, trainingArtists,
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq, asc, desc } from "drizzle-orm";
@@ -144,6 +145,10 @@ export interface IStorage {
   createAssignment(assignment: InsertDepartmentAssignment): Promise<DepartmentAssignment>;
   updateAssignment(id: string, updates: Partial<InsertDepartmentAssignment>): Promise<DepartmentAssignment | undefined>;
   deleteAssignment(id: string): Promise<void>;
+  
+  // Training Artists
+  getTrainingArtists(trainingId: string): Promise<TrainingArtist[]>;
+  setTrainingArtists(trainingId: string, artistIds: string[]): Promise<void>;
   
   sessionStore: Store;
 }
@@ -593,6 +598,20 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAssignment(id: string): Promise<void> {
     await db.delete(departmentAssignments).where(eq(departmentAssignments.id, id));
+  }
+
+  // Training Artists
+  async getTrainingArtists(trainingId: string): Promise<TrainingArtist[]> {
+    return await db.select().from(trainingArtists).where(eq(trainingArtists.trainingId, trainingId));
+  }
+
+  async setTrainingArtists(trainingId: string, artistIds: string[]): Promise<void> {
+    await db.delete(trainingArtists).where(eq(trainingArtists.trainingId, trainingId));
+    if (artistIds.length > 0) {
+      await db.insert(trainingArtists).values(
+        artistIds.map(artistId => ({ trainingId, artistId }))
+      );
+    }
   }
 }
 

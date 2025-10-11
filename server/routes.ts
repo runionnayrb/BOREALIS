@@ -649,6 +649,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(locations);
   });
 
+  app.get("/api/trainings/:trainingId/artists", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const trainingArtists = await storage.getTrainingArtists(req.params.trainingId);
+    res.json(trainingArtists);
+  });
+
   // Department Assignments routes
   app.get("/api/trainings/:trainingId/assignments", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

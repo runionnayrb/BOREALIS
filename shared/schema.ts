@@ -371,3 +371,19 @@ export const insertDepartmentAssignmentSchema = createInsertSchema(departmentAss
 
 export type InsertDepartmentAssignment = z.infer<typeof insertDepartmentAssignmentSchema>;
 export type DepartmentAssignment = typeof departmentAssignments.$inferSelect;
+
+// Training Artists (per training) - allows customizing artists for individual trainings
+export const trainingArtists = pgTable("training_artists", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  trainingId: varchar("training_id").notNull().references(() => trainings.id, { onDelete: "cascade" }),
+  artistId: varchar("artist_id").notNull().references(() => artists.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertTrainingArtistSchema = createInsertSchema(trainingArtists).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertTrainingArtist = z.infer<typeof insertTrainingArtistSchema>;
+export type TrainingArtist = typeof trainingArtists.$inferSelect;
