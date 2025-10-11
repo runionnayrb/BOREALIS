@@ -102,9 +102,9 @@ export default function TrainingCard({
             </Badge>
           </div>
           {trainingLocationsList.length > 0 && (
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <MapPin className="w-3 h-3" />
-              <span>{trainingLocationsList.map(l => l.name).join(", ")}</span>
+            <div className="flex items-center gap-1.5 text-sm text-foreground mt-1" data-testid={`text-locations-${training.id}`}>
+              <MapPin className="w-4 h-4 text-muted-foreground" />
+              <span className="font-medium">{trainingLocationsList.map(l => l.name).join(", ")}</span>
             </div>
           )}
           {training.notes && (
