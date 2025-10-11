@@ -1,11 +1,11 @@
-import { Clock, Users, Pencil, Trash2, MapPin, Loader2 } from "lucide-react";
+import { Clock, Users, Pencil, Trash2, MapPin, Loader2, FileText, Briefcase } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Training, Scene, Act, Department, Location, Artist, Technician, SafeUser, DepartmentAssignment, TrainingLocation } from "@shared/schema";
+import type { Training, Scene, Act, Department, Location, Artist, Technician, SafeUser, DepartmentAssignment, TrainingLocation, SceneArtist, ActArtist } from "@shared/schema";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +36,7 @@ export default function TrainingCard({
   acts,
   locations,
   departments,
+  artists,
   technicians,
   users,
   onEdit,
@@ -48,6 +49,17 @@ export default function TrainingCard({
 
   const { data: trainingLocations = [] } = useQuery<TrainingLocation[]>({
     queryKey: ['/api/trainings', training.id, 'locations'],
+  });
+
+  // Fetch artists from scene or act
+  const { data: sceneArtistLinks = [] } = useQuery<SceneArtist[]>({
+    queryKey: ['/api/scenes', training.sceneId, 'artists'],
+    enabled: !!training.sceneId,
+  });
+
+  const { data: actArtistLinks = [] } = useQuery<ActArtist[]>({
+    queryKey: ['/api/acts', training.actId, 'artists'],
+    enabled: !!training.actId,
   });
 
   const deleteTrainingMutation = useMutation({
@@ -66,6 +78,14 @@ export default function TrainingCard({
   const scene = scenes.find(s => s.id === training.sceneId);
   const act = acts.find(a => a.id === training.actId);
   const trainingLocationsList = trainingLocations.map(tl => locations.find(l => l.id === tl.locationId)).filter(Boolean) as Location[];
+  
+  // Get artists from scene or act
+  const artistLinks = training.sceneId ? sceneArtistLinks : actArtistLinks;
+  const trainingArtists = artistLinks.map(link => artists.find(artist => artist.id === link.artistId)).filter(Boolean) as Artist[];
+  
+  // Get departments from assignments
+  const trainingDepartments = assignments.map(a => departments.find(d => d.id === a.departmentId)).filter(Boolean) as Department[];
+  
   const creator = users.find(u => u.id === training.createdBy);
   const updater = users.find(u => u.id === training.updatedBy);
 
@@ -108,9 +128,40 @@ export default function TrainingCard({
             </div>
           )}
           {training.notes && (
-            <p className="text-sm text-muted-foreground mt-2">
-              {training.notes}
-            </p>
+            <div className="mt-2">
+              <div className="flex items-center gap-1.5 text-sm text-foreground">
+                <FileText className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium">Training Notes</span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1 ml-5">
+                {training.notes}
+              </p>
+            </div>
+          )}
+          {trainingArtists.length > 0 && (
+            <div className="mt-2">
+              <div className="flex items-center gap-1.5 text-sm text-foreground">
+                <Users className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium">Artists</span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1 ml-5">
+                {trainingArtists.map(artist => {
+                  const name = artist.stageName || `${artist.firstName} ${artist.lastName}`;
+                  return artist.role ? `${name} (${artist.role})` : name;
+                }).join(", ")}
+              </p>
+            </div>
+          )}
+          {trainingDepartments.length > 0 && (
+            <div className="mt-2">
+              <div className="flex items-center gap-1.5 text-sm text-foreground">
+                <Briefcase className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium">Departments</span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1 ml-5">
+                {trainingDepartments.map(d => d.name).join(", ")}
+              </p>
+            </div>
           )}
           <div className="text-xs text-muted-foreground mt-2 space-y-1">
             <p>
