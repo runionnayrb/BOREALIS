@@ -344,3 +344,13 @@
 .dark input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }
+
+/* Dark mode time input clock icon - make it more visible */
+.dark input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.8;
+}
+
+.dark input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
