@@ -43,6 +43,7 @@ The application is a full-stack web application with a clear separation between 
     - CRUD for reports and trainings with audit trails.
     - **Multi-location support** for trainings.
     - Per-training artist and department customization with auto-population from scene/act assignments.
+    - **Lead technician assignment**: Each department can have a lead technician assigned during training editing. Displayed as "Department (LeadName)" on training cards.
 - **Report Template**: Global header/footer template with image upload.
 - **Audit Trail**: All reports and trainings track `createdBy`, `updatedBy`, and timestamps.
 - **One Report Per Day**: Simplified model where a single report encompasses all trainings for a given day.
