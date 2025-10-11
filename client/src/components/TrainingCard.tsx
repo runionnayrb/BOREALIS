@@ -6,7 +6,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DOMPurify from "dompurify";
-import type { Training, Scene, Act, Department, Location, Artist, Technician, SafeUser, DepartmentAssignment, TrainingLocation, SceneArtist, ActArtist, SceneDepartment, ActDepartment } from "@shared/schema";
+import type { Training, Scene, Act, Department, Location, Artist, Technician, SafeUser, DepartmentAssignment, TrainingLocation, TrainingArtist } from "@shared/schema";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,26 +52,9 @@ export default function TrainingCard({
     queryKey: ['/api/trainings', training.id, 'locations'],
   });
 
-  // Fetch artists from scene or act
-  const { data: sceneArtistLinks = [] } = useQuery<SceneArtist[]>({
-    queryKey: ['/api/scenes', training.sceneId, 'artists'],
-    enabled: !!training.sceneId,
-  });
-
-  const { data: actArtistLinks = [] } = useQuery<ActArtist[]>({
-    queryKey: ['/api/acts', training.actId, 'artists'],
-    enabled: !!training.actId,
-  });
-
-  // Fetch departments from scene or act
-  const { data: sceneDepartmentLinks = [] } = useQuery<SceneDepartment[]>({
-    queryKey: ['/api/scenes', training.sceneId, 'departments'],
-    enabled: !!training.sceneId,
-  });
-
-  const { data: actDepartmentLinks = [] } = useQuery<ActDepartment[]>({
-    queryKey: ['/api/acts', training.actId, 'departments'],
-    enabled: !!training.actId,
+  // Fetch artists assigned to this specific training
+  const { data: trainingArtistLinks = [] } = useQuery<TrainingArtist[]>({
+    queryKey: ['/api/trainings', training.id, 'artists'],
   });
 
   const deleteTrainingMutation = useMutation({
@@ -91,13 +74,11 @@ export default function TrainingCard({
   const act = acts.find(a => a.id === training.actId);
   const trainingLocationsList = trainingLocations.map(tl => locations.find(l => l.id === tl.locationId)).filter(Boolean) as Location[];
   
-  // Get artists from scene or act
-  const artistLinks = training.sceneId ? sceneArtistLinks : actArtistLinks;
-  const trainingArtists = artistLinks.map(link => artists.find(artist => artist.id === link.artistId)).filter(Boolean) as Artist[];
+  // Get artists assigned to this training
+  const trainingArtists = trainingArtistLinks.map(link => artists.find(artist => artist.id === link.artistId)).filter(Boolean) as Artist[];
   
-  // Get departments from scene or act
-  const departmentLinks = training.sceneId ? sceneDepartmentLinks : actDepartmentLinks;
-  const trainingDepartments = departmentLinks.map(link => departments.find(d => d.id === link.departmentId)).filter(Boolean) as Department[];
+  // Get departments from department assignments (not from scene/act)
+  const trainingDepartments = assignments.map(assignment => departments.find(d => d.id === assignment.departmentId)).filter(Boolean) as Department[];
   
   const creator = users.find(u => u.id === training.createdBy);
   const updater = users.find(u => u.id === training.updatedBy);

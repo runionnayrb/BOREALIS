@@ -604,7 +604,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/trainings", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const { locationIds, ...trainingData } = req.body;
+    const { locationIds, artistIds, ...trainingData } = req.body;
     const validation = insertTrainingSchema.safeParse(trainingData);
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
@@ -616,12 +616,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.setTrainingLocations(training.id, locationIds);
     }
     
+    // Set training artists if provided
+    if (artistIds && Array.isArray(artistIds) && artistIds.length > 0) {
+      await storage.setTrainingArtists(training.id, artistIds);
+    }
+    
     res.json(training);
   });
 
   app.patch("/api/trainings/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const { locationIds, ...trainingData } = req.body;
+    const { locationIds, artistIds, ...trainingData } = req.body;
     const validation = updateTrainingSchema.safeParse(trainingData);
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
@@ -632,6 +637,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Update training locations if provided
     if (locationIds && Array.isArray(locationIds)) {
       await storage.setTrainingLocations(req.params.id, locationIds);
+    }
+    
+    // Update training artists if provided
+    if (artistIds && Array.isArray(artistIds)) {
+      await storage.setTrainingArtists(req.params.id, artistIds);
     }
     
     res.json(training);

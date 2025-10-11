@@ -48,6 +48,7 @@ export default function ReportEditor() {
   const [endTime, setEndTime] = useState("16:30");
   const [trainingNotes, setTrainingNotes] = useState("");
   const [actDepartmentIds, setActDepartmentIds] = useState<string[]>([]);
+  const [actArtistIds, setActArtistIds] = useState<string[]>([]);
 
   const { data: report, isLoading: reportLoading } = useQuery<Report>({
     queryKey: ['/api/reports', reportId!],
@@ -114,14 +115,16 @@ export default function ReportEditor() {
     }
   }, [editingTraining, locations]);
 
-  // Fetch departments when scene or act is selected
+  // Fetch departments and artists when scene or act is selected
   useEffect(() => {
     if (selectedActId) {
       const isScene = selectedActId.startsWith("scene-");
       const id = isScene ? selectedActId.replace("scene-", "") : selectedActId;
-      const endpoint = isScene ? `/api/scenes/${id}/departments` : `/api/acts/${id}/departments`;
+      const departmentEndpoint = isScene ? `/api/scenes/${id}/departments` : `/api/acts/${id}/departments`;
+      const artistEndpoint = isScene ? `/api/scenes/${id}/artists` : `/api/acts/${id}/artists`;
       
-      fetch(endpoint, {
+      // Fetch departments
+      fetch(departmentEndpoint, {
         credentials: 'include',
         headers: {
           'Accept': 'application/json',
@@ -144,8 +147,34 @@ export default function ReportEditor() {
           console.error("Error loading departments:", err);
           setActDepartmentIds([]);
         });
+
+      // Fetch artists
+      fetch(artistEndpoint, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        }
+      })
+        .then(async res => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Response is not JSON');
+          }
+          return res.json();
+        })
+        .then(data => {
+          setActArtistIds(data.map((item: any) => item.artistId));
+        })
+        .catch(err => {
+          console.error("Error loading artists:", err);
+          setActArtistIds([]);
+        });
     } else {
       setActDepartmentIds([]);
+      setActArtistIds([]);
     }
   }, [selectedActId]);
 
@@ -207,6 +236,7 @@ export default function ReportEditor() {
       setEndTime("16:30");
       setTrainingNotes("");
       setActDepartmentIds([]);
+      setActArtistIds([]);
     },
     onError: () => {
       toast({ title: "Failed to add training", variant: "destructive" });
@@ -229,6 +259,7 @@ export default function ReportEditor() {
       setEndTime("16:30");
       setTrainingNotes("");
       setActDepartmentIds([]);
+      setActArtistIds([]);
     },
     onError: () => {
       toast({ title: "Failed to update training", variant: "destructive" });
@@ -300,6 +331,7 @@ export default function ReportEditor() {
       sceneId: sceneId || undefined,
       actId: actId || undefined,
       locationIds: finalLocationIds,
+      artistIds: actArtistIds,
       startTime,
       endTime,
       durationMinutes: duration,
