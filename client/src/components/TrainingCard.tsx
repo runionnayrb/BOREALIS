@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Training, Scene, Act, Department, Location, Artist, Technician, SafeUser, DepartmentAssignment } from "@shared/schema";
+import type { Training, Scene, Act, Department, Location, Artist, Technician, SafeUser, DepartmentAssignment, TrainingLocation } from "@shared/schema";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +46,10 @@ export default function TrainingCard({
     queryKey: ['/api/trainings', training.id, 'assignments'],
   });
 
+  const { data: trainingLocations = [] } = useQuery<TrainingLocation[]>({
+    queryKey: ['/api/trainings', training.id, 'locations'],
+  });
+
   const deleteTrainingMutation = useMutation({
     mutationFn: async () => {
       return await apiRequest('DELETE', `/api/trainings/${training.id}`);
@@ -61,7 +65,7 @@ export default function TrainingCard({
 
   const scene = scenes.find(s => s.id === training.sceneId);
   const act = acts.find(a => a.id === training.actId);
-  const location = locations.find(l => l.id === training.locationId);
+  const trainingLocationsList = trainingLocations.map(tl => locations.find(l => l.id === tl.locationId)).filter(Boolean) as Location[];
   const creator = users.find(u => u.id === training.createdBy);
   const updater = users.find(u => u.id === training.updatedBy);
 
@@ -97,10 +101,10 @@ export default function TrainingCard({
               {training.durationMinutes} min
             </Badge>
           </div>
-          {location && (
+          {trainingLocationsList.length > 0 && (
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <MapPin className="w-3 h-3" />
-              <span>{location.name}</span>
+              <span>{trainingLocationsList.map(l => l.name).join(", ")}</span>
             </div>
           )}
           {training.notes && (

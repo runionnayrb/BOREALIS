@@ -26,6 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 
 export default function ReportEditor() {
@@ -41,7 +43,7 @@ export default function ReportEditor() {
   const [editingTraining, setEditingTraining] = useState<Training | null>(null);
   
   const [selectedActId, setSelectedActId] = useState("");
-  const [selectedLocationId, setSelectedLocationId] = useState("");
+  const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([]);
   const [startTime, setStartTime] = useState("14:00");
   const [endTime, setEndTime] = useState("16:30");
   const [trainingNotes, setTrainingNotes] = useState("");
@@ -87,13 +89,23 @@ export default function ReportEditor() {
       
       setSelectedActId(value);
       
-      // Check if the location is FULL STAGE
-      const trainingLocation = locations.find(l => l.id === editingTraining.locationId);
-      if (trainingLocation?.name === "FULL STAGE") {
-        setSelectedLocationId("FULL_STAGE");
-      } else {
-        setSelectedLocationId(editingTraining.locationId || "");
-      }
+      // Fetch training locations
+      fetch(`/api/trainings/${editingTraining.id}/locations`, {
+        credentials: 'include',
+      })
+        .then(res => res.json())
+        .then(trainingLocations => {
+          const locationIds = trainingLocations.map((tl: any) => {
+            const location = locations.find(l => l.id === tl.locationId);
+            // Convert FULL STAGE to special value
+            if (location?.name === "FULL STAGE") {
+              return "FULL_STAGE";
+            }
+            return tl.locationId;
+          });
+          setSelectedLocationIds(locationIds);
+        })
+        .catch(err => console.error("Error loading training locations:", err));
       
       setStartTime(editingTraining.startTime);
       setEndTime(editingTraining.endTime);
@@ -190,7 +202,7 @@ export default function ReportEditor() {
       setShowAddTraining(false);
       setEditingTraining(null);
       setSelectedActId("");
-      setSelectedLocationId("");
+      setSelectedLocationIds([]);
       setStartTime("14:00");
       setEndTime("16:30");
       setTrainingNotes("");
@@ -212,7 +224,7 @@ export default function ReportEditor() {
       setShowAddTraining(false);
       setEditingTraining(null);
       setSelectedActId("");
-      setSelectedLocationId("");
+      setSelectedLocationIds([]);
       setStartTime("14:00");
       setEndTime("16:30");
       setTrainingNotes("");
@@ -244,32 +256,36 @@ export default function ReportEditor() {
       return;
     }
 
-    let finalLocationId = selectedLocationId;
+    const finalLocationIds: string[] = [];
     
-    // Handle FULL_STAGE special case
-    if (selectedLocationId === "FULL_STAGE") {
-      // Find or create the FULL STAGE location
-      let fullStageLocation = locations.find(l => l.name === "FULL STAGE");
-      
-      if (!fullStageLocation) {
-        // Create the FULL STAGE location
-        try {
-          const res = await apiRequest('POST', '/api/locations', {
-            name: "FULL STAGE",
-            locationTypeId: null,
-            sortOrder: -1, // Sort first in the list
-          });
-          fullStageLocation = await res.json();
-          // Invalidate locations cache to update the list
-          queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
-        } catch (error) {
-          toast({ title: "Failed to create FULL STAGE location", variant: "destructive" });
-          return;
+    // Process each selected location
+    for (const locationId of selectedLocationIds) {
+      if (locationId === "FULL_STAGE") {
+        // Find or create the FULL STAGE location
+        let fullStageLocation = locations.find(l => l.name === "FULL STAGE");
+        
+        if (!fullStageLocation) {
+          // Create the FULL STAGE location
+          try {
+            const res = await apiRequest('POST', '/api/locations', {
+              name: "FULL STAGE",
+              locationTypeId: null,
+              sortOrder: -1, // Sort first in the list
+            });
+            fullStageLocation = await res.json();
+            // Invalidate locations cache to update the list
+            queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
+          } catch (error) {
+            toast({ title: "Failed to create FULL STAGE location", variant: "destructive" });
+            return;
+          }
         }
-      }
-      
-      if (fullStageLocation) {
-        finalLocationId = fullStageLocation.id;
+        
+        if (fullStageLocation) {
+          finalLocationIds.push(fullStageLocation.id);
+        }
+      } else {
+        finalLocationIds.push(locationId);
       }
     }
 
@@ -283,7 +299,7 @@ export default function ReportEditor() {
       reportId: reportId || editingTraining?.reportId,
       sceneId: sceneId || undefined,
       actId: actId || undefined,
-      locationId: finalLocationId || null,
+      locationIds: finalLocationIds,
       startTime,
       endTime,
       durationMinutes: duration,
@@ -414,7 +430,7 @@ export default function ReportEditor() {
                 if (!open) {
                   setEditingTraining(null);
                   setSelectedActId("");
-                  setSelectedLocationId("");
+                  setSelectedLocationIds([]);
                   setStartTime("14:00");
                   setEndTime("16:30");
                   setTrainingNotes("");
@@ -470,44 +486,99 @@ export default function ReportEditor() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>Location</Label>
-                        <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
-                          <SelectTrigger data-testid="select-location">
-                            <SelectValue placeholder="Select location" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {/* Special FULL STAGE option */}
-                            <SelectItem value="FULL_STAGE" className="font-semibold">
-                              FULL STAGE (All Onstage Areas)
-                            </SelectItem>
-                            
-                            {locationTypes.map((type) => {
-                              const typeLocations = locations.filter(l => l.locationTypeId === type.id);
-                              if (typeLocations.length === 0) return null;
-                              return (
-                                <SelectGroup key={type.id}>
-                                  <SelectLabel>{type.name}</SelectLabel>
-                                  {typeLocations.map((location) => (
-                                    <SelectItem key={location.id} value={location.id} className="pl-12">
-                                      {location.name}
-                                    </SelectItem>
+                        <Label>Locations (Multiple)</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className="w-full justify-start text-left font-normal" data-testid="select-locations">
+                              {selectedLocationIds.length > 0 ? (
+                                <span className="truncate">
+                                  {selectedLocationIds.map(id => {
+                                    if (id === "FULL_STAGE") return "FULL STAGE";
+                                    const loc = locations.find(l => l.id === id);
+                                    return loc?.name;
+                                  }).join(", ")}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">Select locations...</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80 p-0" align="start">
+                            <div className="max-h-96 overflow-y-auto p-4 space-y-3">
+                              {/* FULL STAGE option */}
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="location-FULL_STAGE"
+                                  checked={selectedLocationIds.includes("FULL_STAGE")}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setSelectedLocationIds([...selectedLocationIds, "FULL_STAGE"]);
+                                    } else {
+                                      setSelectedLocationIds(selectedLocationIds.filter(id => id !== "FULL_STAGE"));
+                                    }
+                                  }}
+                                />
+                                <label htmlFor="location-FULL_STAGE" className="text-sm font-semibold cursor-pointer">
+                                  FULL STAGE (All Onstage Areas)
+                                </label>
+                              </div>
+                              
+                              {/* Location types */}
+                              {locationTypes.map((type) => {
+                                const typeLocations = locations.filter(l => l.locationTypeId === type.id);
+                                if (typeLocations.length === 0) return null;
+                                return (
+                                  <div key={type.id} className="space-y-2">
+                                    <div className="text-xs font-semibold text-muted-foreground uppercase">{type.name}</div>
+                                    {typeLocations.map((location) => (
+                                      <div key={location.id} className="flex items-center space-x-2 pl-4">
+                                        <Checkbox
+                                          id={`location-${location.id}`}
+                                          checked={selectedLocationIds.includes(location.id)}
+                                          onCheckedChange={(checked) => {
+                                            if (checked) {
+                                              setSelectedLocationIds([...selectedLocationIds, location.id]);
+                                            } else {
+                                              setSelectedLocationIds(selectedLocationIds.filter(id => id !== location.id));
+                                            }
+                                          }}
+                                        />
+                                        <label htmlFor={`location-${location.id}`} className="text-sm cursor-pointer">
+                                          {location.name}
+                                        </label>
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })}
+                              
+                              {/* Locations without type */}
+                              {locations.filter(l => !l.locationTypeId && l.name !== "FULL STAGE").length > 0 && (
+                                <div className="space-y-2">
+                                  <div className="text-xs font-semibold text-muted-foreground uppercase">Other</div>
+                                  {locations.filter(l => !l.locationTypeId && l.name !== "FULL STAGE").map((location) => (
+                                    <div key={location.id} className="flex items-center space-x-2 pl-4">
+                                      <Checkbox
+                                        id={`location-${location.id}`}
+                                        checked={selectedLocationIds.includes(location.id)}
+                                        onCheckedChange={(checked) => {
+                                          if (checked) {
+                                            setSelectedLocationIds([...selectedLocationIds, location.id]);
+                                          } else {
+                                            setSelectedLocationIds(selectedLocationIds.filter(id => id !== location.id));
+                                          }
+                                        }}
+                                      />
+                                      <label htmlFor={`location-${location.id}`} className="text-sm cursor-pointer">
+                                        {location.name}
+                                      </label>
+                                    </div>
                                   ))}
-                                </SelectGroup>
-                              );
-                            })}
-                            {/* Locations without a type (excluding FULL STAGE which is shown at top) */}
-                            {locations.filter(l => !l.locationTypeId && l.name !== "FULL STAGE").length > 0 && (
-                              <SelectGroup>
-                                <SelectLabel>Other</SelectLabel>
-                                {locations.filter(l => !l.locationTypeId && l.name !== "FULL STAGE").map((location) => (
-                                  <SelectItem key={location.id} value={location.id} className="pl-12">
-                                    {location.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectGroup>
-                            )}
-                          </SelectContent>
-                        </Select>
+                                </div>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </div>
 
