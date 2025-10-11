@@ -44,6 +44,12 @@ A production-ready full-stack web application for theatrical production training
   - Visual indentation (`pl-12`) applied to nested items for better readability
 - ✅ **Training edit functionality**: Edit existing trainings with pre-populated form data and proper update flow
 - ✅ **Chronological sorting**: Training sessions automatically sorted by start time, then end time (earliest to latest)
+- ✅ **Enlarged training modal**: Training modal expanded from max-w-2xl to max-w-6xl with max-h-[90vh] for better screen utilization
+- ✅ **Rich text training notes**: Training notes use RichTextEditor (Tiptap) with full formatting support including bullet/numbered lists
+  - **Two-layer XSS protection**: Tiptap escapes user input (first defense), DOMPurify sanitizes before rendering (second defense)
+  - User-typed HTML (e.g., `<script>`) is safely escaped to HTML entities and displayed as text (standard WYSIWYG behavior)
+  - Formatting features: bold, italic, strikethrough, bullet lists, numbered lists, text alignment, font sizes
+  - Training cards render HTML notes with proper list formatting using dangerouslySetInnerHTML with DOMPurify sanitization
 
 ## Design Decisions
 - **One report per day** containing all trainings (simplified model)
@@ -140,6 +146,10 @@ A production-ready full-stack web application for theatrical production training
 - Password changes require current password verification
 - Session-based authentication with PostgreSQL session store
 - All API endpoints require authentication (except register/login)
+- **XSS Protection (Training Notes)**: Two-layer defense
+  - Layer 1: Tiptap automatically escapes user-typed HTML to safe entities (e.g., `<script>` → `&lt;script&gt;`)
+  - Layer 2: DOMPurify sanitizes HTML before rendering with dangerouslySetInnerHTML
+  - Result: Rich formatting (bullets, bold, etc.) works while preventing script execution
 
 ## Future Integration
 - Scheduling app integration for importing trainings (details pending)

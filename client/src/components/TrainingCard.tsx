@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import DOMPurify from "dompurify";
 import type { Training, Scene, Act, Department, Location, Artist, Technician, SafeUser, DepartmentAssignment, TrainingLocation, SceneArtist, ActArtist, SceneDepartment, ActDepartment } from "@shared/schema";
 import {
   AlertDialog,
@@ -145,9 +146,10 @@ export default function TrainingCard({
                 <FileText className="w-4 h-4 text-muted-foreground" />
                 <span className="font-medium">Training Notes</span>
               </div>
-              <p className="text-sm text-foreground/80 mt-1 ml-5">
-                {training.notes}
-              </p>
+              <div 
+                className="text-sm text-foreground/80 mt-1 ml-5 prose prose-sm max-w-none [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0 [&_li]:mb-0.5 [&_p]:my-0.5"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(training.notes) }}
+              />
             </div>
           )}
           <div className="mt-2">

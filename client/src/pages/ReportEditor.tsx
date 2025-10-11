@@ -442,7 +442,7 @@ export default function ReportEditor() {
                     Add Training
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>{editingTraining ? "Edit Training Session" : "Add Training Session"}</DialogTitle>
                   </DialogHeader>
@@ -613,12 +613,9 @@ export default function ReportEditor() {
 
                     <div className="space-y-2">
                       <Label>Training Notes</Label>
-                      <Textarea
-                        value={trainingNotes}
-                        onChange={(e) => setTrainingNotes(e.target.value)}
-                        placeholder="Add any notes about this training session..."
-                        rows={4}
-                        data-testid="textarea-training-notes"
+                      <RichTextEditor
+                        content={trainingNotes}
+                        onChange={setTrainingNotes}
                       />
                     </div>
 
