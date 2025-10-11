@@ -320,6 +320,27 @@ export default function ReportEditor() {
     }
   };
 
+  const handleUpdateLeadTechnician = async (departmentId: string, leadTechnicianId: string | null) => {
+    const assignment = trainingAssignments.find(a => a.departmentId === departmentId);
+    if (!assignment) return;
+    
+    try {
+      await apiRequest('PATCH', `/api/assignments/${assignment.id}`, {
+        leadTechnicianId,
+      });
+      
+      // Update local state
+      setTrainingAssignments(trainingAssignments.map(a => 
+        a.id === assignment.id ? { ...a, leadTechnicianId } : a
+      ));
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/trainings', editingTraining?.id, 'assignments'] });
+      toast({ title: "Lead technician updated successfully" });
+    } catch (error) {
+      toast({ title: "Failed to update lead technician", variant: "destructive" });
+    }
+  };
+
   const handleSubmitTraining = async () => {
     if (!reportId && !editingTraining) {
       toast({ title: "Please save the report first", variant: "destructive" });
@@ -731,16 +752,38 @@ export default function ReportEditor() {
                           
                           <div className="space-y-2">
                             <Label className="text-xs font-semibold">Departments ({actDepartmentIds.length})</Label>
-                            <div className="space-y-1 max-h-40 overflow-y-auto">
+                            <div className="space-y-2 max-h-60 overflow-y-auto">
                               {actDepartmentIds.length === 0 ? (
                                 <div className="text-sm text-muted-foreground">No departments assigned</div>
                               ) : (
                                 actDepartmentIds.map(deptId => {
                                   const dept = departments.find(d => d.id === deptId);
+                                  const assignment = trainingAssignments.find(a => a.departmentId === deptId);
+                                  const deptTechnicians = technicians.filter(t => t.departmentId === deptId).sort((a, b) => 
+                                    (a.technicianName || `${a.firstName} ${a.lastName}`).localeCompare(b.technicianName || `${b.firstName} ${b.lastName}`)
+                                  );
                                   if (!dept) return null;
                                   return (
-                                    <div key={deptId} className="flex items-center justify-between p-2 rounded hover-elevate">
-                                      <div className="text-sm">{dept.name}</div>
+                                    <div key={deptId} className="flex items-center gap-2 p-2 rounded bg-muted/30">
+                                      <div className="flex-1 space-y-1">
+                                        <div className="text-sm font-medium">{dept.name}</div>
+                                        <Select
+                                          value={assignment?.leadTechnicianId || "none"}
+                                          onValueChange={(value) => handleUpdateLeadTechnician(deptId, value === "none" ? null : value)}
+                                        >
+                                          <SelectTrigger className="h-8 text-xs" data-testid={`select-lead-tech-${deptId}`}>
+                                            <SelectValue placeholder="Select lead technician" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="none">No lead assigned</SelectItem>
+                                            {deptTechnicians.map(tech => (
+                                              <SelectItem key={tech.id} value={tech.id}>
+                                                {tech.technicianName || `${tech.firstName} ${tech.lastName}`}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
                                       <Button
                                         variant="ghost"
                                         size="sm"
