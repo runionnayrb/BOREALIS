@@ -524,7 +524,11 @@ export class DatabaseStorage implements IStorage {
 
   // Trainings
   async getTrainingsByReportId(reportId: string): Promise<Training[]> {
-    return await db.select().from(trainings).where(eq(trainings.reportId, reportId));
+    return await db
+      .select()
+      .from(trainings)
+      .where(eq(trainings.reportId, reportId))
+      .orderBy(asc(trainings.startTime), asc(trainings.endTime));
   }
 
   async getTraining(id: string): Promise<Training | undefined> {

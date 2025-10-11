@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Training, Scene, Act, Department, Location, Artist, Technician, User, DepartmentAssignment } from "@shared/schema";
+import type { Training, Scene, Act, Department, Location, Artist, Technician, SafeUser, DepartmentAssignment } from "@shared/schema";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +26,7 @@ interface TrainingCardProps {
   departments: Department[];
   artists: Artist[];
   technicians: Technician[];
-  users: User[];
+  users: SafeUser[];
   onEdit: (training: Training) => void;
 }
 

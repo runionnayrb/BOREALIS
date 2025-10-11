@@ -38,6 +38,7 @@ A production-ready full-stack web application for theatrical production training
   - **Location dropdown**: "FULL STAGE" option at top, then location types as group labels with indented locations nested underneath
   - Visual indentation (`pl-12`) applied to nested items for better readability
 - ✅ **Training edit functionality**: Edit existing trainings with pre-populated form data and proper update flow
+- ✅ **Chronological sorting**: Training sessions automatically sorted by start time, then end time (earliest to latest)
 
 ## Design Decisions
 - **One report per day** containing all trainings (simplified model)

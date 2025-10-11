@@ -5,6 +5,7 @@ import { setupAuth, sanitizeUser, hashPassword } from "./auth";
 import { z } from "zod";
 import { db } from "./db";
 import { trainings } from "@shared/schema";
+import { asc } from "drizzle-orm";
 import {
   insertSceneSchema,
   insertActSchema,
@@ -571,7 +572,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Trainings routes
   app.get("/api/trainings/all", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const allTrainings = await db.select().from(trainings);
+    const allTrainings = await db
+      .select()
+      .from(trainings)
+      .orderBy(asc(trainings.startTime), asc(trainings.endTime));
     res.json(allTrainings);
   });
 

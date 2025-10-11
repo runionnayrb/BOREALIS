@@ -260,7 +260,9 @@ export default function ReportEditor() {
         }
       }
       
-      finalLocationId = fullStageLocation.id;
+      if (fullStageLocation) {
+        finalLocationId = fullStageLocation.id;
+      }
     }
 
     // Determine if scene or act is selected
