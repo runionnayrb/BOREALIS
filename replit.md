@@ -3,8 +3,8 @@
 ## Overview
 A production-ready full-stack web application for theatrical production training management. Stage Managers create daily training reports with rich text notes, track trainings by act/department/artist/location, assign technician leads, and export to PDF.
 
-## Current State (Updated Oct 10, 2025)
-- ✅ PostgreSQL database with complete schema (users, scenes, acts, departments, act_departments, act_artist_groups, act_artists, scene_departments, scene_artist_groups, scene_artists, location_types, locations, artist_groups, artists, technicians, reports, trainings, assignments)
+## Current State (Updated Oct 11, 2025)
+- ✅ PostgreSQL database with complete schema (users, scenes, acts, departments, act_departments, act_artist_groups, act_artists, scene_departments, scene_artist_groups, scene_artists, location_types, locations, artist_groups, artists, technicians, reports, trainings, training_locations, assignments)
 - ✅ Secure authentication system (login/signup with hashed passwords, session-based)
 - ✅ Profile management (update name, position, pronouns, email, password)
 - ✅ Settings management with full CRUD for all entities (scenes, acts, departments, location types, locations, artist groups, artists, technicians, report template)
@@ -23,7 +23,11 @@ A production-ready full-stack web application for theatrical production training
   - **Acts** can be assigned: departments, artist groups, and individual artists
   - Act department assignments auto-populate when creating trainings
 - ✅ Reports CRUD with audit trail (createdBy, updatedBy, timestamps)
-- ✅ Trainings CRUD with location assignment and audit trail
+- ✅ **Trainings CRUD with multi-location support and audit trail**
+- ✅ **Multi-location support**: Trainings can be assigned to multiple locations simultaneously (e.g., "downstage and the pool")
+  - Multi-select popover UI with checkboxes for location selection
+  - Training cards display all assigned locations as comma-separated list
+  - Junction table pattern consistent with other many-to-many relationships
 - ✅ Department assignments per training (auto-populated from act's required departments)
 - ✅ Rich text editor for report notes
 - ✅ SM on Duty dropdown showing only active stage managers
@@ -35,14 +39,15 @@ A production-ready full-stack web application for theatrical production training
     - **Scenes are selectable**: Can select full scene for training (shows just scene name, no suffix)
     - **Acts are selectable**: Can select individual acts for training (indented under their parent scene with `pl-12`)
     - Each scene appears only once (no duplicate as group label)
-  - **Location dropdown**: "FULL STAGE" option at top, then location types as group labels with indented locations nested underneath
+  - **Location multi-select**: "FULL STAGE" option at top, then location types as group labels with indented locations nested underneath
+  - Popover-based multi-select with checkboxes for selecting multiple locations
   - Visual indentation (`pl-12`) applied to nested items for better readability
 - ✅ **Training edit functionality**: Edit existing trainings with pre-populated form data and proper update flow
 - ✅ **Chronological sorting**: Training sessions automatically sorted by start time, then end time (earliest to latest)
 
 ## Design Decisions
 - **One report per day** containing all trainings (simplified model)
-- **Location assigned to training** (training happens at a location)
+- **Multiple locations per training** (training can happen at multiple locations simultaneously, e.g., "downstage and the pool")
 - **Hierarchical organization pattern**: Both Acts and Locations use a parent→child structure
   - **Scenes → Acts**: Acts are optionally grouped by scenes for better organization
   - **Location Types → Locations**: Locations are optionally grouped by types (onstage, rehearsal room, etc.)
@@ -76,6 +81,8 @@ A production-ready full-stack web application for theatrical production training
 - `trainings` - Training sessions (id, reportId, **sceneId (optional)**, **actId (optional)**, locationId, startTime, endTime, durationMinutes, notes, createdBy, updatedBy, createdAt, updatedAt)
   - **Either sceneId OR actId must be provided** (validated in schema)
   - sceneId for full scene trainings, actId for specific act trainings
+  - locationId field kept for backward compatibility (now using training_locations junction table)
+- `training_locations` - **Junction table** for training-location many-to-many relationship (id, trainingId, locationId, createdAt)
 - `department_assignments` - Per-training department leads (id, trainingId, departmentId, leadTechnicianId, notes) - **auto-created from scene's or act's required departments**
 
 ## API Endpoints
@@ -115,8 +122,9 @@ A production-ready full-stack web application for theatrical production training
 - GET/PATCH/DELETE `/api/reports/:id` - Read/update/delete report
 - GET `/api/reports/date/:date` - Get report by date
 - GET `/api/reports/:reportId/trainings` - Get trainings for report
-- GET/POST `/api/trainings` - List/create trainings
-- GET/PATCH/DELETE `/api/trainings/:id` - Read/update/delete training
+- GET/POST `/api/trainings` - List/create trainings (POST body includes locationIds array)
+- GET/PATCH/DELETE `/api/trainings/:id` - Read/update/delete training (PATCH body includes locationIds array)
+- GET `/api/trainings/:id/locations` - Get locations for training (returns TrainingLocation[])
 - GET/POST `/api/trainings/:trainingId/assignments` - Department assignments
 - PATCH/DELETE `/api/assignments/:id` - Update/delete assignment
 
