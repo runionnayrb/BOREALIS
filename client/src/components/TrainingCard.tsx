@@ -150,20 +150,20 @@ export default function TrainingCard({
               </p>
             </div>
           )}
-          {trainingArtists.length > 0 && (
-            <div className="mt-2">
-              <div className="flex items-center gap-1.5 text-sm text-foreground">
-                <Users className="w-4 h-4 text-muted-foreground" />
-                <span className="font-medium">Artists</span>
-              </div>
-              <p className="text-sm text-muted-foreground mt-1 ml-5">
-                {trainingArtists.map(artist => {
-                  const name = artist.stageName || `${artist.firstName} ${artist.lastName}`;
-                  return artist.role ? `${name} (${artist.role})` : name;
-                }).join(", ")}
-              </p>
+          <div className="mt-2">
+            <div className="flex items-center gap-1.5 text-sm text-foreground">
+              <Users className="w-4 h-4 text-muted-foreground" />
+              <span className="font-medium">Artists</span>
             </div>
-          )}
+            <p className="text-sm text-muted-foreground mt-1 ml-5">
+              {trainingArtists.length > 0
+                ? trainingArtists.map(artist => {
+                    const name = artist.stageName || `${artist.firstName} ${artist.lastName}`;
+                    return artist.role ? `${name} (${artist.role})` : name;
+                  }).join(", ")
+                : "No Assigned Artists"}
+            </p>
+          </div>
           <div className="mt-2">
             <div className="flex items-center gap-1.5 text-sm text-foreground">
               <Briefcase className="w-4 h-4 text-muted-foreground" />
