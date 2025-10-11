@@ -840,7 +840,7 @@ export default function ReportEditor() {
 
           <section>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Report Notes</h2>
+              <h2 className="text-xl font-semibold">General Notes</h2>
               {report && (
                 <div className="text-sm text-muted-foreground">
                   Last updated by {getCreatorName(report.updatedBy)} on {new Date(report.updatedAt).toLocaleString()}
@@ -850,6 +850,7 @@ export default function ReportEditor() {
             <RichTextEditor
               content={content}
               onChange={setContent}
+              minHeight="min-h-32"
             />
           </section>
         </div>

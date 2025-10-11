@@ -19,9 +19,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 interface RichTextEditorProps {
   content?: string;
   onChange?: (content: string) => void;
+  minHeight?: string;
 }
 
-export default function RichTextEditor({ content = '', onChange }: RichTextEditorProps) {
+export default function RichTextEditor({ content = '', onChange, minHeight = 'min-h-64' }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -143,7 +144,7 @@ export default function RichTextEditor({ content = '', onChange }: RichTextEdito
       >
         <EditorContent
           editor={editor}
-          className="prose prose-sm max-w-none p-4 min-h-64 focus:outline-none [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0 [&_li]:mb-1 text-foreground [&_p]:text-foreground [&_li]:text-foreground [&_ul]:text-foreground [&_ol]:text-foreground [&_strong]:text-foreground [&_em]:text-foreground [&_u]:text-foreground [&_s]:text-foreground"
+          className={`prose prose-sm max-w-none p-4 ${minHeight} focus:outline-none [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0 [&_li]:mb-1 text-foreground [&_p]:text-foreground [&_li]:text-foreground [&_ul]:text-foreground [&_ol]:text-foreground [&_strong]:text-foreground [&_em]:text-foreground [&_u]:text-foreground [&_s]:text-foreground`}
           data-testid="editor-content"
         />
       </div>
