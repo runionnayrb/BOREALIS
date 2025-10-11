@@ -152,30 +152,24 @@ export default function TrainingCard({
               <Briefcase className="w-4 h-4 text-muted-foreground" />
               <span className="font-medium">Departments</span>
             </div>
-            <div className="text-sm text-foreground/80 mt-1 ml-5">
-              {trainingDepartments.length > 0 ? (
-                <div className="space-y-1">
-                  {[...trainingDepartments].sort((a, b) => a.name.localeCompare(b.name)).map(dept => {
-                    const assignment = assignments.find(a => a.departmentId === dept.id);
-                    const leadTech = assignment?.leadTechnicianId 
-                      ? technicians.find(t => t.id === assignment.leadTechnicianId)
-                      : null;
-                    const leadName = leadTech 
-                      ? (leadTech.technicianName || `${leadTech.firstName} ${leadTech.lastName}`)
-                      : null;
-                    
-                    return (
-                      <div key={dept.id}>
-                        {dept.name}
-                        {leadName && <span className="text-muted-foreground"> (Lead: {leadName})</span>}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                "No Assigned Departments"
-              )}
-            </div>
+            <p className="text-sm text-foreground/80 mt-1 ml-5">
+              {trainingDepartments.length > 0 
+                ? [...trainingDepartments]
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map(dept => {
+                      const assignment = assignments.find(a => a.departmentId === dept.id);
+                      const leadTech = assignment?.leadTechnicianId 
+                        ? technicians.find(t => t.id === assignment.leadTechnicianId)
+                        : null;
+                      const leadName = leadTech 
+                        ? (leadTech.technicianName || `${leadTech.firstName} ${leadTech.lastName}`)
+                        : null;
+                      
+                      return leadName ? `${dept.name} (${leadName})` : dept.name;
+                    })
+                    .join(", ")
+                : "No Assigned Departments"}
+            </p>
           </div>
           <div className="text-xs text-muted-foreground/70 mt-2">
             <p>
