@@ -309,6 +309,7 @@ export const trainings = pgTable("trainings", {
   sceneId: varchar("scene_id").references(() => scenes.id), // Optional: for full scene trainings
   actId: varchar("act_id").references(() => acts.id), // Optional: for specific act trainings
   locationId: varchar("location_id").references(() => locations.id),
+  stageManagerId: varchar("stage_manager_id").references(() => users.id), // Stage manager for this training
   startTime: text("start_time").notNull(), // HH:MM format
   endTime: text("end_time").notNull(), // HH:MM format
   durationMinutes: integer("duration_minutes").notNull(),

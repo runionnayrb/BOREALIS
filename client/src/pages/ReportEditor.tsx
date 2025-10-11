@@ -44,6 +44,7 @@ export default function ReportEditor() {
   
   const [selectedActId, setSelectedActId] = useState("");
   const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([]);
+  const [selectedStageManagerId, setSelectedStageManagerId] = useState("");
   const [startTime, setStartTime] = useState("14:00");
   const [endTime, setEndTime] = useState("16:30");
   const [trainingNotes, setTrainingNotes] = useState("");
@@ -133,6 +134,7 @@ export default function ReportEditor() {
       setStartTime(editingTraining.startTime);
       setEndTime(editingTraining.endTime);
       setTrainingNotes(editingTraining.notes || "");
+      setSelectedStageManagerId(editingTraining.stageManagerId || "");
       setShowAddTraining(true);
     }
   }, [editingTraining, locations]);
@@ -254,6 +256,7 @@ export default function ReportEditor() {
       setEditingTraining(null);
       setSelectedActId("");
       setSelectedLocationIds([]);
+      setSelectedStageManagerId("");
       setStartTime("14:00");
       setEndTime("16:30");
       setTrainingNotes("");
@@ -278,6 +281,7 @@ export default function ReportEditor() {
       setEditingTraining(null);
       setSelectedActId("");
       setSelectedLocationIds([]);
+      setSelectedStageManagerId("");
       setStartTime("14:00");
       setEndTime("16:30");
       setTrainingNotes("");
@@ -392,6 +396,7 @@ export default function ReportEditor() {
       actId: actId || undefined,
       locationIds: finalLocationIds,
       artistIds: actArtistIds,
+      stageManagerId: selectedStageManagerId || undefined,
       startTime,
       endTime,
       durationMinutes: duration,
@@ -508,6 +513,7 @@ export default function ReportEditor() {
                   setEditingTraining(null);
                   setSelectedActId("");
                   setSelectedLocationIds([]);
+                  setSelectedStageManagerId("");
                   setStartTime("14:00");
                   setEndTime("16:30");
                   setTrainingNotes("");
@@ -524,7 +530,7 @@ export default function ReportEditor() {
                     <DialogTitle>{editingTraining ? "Edit Training Session" : "Add Training Session"}</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label>Scene / Act</Label>
                         <Select value={selectedActId} onValueChange={setSelectedActId}>
@@ -656,6 +662,22 @@ export default function ReportEditor() {
                             </div>
                           </PopoverContent>
                         </Popover>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Stage Manager</Label>
+                        <Select value={selectedStageManagerId || "none"} onValueChange={(value) => setSelectedStageManagerId(value === "none" ? "" : value)}>
+                          <SelectTrigger data-testid="select-stage-manager">
+                            <SelectValue placeholder="Select stage manager" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">No stage manager</SelectItem>
+                            {activeUsers.map((user) => (
+                              <SelectItem key={user.id} value={user.id}>
+                                {user.name || user.email}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 
