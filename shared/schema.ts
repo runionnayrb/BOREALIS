@@ -340,6 +340,22 @@ export type InsertTraining = z.infer<typeof insertTrainingSchema>;
 export type UpdateTraining = z.infer<typeof updateTrainingSchema>;
 export type Training = typeof trainings.$inferSelect;
 
+// Training Locations (junction table for many-to-many relationship)
+export const trainingLocations = pgTable("training_locations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  trainingId: varchar("training_id").notNull().references(() => trainings.id, { onDelete: "cascade" }),
+  locationId: varchar("location_id").notNull().references(() => locations.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertTrainingLocationSchema = createInsertSchema(trainingLocations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertTrainingLocation = z.infer<typeof insertTrainingLocationSchema>;
+export type TrainingLocation = typeof trainingLocations.$inferSelect;
+
 // Department Assignments (per training)
 export const departmentAssignments = pgTable("department_assignments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

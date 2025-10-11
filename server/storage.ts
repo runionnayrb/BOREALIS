@@ -17,6 +17,7 @@ import {
   type ReportTemplate, type InsertReportTemplate, reportTemplate,
   type Report, type InsertReport, reports,
   type Training, type InsertTraining, trainings,
+  type TrainingLocation, type InsertTrainingLocation, trainingLocations,
   type DepartmentAssignment, type InsertDepartmentAssignment, departmentAssignments,
 } from "@shared/schema";
 import { db, pool } from "./db";
@@ -133,6 +134,10 @@ export interface IStorage {
   createTraining(training: InsertTraining, userId: string): Promise<Training>;
   updateTraining(id: string, updates: Partial<Omit<InsertTraining, 'createdBy' | 'reportId'>>, userId: string): Promise<Training | undefined>;
   deleteTraining(id: string): Promise<void>;
+  
+  // Training Locations
+  getTrainingLocations(trainingId: string): Promise<TrainingLocation[]>;
+  setTrainingLocations(trainingId: string, locationIds: string[]): Promise<void>;
   
   // Department Assignments
   getAssignmentsByTrainingId(trainingId: string): Promise<DepartmentAssignment[]>;
@@ -555,6 +560,20 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTraining(id: string): Promise<void> {
     await db.delete(trainings).where(eq(trainings.id, id));
+  }
+
+  // Training Locations
+  async getTrainingLocations(trainingId: string): Promise<TrainingLocation[]> {
+    return await db.select().from(trainingLocations).where(eq(trainingLocations.trainingId, trainingId));
+  }
+
+  async setTrainingLocations(trainingId: string, locationIds: string[]): Promise<void> {
+    await db.delete(trainingLocations).where(eq(trainingLocations.trainingId, trainingId));
+    if (locationIds.length > 0) {
+      await db.insert(trainingLocations).values(
+        locationIds.map(locationId => ({ trainingId, locationId }))
+      );
+    }
   }
 
   // Department Assignments

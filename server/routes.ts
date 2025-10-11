@@ -594,22 +594,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/trainings", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const validation = insertTrainingSchema.safeParse(req.body);
+    const { locationIds, ...trainingData } = req.body;
+    const validation = insertTrainingSchema.safeParse(trainingData);
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
     }
     const training = await storage.createTraining(validation.data, req.user!.id);
+    
+    // Set training locations if provided
+    if (locationIds && Array.isArray(locationIds) && locationIds.length > 0) {
+      await storage.setTrainingLocations(training.id, locationIds);
+    }
+    
     res.json(training);
   });
 
   app.patch("/api/trainings/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const validation = updateTrainingSchema.safeParse(req.body);
+    const { locationIds, ...trainingData } = req.body;
+    const validation = updateTrainingSchema.safeParse(trainingData);
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
     }
     const training = await storage.updateTraining(req.params.id, validation.data, req.user!.id);
     if (!training) return res.sendStatus(404);
+    
+    // Update training locations if provided
+    if (locationIds && Array.isArray(locationIds)) {
+      await storage.setTrainingLocations(req.params.id, locationIds);
+    }
+    
     res.json(training);
   });
 
@@ -617,6 +631,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     await storage.deleteTraining(req.params.id);
     res.sendStatus(204);
+  });
+
+  app.get("/api/trainings/:trainingId/locations", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const locations = await storage.getTrainingLocations(req.params.trainingId);
+    res.json(locations);
   });
 
   // Department Assignments routes
