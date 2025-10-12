@@ -24,6 +24,7 @@ The application is a full-stack web application with a clear separation between 
 - **Rich Text Editor**: Tiptap for rich text notes with full formatting.
 - **Grouped Displays**: Acts, locations, artists, and technicians are displayed grouped by their parent category with count badges. Ungrouped items are shown at the top or with "NO [PARENT]" sections.
 - **Hierarchical Dropdowns**: Training modal includes hierarchical dropdowns for Scene/Act selection (scenes with indented acts) and multi-select locations (types with indented locations).
+- **Training Name Combobox**: Unified combobox field for training names that allows selecting scene/act from dropdown (required) with optional custom display name override. Custom names appear as main title with scene/act as subtitle on training cards.
 
 ### Technical Implementations
 - **Frontend**: React + Vite, Wouter for routing, TanStack Query for data management, shadcn/ui for components.
@@ -44,6 +45,7 @@ The application is a full-stack web application with a clear separation between 
     - **Multi-location support** for trainings.
     - Per-training artist and department customization with auto-population from scene/act assignments.
     - **Lead technician assignment**: Each department can have a lead technician assigned during training editing. Displayed as "Department (LeadName)" on training cards.
+    - **Custom training names**: Optional display name override for trainings. Scene/act selection is required (provides departments/artists), custom name is optional for special naming (e.g., "Emergency Safety Protocol"). Displays custom name as title with scene/act as subtitle on training cards.
 - **Report Template**: Global header/footer template with image upload.
 - **Audit Trail**: All reports and trainings track `createdBy`, `updatedBy`, and timestamps.
 - **One Report Per Day**: Simplified model where a single report encompasses all trainings for a given day.
