@@ -104,43 +104,40 @@ export default function TrainingCard({
     <Card className="p-4" data-testid={`card-training-${training.id}`}>
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex-1">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex-shrink-0">
-              {training.customName ? (
-                <>
-                  <h3 className="font-semibold text-base" data-testid={`text-custom-name-${training.id}`}>
-                    {training.customName}
-                  </h3>
-                  <p className="text-sm text-muted-foreground" data-testid={`text-act-${training.id}`}>
-                    {scene ? `${scene.name} (Full Scene)` : act?.name || "Unknown"}
-                  </p>
-                </>
-              ) : (
-                <h3 className="font-semibold text-base" data-testid={`text-act-${training.id}`}>
-                  {scene ? `${scene.name} (Full Scene)` : act?.name || "Unknown"}
-                </h3>
-              )}
-            </div>
-            <div className="flex items-center gap-4 flex-shrink-0">
-              <div className="text-sm text-muted-foreground w-48 text-right">
-                <span className="font-medium">SM:</span> <span>{training.stageManagerId ? getUserName(training.stageManagerId) : "None"}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm font-mono text-right min-w-[200px]">
+          <div className="grid grid-cols-3 gap-6">
+            <div className="space-y-1">
+              <h3 className="font-semibold text-base" data-testid={training.customName ? `text-custom-name-${training.id}` : `text-act-${training.id}`}>
+                {training.customName || (scene ? `${scene.name} (Full Scene)` : act?.name || "Unknown")}
+              </h3>
+              <div className="flex items-center gap-2 text-sm font-mono">
+                <Clock className="w-4 h-4 text-muted-foreground" />
                 <span className="text-muted-foreground" data-testid={`text-time-${training.id}`}>
-                  {training.startTime} - {training.endTime}
+                  {training.startTime}
                 </span>
-                <Badge variant="secondary" className="font-mono">
-                  {training.durationMinutes} min
-                </Badge>
               </div>
+            </div>
+            
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5 text-sm">
+                <MapPin className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium" data-testid={`text-locations-${training.id}`}>
+                  {trainingLocationsList.length > 0 ? trainingLocationsList.map(l => l.name).join(", ") : "No location"}
+                </span>
+              </div>
+              <div className="text-sm font-mono text-muted-foreground">
+                {training.endTime}
+              </div>
+            </div>
+            
+            <div className="space-y-1 text-right">
+              <div className="text-sm">
+                <span className="font-medium">SM:</span> <span className="text-muted-foreground">{training.stageManagerId ? getUserName(training.stageManagerId) : "None"}</span>
+              </div>
+              <Badge variant="secondary" className="font-mono w-fit ml-auto">
+                {training.durationMinutes} min
+              </Badge>
             </div>
           </div>
-          {trainingLocationsList.length > 0 && (
-            <div className="flex items-center gap-1.5 text-sm text-foreground mt-1" data-testid={`text-locations-${training.id}`}>
-              <MapPin className="w-4 h-4 text-muted-foreground" />
-              <span className="font-medium">{trainingLocationsList.map(l => l.name).join(", ")}</span>
-            </div>
-          )}
           <div className="mt-2">
             <div className="flex items-center gap-1.5 text-sm text-foreground">
               <FileText className="w-4 h-4 text-muted-foreground" />
