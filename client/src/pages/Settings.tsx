@@ -1510,7 +1510,17 @@ export default function Settings() {
                             <SelectValue placeholder="Select a scene" />
                           </SelectTrigger>
                           <SelectContent>
-                            {scenes.map((scene) => (
+                            {[...scenes].sort((a, b) => {
+                              // Put RESCUE SCENARIOS and FULL SHOW at the bottom
+                              const aIsBottom = a.name === "RESCUE SCENARIOS" || a.name === "FULL SHOW";
+                              const bIsBottom = b.name === "RESCUE SCENARIOS" || b.name === "FULL SHOW";
+                              
+                              if (aIsBottom && !bIsBottom) return 1;
+                              if (!aIsBottom && bIsBottom) return -1;
+                              
+                              // Otherwise maintain original sort order
+                              return a.sortOrder - b.sortOrder;
+                            }).map((scene) => (
                               <SelectItem key={scene.id} value={scene.id}>
                                 {scene.name}
                               </SelectItem>
