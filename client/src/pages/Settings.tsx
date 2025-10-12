@@ -245,6 +245,9 @@ export default function Settings() {
 
   // Load technician departments when editing a technician
   useEffect(() => {
+    // Reset state immediately to prevent leaking old state when switching technicians
+    setSelectedTechnicianDepartmentIds([]);
+    
     if (editTarget?.type === "technician" && editTarget.id && techDialogOpen) {
       fetch(`/api/technicians/${editTarget.id}/departments`, {
         credentials: 'include',
@@ -265,8 +268,6 @@ export default function Settings() {
           console.error("Error loading technician departments:", err);
           setSelectedTechnicianDepartmentIds([]);
         });
-    } else if (!techDialogOpen) {
-      setSelectedTechnicianDepartmentIds([]);
     }
   }, [editTarget, techDialogOpen]);
 

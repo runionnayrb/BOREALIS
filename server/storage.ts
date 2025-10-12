@@ -23,7 +23,7 @@ import {
   type TrainingArtist, type InsertTrainingArtist, trainingArtists,
 } from "@shared/schema";
 import { db, pool } from "./db";
-import { eq, asc, desc } from "drizzle-orm";
+import { eq, asc, desc, inArray } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import type { Store } from "express-session";
@@ -121,6 +121,7 @@ export interface IStorage {
   // Technician Departments
   getTechnicianDepartments(technicianId: string): Promise<TechnicianDepartment[]>;
   setTechnicianDepartments(technicianId: string, departmentIds: string[]): Promise<void>;
+  getTechniciansByDepartment(departmentId: string): Promise<Technician[]>;
   
   // Report Template
   getReportTemplate(): Promise<ReportTemplate | undefined>;
@@ -477,12 +478,41 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setTechnicianDepartments(technicianId: string, departmentIds: string[]): Promise<void> {
-    await db.delete(technicianDepartments).where(eq(technicianDepartments.technicianId, technicianId));
-    if (departmentIds.length > 0) {
-      await db.insert(technicianDepartments).values(
-        departmentIds.map(departmentId => ({ technicianId, departmentId }))
-      );
-    }
+    await db.transaction(async (tx) => {
+      // Check if technician exists
+      const techExists = await tx.select().from(technicians).where(eq(technicians.id, technicianId)).limit(1);
+      if (techExists.length === 0) {
+        throw new Error(`Technician ${technicianId} not found`);
+      }
+
+      // Check if all departments exist
+      if (departmentIds.length > 0) {
+        const deptExists = await tx.select().from(departments).where(
+          inArray(departments.id, departmentIds)
+        );
+        if (deptExists.length !== departmentIds.length) {
+          throw new Error('One or more departments not found');
+        }
+      }
+
+      // Delete existing assignments
+      await tx.delete(technicianDepartments).where(eq(technicianDepartments.technicianId, technicianId));
+
+      // Insert new assignments
+      if (departmentIds.length > 0) {
+        await tx.insert(technicianDepartments).values(
+          departmentIds.map(departmentId => ({ technicianId, departmentId }))
+        );
+      }
+    });
+  }
+
+  async getTechniciansByDepartment(departmentId: string): Promise<Technician[]> {
+    const techDepts = await db.select().from(technicianDepartments).where(eq(technicianDepartments.departmentId, departmentId));
+    if (techDepts.length === 0) return [];
+    
+    const technicianIds = techDepts.map(td => td.technicianId);
+    return await db.select().from(technicians).where(inArray(technicians.id, technicianIds));
   }
 
   // Report Template

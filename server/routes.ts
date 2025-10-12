@@ -329,6 +329,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(department);
   });
 
+  app.get("/api/departments/:id/technicians", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const technicians = await storage.getTechniciansByDepartment(req.params.id);
+    res.json(technicians);
+  });
+
   app.delete("/api/departments/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {

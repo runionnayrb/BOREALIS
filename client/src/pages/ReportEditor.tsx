@@ -40,6 +40,72 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 
+interface DepartmentLeadSelectorProps {
+  departmentId: string;
+  departmentName: string;
+  leadTechnicianId: string | null;
+  onUpdateLead: (value: string | null) => void;
+  onRemove: () => void;
+}
+
+function DepartmentLeadSelector({ 
+  departmentId, 
+  departmentName, 
+  leadTechnicianId, 
+  onUpdateLead, 
+  onRemove 
+}: DepartmentLeadSelectorProps) {
+  const { data: deptTechnicians = [] } = useQuery<Technician[]>({
+    queryKey: ["/api/departments", departmentId, "technicians"],
+    queryFn: async () => {
+      const res = await fetch(`/api/departments/${departmentId}/technicians`, {
+        credentials: "include"
+      });
+      if (!res.ok) throw new Error(`Failed to fetch technicians for department ${departmentId}`);
+      return res.json();
+    }
+  });
+
+  const sortedTechnicians = [...deptTechnicians].sort((a, b) => 
+    (a.technicianName || `${a.firstName} ${a.lastName}`).localeCompare(
+      b.technicianName || `${b.firstName} ${b.lastName}`
+    )
+  );
+
+  return (
+    <div className="flex items-center gap-2 p-2 rounded bg-muted/30">
+      <div className="flex-1 space-y-1">
+        <div className="text-sm font-medium">{departmentName}</div>
+        <Select
+          value={leadTechnicianId || "none"}
+          onValueChange={(value) => onUpdateLead(value === "none" ? null : value)}
+        >
+          <SelectTrigger className="h-8 text-xs" data-testid={`select-lead-tech-${departmentId}`}>
+            <SelectValue placeholder="Select lead technician" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">No lead assigned</SelectItem>
+            {sortedTechnicians.map(tech => (
+              <SelectItem key={tech.id} value={tech.id}>
+                {tech.technicianName || `${tech.firstName} ${tech.lastName}`}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-7 w-7 p-0"
+        onClick={onRemove}
+        data-testid={`button-remove-department-${departmentId}`}
+      >
+        ×
+      </Button>
+    </div>
+  );
+}
+
 export default function ReportEditor() {
   const params = useParams();
   const reportId = params.id;
@@ -906,45 +972,16 @@ export default function ReportEditor() {
                                   .map(deptId => ({ id: deptId, dept: departments.find(d => d.id === deptId) }))
                                   .filter(({ dept }) => dept !== undefined)
                                   .sort((a, b) => a.dept!.name.localeCompare(b.dept!.name))
-                                  .map(({ id: deptId, dept }) => {
-                                    const assignment = trainingAssignments.find(a => a.departmentId === deptId);
-                                    // TODO: Fetch department-specific technicians from API via junction table
-                                    const deptTechnicians = technicians.sort((a, b) => 
-                                      (a.technicianName || `${a.firstName} ${a.lastName}`).localeCompare(b.technicianName || `${b.firstName} ${b.lastName}`)
-                                    );
-                                    return (
-                                      <div key={deptId} className="flex items-center gap-2 p-2 rounded bg-muted/30">
-                                        <div className="flex-1 space-y-1">
-                                          <div className="text-sm font-medium">{dept!.name}</div>
-                                          <Select
-                                            value={assignment?.leadTechnicianId || "none"}
-                                            onValueChange={(value) => handleUpdateLeadTechnician(deptId, value === "none" ? null : value)}
-                                          >
-                                            <SelectTrigger className="h-8 text-xs" data-testid={`select-lead-tech-${deptId}`}>
-                                              <SelectValue placeholder="Select lead technician" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="none">No lead assigned</SelectItem>
-                                              {deptTechnicians.map(tech => (
-                                                <SelectItem key={tech.id} value={tech.id}>
-                                                  {tech.technicianName || `${tech.firstName} ${tech.lastName}`}
-                                                </SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-7 w-7 p-0"
-                                          onClick={() => handleRemoveDepartment(deptId)}
-                                          data-testid={`button-remove-department-${deptId}`}
-                                        >
-                                          ×
-                                        </Button>
-                                      </div>
-                                    );
-                                  })
+                                  .map(({ id: deptId, dept }) => (
+                                    <DepartmentLeadSelector
+                                      key={deptId}
+                                      departmentId={deptId}
+                                      departmentName={dept!.name}
+                                      leadTechnicianId={trainingAssignments.find(a => a.departmentId === deptId)?.leadTechnicianId || null}
+                                      onUpdateLead={(value) => handleUpdateLeadTechnician(deptId, value)}
+                                      onRemove={() => handleRemoveDepartment(deptId)}
+                                    />
+                                  ))
                               )}
                             </div>
                           </div>
