@@ -1214,28 +1214,53 @@ export default function Settings() {
                             {departments.length === 0 ? (
                               <p className="text-sm text-muted-foreground">No departments available</p>
                             ) : (
-                              departments.map((dept) => (
-                                <div key={dept.id} className="flex items-center space-x-2">
+                              <>
+                                {/* ALL DEPARTMENTS Checkbox */}
+                                <div className="flex items-center space-x-2 pb-2 border-b-2">
                                   <Checkbox
-                                    id={`scene-dept-${dept.id}`}
-                                    checked={selectedSceneDepartmentIds.includes(dept.id)}
+                                    id="scene-all-departments"
+                                    checked={departments.every(d => selectedSceneDepartmentIds.includes(d.id))}
+                                    data-state={departments.some(d => selectedSceneDepartmentIds.includes(d.id)) && !departments.every(d => selectedSceneDepartmentIds.includes(d.id)) ? "indeterminate" : undefined}
                                     onCheckedChange={(checked) => {
                                       if (checked) {
-                                        setSelectedSceneDepartmentIds([...selectedSceneDepartmentIds, dept.id]);
+                                        setSelectedSceneDepartmentIds(departments.map(d => d.id));
                                       } else {
-                                        setSelectedSceneDepartmentIds(selectedSceneDepartmentIds.filter(id => id !== dept.id));
+                                        setSelectedSceneDepartmentIds([]);
                                       }
                                     }}
-                                    data-testid={`checkbox-scene-dept-${dept.id}`}
+                                    data-testid="checkbox-scene-all-departments"
                                   />
                                   <Label
-                                    htmlFor={`scene-dept-${dept.id}`}
-                                    className="text-sm font-normal cursor-pointer flex-1"
+                                    htmlFor="scene-all-departments"
+                                    className="text-sm font-bold cursor-pointer flex-1 uppercase"
                                   >
-                                    {dept.name}
+                                    All Departments
                                   </Label>
                                 </div>
-                              ))
+
+                                {[...departments].sort((a, b) => a.name.localeCompare(b.name)).map((dept) => (
+                                  <div key={dept.id} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`scene-dept-${dept.id}`}
+                                      checked={selectedSceneDepartmentIds.includes(dept.id)}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          setSelectedSceneDepartmentIds([...selectedSceneDepartmentIds, dept.id]);
+                                        } else {
+                                          setSelectedSceneDepartmentIds(selectedSceneDepartmentIds.filter(id => id !== dept.id));
+                                        }
+                                      }}
+                                      data-testid={`checkbox-scene-dept-${dept.id}`}
+                                    />
+                                    <Label
+                                      htmlFor={`scene-dept-${dept.id}`}
+                                      className="text-sm font-normal cursor-pointer flex-1"
+                                    >
+                                      {dept.name}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </>
                             )}
                           </div>
                         </div>
@@ -1486,28 +1511,57 @@ export default function Settings() {
                       <div className="space-y-2">
                         <Label>Departments</Label>
                         <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
-                          {departments.map((dept) => (
-                            <div key={dept.id} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`dept-${dept.id}`}
-                                checked={selectedDepartmentIds.includes(dept.id)}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setSelectedDepartmentIds([...selectedDepartmentIds, dept.id]);
-                                  } else {
-                                    setSelectedDepartmentIds(selectedDepartmentIds.filter(id => id !== dept.id));
-                                  }
-                                }}
-                                data-testid={`checkbox-dept-${dept.id}`}
-                              />
-                              <Label
-                                htmlFor={`dept-${dept.id}`}
-                                className="text-sm font-normal cursor-pointer flex-1"
-                              >
-                                {dept.name}
-                              </Label>
-                            </div>
-                          ))}
+                          {departments.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">No departments available</p>
+                          ) : (
+                            <>
+                              {/* ALL DEPARTMENTS Checkbox */}
+                              <div className="flex items-center space-x-2 pb-2 border-b-2">
+                                <Checkbox
+                                  id="act-all-departments"
+                                  checked={departments.every(d => selectedDepartmentIds.includes(d.id))}
+                                  data-state={departments.some(d => selectedDepartmentIds.includes(d.id)) && !departments.every(d => selectedDepartmentIds.includes(d.id)) ? "indeterminate" : undefined}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setSelectedDepartmentIds(departments.map(d => d.id));
+                                    } else {
+                                      setSelectedDepartmentIds([]);
+                                    }
+                                  }}
+                                  data-testid="checkbox-act-all-departments"
+                                />
+                                <Label
+                                  htmlFor="act-all-departments"
+                                  className="text-sm font-bold cursor-pointer flex-1 uppercase"
+                                >
+                                  All Departments
+                                </Label>
+                              </div>
+
+                              {[...departments].sort((a, b) => a.name.localeCompare(b.name)).map((dept) => (
+                                <div key={dept.id} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`dept-${dept.id}`}
+                                    checked={selectedDepartmentIds.includes(dept.id)}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        setSelectedDepartmentIds([...selectedDepartmentIds, dept.id]);
+                                      } else {
+                                        setSelectedDepartmentIds(selectedDepartmentIds.filter(id => id !== dept.id));
+                                      }
+                                    }}
+                                    data-testid={`checkbox-dept-${dept.id}`}
+                                  />
+                                  <Label
+                                    htmlFor={`dept-${dept.id}`}
+                                    className="text-sm font-normal cursor-pointer flex-1"
+                                  >
+                                    {dept.name}
+                                  </Label>
+                                </div>
+                              ))}
+                            </>
+                          )}
                         </div>
                       </div>
                       <div className="space-y-2">
