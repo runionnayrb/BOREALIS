@@ -386,6 +386,11 @@ export default function ReportEditor() {
       return;
     }
 
+    if (!selectedActId) {
+      toast({ title: "Please select a scene or act", variant: "destructive" });
+      return;
+    }
+
     const finalLocationIds: string[] = [];
     
     // Process each selected location
@@ -591,16 +596,16 @@ export default function ReportEditor() {
                                 value={trainingNameInput}
                                 onValueChange={(value) => {
                                   setTrainingNameInput(value);
-                                  // When user types, clear selected act and set as custom name
-                                  setSelectedActId("");
+                                  // When user types, set as custom name but keep any selected act
+                                  // Custom name will be used for display, but act provides departments/artists
                                   setCustomName(value);
                                 }}
                                 data-testid="input-training-name"
                               />
                               <CommandList>
                                 <CommandEmpty>
-                                  <div className="py-2 text-sm text-muted-foreground">
-                                    Press Enter to use "{trainingNameInput}" as custom name
+                                  <div className="py-2 px-2 text-sm text-muted-foreground">
+                                    No scenes/acts match "{trainingNameInput}". Select a scene/act below, then you can type a custom display name.
                                   </div>
                                 </CommandEmpty>
                                 <CommandGroup heading="Scenes & Acts">
@@ -698,7 +703,7 @@ export default function ReportEditor() {
                           </PopoverContent>
                         </Popover>
                         <p className="text-xs text-muted-foreground">
-                          Select a scene/act from the dropdown or type a custom training name
+                          Select a scene/act, then optionally type a custom display name
                         </p>
                       </div>
                     </div>
@@ -735,6 +740,7 @@ export default function ReportEditor() {
                                       setSelectedLocationIds(selectedLocationIds.filter(id => id !== "FULL_STAGE"));
                                     }
                                   }}
+                                  data-testid="checkbox-location-FULL_STAGE"
                                 />
                                 <label htmlFor="location-FULL_STAGE" className="text-sm font-semibold cursor-pointer">
                                   FULL STAGE (All Onstage Areas)
