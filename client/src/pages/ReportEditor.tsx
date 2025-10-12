@@ -43,6 +43,7 @@ export default function ReportEditor() {
   const [editingTraining, setEditingTraining] = useState<Training | null>(null);
   
   const [selectedActId, setSelectedActId] = useState("");
+  const [customName, setCustomName] = useState("");
   const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([]);
   const [selectedStageManagerId, setSelectedStageManagerId] = useState("");
   const [startTime, setStartTime] = useState("14:00");
@@ -134,6 +135,7 @@ export default function ReportEditor() {
       setStartTime(editingTraining.startTime);
       setEndTime(editingTraining.endTime);
       setTrainingNotes(editingTraining.notes || "");
+      setCustomName(editingTraining.customName || "");
       setSelectedStageManagerId(editingTraining.stageManagerId || "");
       setShowAddTraining(true);
     }
@@ -255,6 +257,7 @@ export default function ReportEditor() {
       setShowAddTraining(false);
       setEditingTraining(null);
       setSelectedActId("");
+      setCustomName("");
       setSelectedLocationIds([]);
       setSelectedStageManagerId("");
       setStartTime("14:00");
@@ -280,6 +283,7 @@ export default function ReportEditor() {
       setShowAddTraining(false);
       setEditingTraining(null);
       setSelectedActId("");
+      setCustomName("");
       setSelectedLocationIds([]);
       setSelectedStageManagerId("");
       setStartTime("14:00");
@@ -394,6 +398,7 @@ export default function ReportEditor() {
       reportId: reportId || editingTraining?.reportId,
       sceneId: sceneId || undefined,
       actId: actId || undefined,
+      customName: customName || undefined,
       locationIds: finalLocationIds,
       artistIds: actArtistIds,
       stageManagerId: selectedStageManagerId || undefined,
@@ -512,6 +517,7 @@ export default function ReportEditor() {
                 if (!open) {
                   setEditingTraining(null);
                   setSelectedActId("");
+                  setCustomName("");
                   setSelectedLocationIds([]);
                   setSelectedStageManagerId("");
                   setStartTime("14:00");
@@ -584,6 +590,17 @@ export default function ReportEditor() {
                           </SelectContent>
                         </Select>
                       </div>
+                      <div className="space-y-2 col-span-2">
+                        <Label>Custom Training Name (Optional)</Label>
+                        <Input
+                          value={customName}
+                          onChange={(e) => setCustomName(e.target.value)}
+                          placeholder="e.g., Special Safety Rehearsal, Emergency Protocol Training..."
+                          data-testid="input-custom-name"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label>Locations (Multiple)</Label>
                         <Popover>

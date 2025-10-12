@@ -105,9 +105,22 @@ export default function TrainingCard({
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex-1">
           <div className="flex items-center justify-between gap-4">
-            <h3 className="font-semibold text-base flex-shrink-0" data-testid={`text-act-${training.id}`}>
-              {scene ? `${scene.name} (Full Scene)` : act?.name || "Unknown"}
-            </h3>
+            <div className="flex-shrink-0">
+              {training.customName ? (
+                <>
+                  <h3 className="font-semibold text-base" data-testid={`text-custom-name-${training.id}`}>
+                    {training.customName}
+                  </h3>
+                  <p className="text-sm text-muted-foreground" data-testid={`text-act-${training.id}`}>
+                    {scene ? `${scene.name} (Full Scene)` : act?.name || "Unknown"}
+                  </p>
+                </>
+              ) : (
+                <h3 className="font-semibold text-base" data-testid={`text-act-${training.id}`}>
+                  {scene ? `${scene.name} (Full Scene)` : act?.name || "Unknown"}
+                </h3>
+              )}
+            </div>
             <div className="flex items-center gap-4 flex-shrink-0">
               <div className="text-sm text-muted-foreground w-48 text-right">
                 <span className="font-medium">SM:</span> <span>{training.stageManagerId ? getUserName(training.stageManagerId) : "None"}</span>

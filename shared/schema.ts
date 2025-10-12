@@ -308,6 +308,7 @@ export const trainings = pgTable("trainings", {
   reportId: varchar("report_id").notNull().references(() => reports.id, { onDelete: "cascade" }),
   sceneId: varchar("scene_id").references(() => scenes.id), // Optional: for full scene trainings
   actId: varchar("act_id").references(() => acts.id), // Optional: for specific act trainings
+  customName: text("custom_name"), // Optional: custom name for special trainings
   locationId: varchar("location_id").references(() => locations.id),
   stageManagerId: varchar("stage_manager_id").references(() => users.id), // Stage manager for this training
   startTime: text("start_time").notNull(), // HH:MM format
