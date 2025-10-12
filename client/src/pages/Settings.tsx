@@ -1119,9 +1119,9 @@ export default function Settings() {
                       </Button>
                       <div className="space-y-2 max-h-[400px] overflow-y-auto">
                         {[...scenes].sort((a, b) => {
-                          // Put Rescue Scenarios and Full Show Conditions at the bottom
-                          const aIsBottom = a.name === "Rescue Scenarios" || a.name === "Full Show Conditions";
-                          const bIsBottom = b.name === "Rescue Scenarios" || b.name === "Full Show Conditions";
+                          // Put RESCUE SCENARIOS and FULL SHOW at the bottom
+                          const aIsBottom = a.name === "RESCUE SCENARIOS" || a.name === "FULL SHOW";
+                          const bIsBottom = b.name === "RESCUE SCENARIOS" || b.name === "FULL SHOW";
                           
                           if (aIsBottom && !bIsBottom) return 1;
                           if (!aIsBottom && bIsBottom) return -1;
