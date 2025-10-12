@@ -1,4 +1,4 @@
-import { FileText, Plus, Clock, Settings, ChevronRight } from "lucide-react";
+import { FileText, Plus, Settings, ChevronRight } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -16,7 +16,6 @@ export default function AppSidebar() {
   const items = [
     { title: "Reports", icon: FileText, path: "/" },
     { title: "New Report", icon: Plus, path: "/new-report" },
-    { title: "Today", icon: Clock, path: "/today" },
     { title: "Settings", icon: Settings, path: "/settings" },
   ];
 

@@ -9,7 +9,6 @@ import TopBar from "@/components/TopBar";
 import MobileNav from "@/components/MobileNav";
 import ReportsList from "@/pages/ReportsList";
 import ReportEditor from "@/pages/ReportEditor";
-import Today from "@/pages/Today";
 import Settings from "@/pages/Settings";
 import Profile from "@/pages/Profile";
 import AuthPage from "@/pages/AuthPage";
@@ -55,7 +54,6 @@ function AuthenticatedApp() {
               <Route path="/" component={ReportsList} />
               <Route path="/new-report" component={ReportEditor} />
               <Route path="/report/:id" component={ReportEditor} />
-              <Route path="/today" component={Today} />
               <Route path="/settings" component={Settings} />
               <Route path="/profile" component={Profile} />
             </Switch>
