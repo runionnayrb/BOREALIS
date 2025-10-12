@@ -416,6 +416,7 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/technicians"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/technician-departments/all"] });
       setTechDialogOpen(false);
       setSelectedTechnicianDepartmentIds([]);
       toast({ title: "Technician created successfully" });
@@ -548,6 +549,7 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/technicians"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/technician-departments/all"] });
       setTechDialogOpen(false);
       setEditTarget(null);
       setSelectedTechnicianDepartmentIds([]);
@@ -2440,7 +2442,7 @@ export default function Settings() {
                               </PopoverTrigger>
                               <PopoverContent className="w-80 p-0" align="start">
                                 <div className="max-h-96 overflow-y-auto p-4 space-y-2">
-                                  {departments.map((dept) => (
+                                  {[...departments].sort((a, b) => a.name.localeCompare(b.name)).map((dept) => (
                                     <div key={dept.id} className="flex items-center space-x-2">
                                       <Checkbox
                                         id={`tech-dept-${dept.id}`}
