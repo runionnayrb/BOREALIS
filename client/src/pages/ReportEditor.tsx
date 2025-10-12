@@ -346,8 +346,9 @@ export default function ReportEditor() {
       
       return training;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/reports', reportId, 'trainings'] });
+    onSuccess: (training) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/reports', training.reportId, 'trainings'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reports'] });
       toast({ title: "Training added successfully" });
       setShowAddTraining(false);
       setEditingTraining(null);
@@ -447,14 +448,25 @@ export default function ReportEditor() {
   };
 
   const handleSubmitTraining = async () => {
-    if (!reportId && !editingTraining) {
-      toast({ title: "Please save the report first", variant: "destructive" });
-      return;
-    }
-
     if (!selectedActId) {
       toast({ title: "Please select a scene or act", variant: "destructive" });
       return;
+    }
+
+    // Auto-create the report if it doesn't exist yet
+    let currentReportId = reportId;
+    if (!reportId && !editingTraining) {
+      try {
+        const newReport = await createReportMutation.mutateAsync({
+          date: reportDate,
+          notes: content,
+          stageManagerOnDuty,
+        });
+        currentReportId = newReport.id;
+      } catch (error) {
+        // Error toast already shown by mutation onError
+        return;
+      }
     }
 
     const finalLocationIds: string[] = [];
@@ -497,7 +509,7 @@ export default function ReportEditor() {
 
     const duration = calculateDuration();
     const trainingData = {
-      reportId: reportId || editingTraining?.reportId,
+      reportId: currentReportId || editingTraining?.reportId,
       sceneId: sceneId || undefined,
       actId: actId || undefined,
       customName: customName || undefined,
