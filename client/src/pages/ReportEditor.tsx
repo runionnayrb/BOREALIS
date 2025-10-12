@@ -574,7 +574,7 @@ export default function ReportEditor() {
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-2 col-span-3">
+                      <div className="space-y-2">
                         <Label>Training Name</Label>
                         <Popover open={trainingNameComboOpen} onOpenChange={setTrainingNameComboOpen}>
                           <PopoverTrigger asChild>
@@ -706,8 +706,6 @@ export default function ReportEditor() {
                           Select a scene/act, then optionally type a custom display name
                         </p>
                       </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label>Locations (Multiple)</Label>
                         <Popover>
