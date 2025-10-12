@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, sanitizeUser, hashPassword } from "./auth";
 import { z } from "zod";
 import { db } from "./db";
-import { trainings, actDepartments, departmentAssignments, technicians } from "@shared/schema";
+import { trainings, actDepartments, departmentAssignments, technicians, technicianDepartments } from "@shared/schema";
 import { asc, eq } from "drizzle-orm";
 import {
   insertSceneSchema,
@@ -333,13 +333,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
       // Check for references before attempting deletion
-      const [actDepts, deptAssignments, techs] = await Promise.all([
+      const [actDepts, deptAssignments, techDepts] = await Promise.all([
         db.select().from(actDepartments).where(eq(actDepartments.departmentId, req.params.id)),
         db.select().from(departmentAssignments).where(eq(departmentAssignments.departmentId, req.params.id)),
-        db.select().from(technicians).where(eq(technicians.departmentId, req.params.id))
+        db.select().from(technicianDepartments).where(eq(technicianDepartments.departmentId, req.params.id))
       ]);
 
-      if (actDepts.length > 0 || deptAssignments.length > 0 || techs.length > 0) {
+      if (actDepts.length > 0 || deptAssignments.length > 0 || techDepts.length > 0) {
         const issues: string[] = [];
         
         if (actDepts.length > 0) {
@@ -348,8 +348,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (deptAssignments.length > 0) {
           issues.push(`${deptAssignments.length} training assignment${deptAssignments.length > 1 ? 's' : ''} (remove in report training sessions)`);
         }
-        if (techs.length > 0) {
-          issues.push(`${techs.length} technician${techs.length > 1 ? 's' : ''} (reassign or delete in Settings → Technicians)`);
+        if (techDepts.length > 0) {
+          issues.push(`${techDepts.length} technician${techDepts.length > 1 ? 's' : ''} (reassign or delete in Settings → Technicians)`);
         }
 
         return res.status(400).json({ 
@@ -539,6 +539,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     await storage.deleteTechnician(req.params.id);
     res.sendStatus(204);
+  });
+
+  // Technician Departments routes
+  app.get("/api/technicians/:id/departments", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const departments = await storage.getTechnicianDepartments(req.params.id);
+    res.json(departments);
+  });
+
+  app.put("/api/technicians/:id/departments", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const validation = z.object({
+      departmentIds: z.array(z.string()),
+    }).safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    await storage.setTechnicianDepartments(req.params.id, validation.data.departmentIds);
+    const departments = await storage.getTechnicianDepartments(req.params.id);
+    res.json(departments);
   });
 
   // Report Template routes

@@ -24,6 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -69,6 +70,9 @@ export default function Settings() {
   const [selectedSceneDepartmentIds, setSelectedSceneDepartmentIds] = useState<string[]>([]);
   const [selectedSceneArtistGroupIds, setSelectedSceneArtistGroupIds] = useState<string[]>([]);
   const [selectedSceneArtistIds, setSelectedSceneArtistIds] = useState<string[]>([]);
+  
+  // Technician department assignments
+  const [selectedTechnicianDepartmentIds, setSelectedTechnicianDepartmentIds] = useState<string[]>([]);
 
   const { toast} = useToast();
 
@@ -239,6 +243,33 @@ export default function Settings() {
     }
   }, [editTarget]);
 
+  // Load technician departments when editing a technician
+  useEffect(() => {
+    if (editTarget?.type === "technician" && editTarget.id && techDialogOpen) {
+      fetch(`/api/technicians/${editTarget.id}/departments`, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        }
+      })
+        .then(async res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) throw new Error('Response is not JSON');
+          return res.json();
+        })
+        .then(data => {
+          setSelectedTechnicianDepartmentIds(data.map((td: any) => td.departmentId));
+        })
+        .catch(err => {
+          console.error("Error loading technician departments:", err);
+          setSelectedTechnicianDepartmentIds([]);
+        });
+    } else if (!techDialogOpen) {
+      setSelectedTechnicianDepartmentIds([]);
+    }
+  }, [editTarget, techDialogOpen]);
+
   // Report Template state
   const [leftImage, setLeftImage] = useState(reportTemplate?.leftImageUrl || "");
   const [title, setTitle] = useState(reportTemplate?.title || "Training Report");
@@ -347,12 +378,25 @@ export default function Settings() {
   });
 
   const createTechMutation = useMutation({
-    mutationFn: async (data: { firstName: string; lastName: string; technicianName?: string; role?: string; departmentId?: string }) => {
-      return await apiRequest("POST", "/api/technicians", data);
+    mutationFn: async (data: { firstName: string; lastName: string; technicianName?: string; role?: string; departmentIds: string[] }) => {
+      const technician: any = await apiRequest("POST", "/api/technicians", {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        technicianName: data.technicianName,
+        role: data.role,
+      });
+      // Set department assignments
+      if (data.departmentIds.length > 0) {
+        await apiRequest("PUT", `/api/technicians/${technician.id}/departments`, {
+          departmentIds: data.departmentIds,
+        });
+      }
+      return technician;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/technicians"] });
       setTechDialogOpen(false);
+      setSelectedTechnicianDepartmentIds([]);
       toast({ title: "Technician created successfully" });
     },
   });
@@ -468,19 +512,24 @@ export default function Settings() {
   });
 
   const updateTechMutation = useMutation({
-    mutationFn: async (data: { id: string; firstName: string; lastName: string; technicianName?: string; role?: string; departmentId?: string }) => {
-      return await apiRequest("PATCH", `/api/technicians/${data.id}`, {
+    mutationFn: async (data: { id: string; firstName: string; lastName: string; technicianName?: string; role?: string; departmentIds: string[] }) => {
+      const technician = await apiRequest("PATCH", `/api/technicians/${data.id}`, {
         firstName: data.firstName,
         lastName: data.lastName,
         technicianName: data.technicianName,
         role: data.role,
-        departmentId: data.departmentId,
       });
+      // Set department assignments
+      await apiRequest("PUT", `/api/technicians/${data.id}/departments`, {
+        departmentIds: data.departmentIds,
+      });
+      return technician;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/technicians"] });
       setTechDialogOpen(false);
       setEditTarget(null);
+      setSelectedTechnicianDepartmentIds([]);
       toast({ title: "Technician updated successfully" });
     },
   });
@@ -944,92 +993,47 @@ export default function Settings() {
       );
     }
 
-    // Group technicians by departmentId
-    const grouped = technicians.reduce((acc, tech) => {
-      const key = tech.departmentId || 'no-department';
-      if (!acc[key]) {
-        acc[key] = [];
-      }
-      acc[key].push(tech);
-      return acc;
-    }, {} as Record<string, Technician[]>);
-
-    // Sort technicians within each group by technicianName alphabetically
-    Object.keys(grouped).forEach(key => {
-      grouped[key].sort((a, b) => {
-        const nameA = a.technicianName || `${a.firstName} ${a.lastName}`;
-        const nameB = b.technicianName || `${b.firstName} ${b.lastName}`;
-        return nameA.localeCompare(nameB);
-      });
-    });
-
-    // Sort department groups alphabetically by name, with "no-department" first
-    const sortedDeptIds = Object.keys(grouped).sort((a, b) => {
-      if (a === 'no-department') return -1; // Always put "no-department" first
-      if (b === 'no-department') return 1;
-      
-      const deptA = departments.find(d => d.id === a);
-      const deptB = departments.find(d => d.id === b);
-      
-      return (deptA?.name || '').localeCompare(deptB?.name || '');
+    // Sort all technicians alphabetically
+    const sortedTechs = [...technicians].sort((a, b) => {
+      const nameA = a.technicianName || `${a.firstName} ${a.lastName}`;
+      const nameB = b.technicianName || `${b.firstName} ${b.lastName}`;
+      return nameA.localeCompare(nameB);
     });
 
     return (
-      <div className="space-y-6">
-        {sortedDeptIds.map((deptId) => {
-          const techsInDept = grouped[deptId];
-          const dept = departments.find(d => d.id === deptId);
-          const isNoDept = deptId === 'no-department';
-
-          return (
-            <div key={deptId} className="space-y-2">
-              {!isNoDept && (
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                    {dept?.name || 'Unknown'}
-                  </h3>
-                  <span className="text-xs text-muted-foreground">
-                    ({techsInDept.length})
-                  </span>
-                </div>
-              )}
-              <div className="space-y-2">
-                {techsInDept.map((tech) => (
-                  <Card key={tech.id} className="p-3 flex items-center justify-between hover-elevate" data-testid={`card-technician-${tech.id}`}>
-                    <div>
-                      <p className="font-medium">{tech.technicianName || `${tech.firstName} ${tech.lastName}`}</p>
-                      {tech.role && <p className="text-sm text-muted-foreground">{tech.role}</p>}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditTarget({ type: "technician", id: tech.id, data: tech });
-                          setTechDialogOpen(true);
-                        }}
-                        data-testid={`button-edit-technician-${tech.id}`}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setDeleteTarget({ type: "technician", id: tech.id });
-                          setDeleteDialogOpen(true);
-                        }}
-                        data-testid={`button-delete-technician-${tech.id}`}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
-              </div>
+      <div className="space-y-2">
+        {sortedTechs.map((tech) => (
+          <Card key={tech.id} className="p-3 flex items-center justify-between hover-elevate" data-testid={`card-technician-${tech.id}`}>
+            <div>
+              <p className="font-medium">{tech.technicianName || `${tech.firstName} ${tech.lastName}`}</p>
+              {tech.role && <p className="text-sm text-muted-foreground">{tech.role}</p>}
             </div>
-          );
-        })}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setEditTarget({ type: "technician", id: tech.id, data: tech });
+                  setTechDialogOpen(true);
+                }}
+                data-testid={`button-edit-technician-${tech.id}`}
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setDeleteTarget({ type: "technician", id: tech.id });
+                  setDeleteDialogOpen(true);
+                }}
+                data-testid={`button-delete-technician-${tech.id}`}
+              >
+                <Trash2 className="w-4 h-4 text-destructive" />
+              </Button>
+            </div>
+          </Card>
+        ))}
       </div>
     );
   };
@@ -2279,7 +2283,6 @@ export default function Settings() {
                           const lastName = formData.get("lastName") as string;
                           const technicianName = (formData.get("technicianName") as string) || undefined;
                           const role = (formData.get("role") as string) || undefined;
-                          const departmentId = (formData.get("departmentId") as string) || undefined;
 
                           if (editTarget?.type === "technician") {
                             updateTechMutation.mutate({
@@ -2288,7 +2291,7 @@ export default function Settings() {
                               lastName,
                               technicianName,
                               role,
-                              departmentId,
+                              departmentIds: selectedTechnicianDepartmentIds,
                             });
                           } else {
                             createTechMutation.mutate({
@@ -2296,7 +2299,7 @@ export default function Settings() {
                               lastName,
                               technicianName,
                               role,
-                              departmentId,
+                              departmentIds: selectedTechnicianDepartmentIds,
                             });
                           }
                         }}
@@ -2346,22 +2349,46 @@ export default function Settings() {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label>Department</Label>
-                            <Select 
-                              name="departmentId" 
-                              defaultValue={editTarget?.type === "technician" ? editTarget.data.departmentId || "" : ""}
-                            >
-                              <SelectTrigger data-testid="select-tech-department">
-                                <SelectValue placeholder="Select a department" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {departments.map((dept) => (
-                                  <SelectItem key={dept.id} value={dept.id}>
-                                    {dept.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <Label>Departments (Multiple)</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-full justify-start text-left font-normal" data-testid="select-tech-departments">
+                                  {selectedTechnicianDepartmentIds.length > 0 ? (
+                                    <span className="truncate">
+                                      {selectedTechnicianDepartmentIds.map(id => {
+                                        const dept = departments.find(d => d.id === id);
+                                        return dept?.name;
+                                      }).join(", ")}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">Select departments...</span>
+                                  )}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80 p-0" align="start">
+                                <div className="max-h-96 overflow-y-auto p-4 space-y-2">
+                                  {departments.map((dept) => (
+                                    <div key={dept.id} className="flex items-center space-x-2">
+                                      <Checkbox
+                                        id={`tech-dept-${dept.id}`}
+                                        checked={selectedTechnicianDepartmentIds.includes(dept.id)}
+                                        onCheckedChange={(checked) => {
+                                          if (checked) {
+                                            setSelectedTechnicianDepartmentIds([...selectedTechnicianDepartmentIds, dept.id]);
+                                          } else {
+                                            setSelectedTechnicianDepartmentIds(selectedTechnicianDepartmentIds.filter(id => id !== dept.id));
+                                          }
+                                        }}
+                                        data-testid={`checkbox-tech-dept-${dept.id}`}
+                                      />
+                                      <label htmlFor={`tech-dept-${dept.id}`} className="text-sm cursor-pointer">
+                                        {dept.name}
+                                      </label>
+                                    </div>
+                                  ))}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
                           </div>
                         </div>
                         <DialogFooter>

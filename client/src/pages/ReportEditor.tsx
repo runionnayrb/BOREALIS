@@ -908,7 +908,8 @@ export default function ReportEditor() {
                                   .sort((a, b) => a.dept!.name.localeCompare(b.dept!.name))
                                   .map(({ id: deptId, dept }) => {
                                     const assignment = trainingAssignments.find(a => a.departmentId === deptId);
-                                    const deptTechnicians = technicians.filter(t => t.departmentId === deptId).sort((a, b) => 
+                                    // TODO: Fetch department-specific technicians from API via junction table
+                                    const deptTechnicians = technicians.sort((a, b) => 
                                       (a.technicianName || `${a.firstName} ${a.lastName}`).localeCompare(b.technicianName || `${b.firstName} ${b.lastName}`)
                                     );
                                     return (

@@ -14,6 +14,7 @@ import {
   type SceneArtistGroup, type InsertSceneArtistGroup, sceneArtistGroups,
   type SceneArtist, type InsertSceneArtist, sceneArtists,
   type Technician, type InsertTechnician, technicians,
+  type TechnicianDepartment, type InsertTechnicianDepartment, technicianDepartments,
   type ReportTemplate, type InsertReportTemplate, reportTemplate,
   type Report, type InsertReport, reports,
   type Training, type InsertTraining, trainings,
@@ -116,6 +117,10 @@ export interface IStorage {
   createTechnician(technician: InsertTechnician): Promise<Technician>;
   updateTechnician(id: string, updates: Partial<InsertTechnician>): Promise<Technician | undefined>;
   deleteTechnician(id: string): Promise<void>;
+  
+  // Technician Departments
+  getTechnicianDepartments(technicianId: string): Promise<TechnicianDepartment[]>;
+  setTechnicianDepartments(technicianId: string, departmentIds: string[]): Promise<void>;
   
   // Report Template
   getReportTemplate(): Promise<ReportTemplate | undefined>;
@@ -464,6 +469,20 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTechnician(id: string): Promise<void> {
     await db.delete(technicians).where(eq(technicians.id, id));
+  }
+
+  // Technician Departments
+  async getTechnicianDepartments(technicianId: string): Promise<TechnicianDepartment[]> {
+    return await db.select().from(technicianDepartments).where(eq(technicianDepartments.technicianId, technicianId));
+  }
+
+  async setTechnicianDepartments(technicianId: string, departmentIds: string[]): Promise<void> {
+    await db.delete(technicianDepartments).where(eq(technicianDepartments.technicianId, technicianId));
+    if (departmentIds.length > 0) {
+      await db.insert(technicianDepartments).values(
+        departmentIds.map(departmentId => ({ technicianId, departmentId }))
+      );
+    }
   }
 
   // Report Template

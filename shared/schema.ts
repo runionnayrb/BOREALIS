@@ -251,7 +251,6 @@ export const technicians = pgTable("technicians", {
   lastName: text("last_name").notNull(),
   technicianName: text("technician_name"),
   role: text("role"),
-  departmentId: varchar("department_id").references(() => departments.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -262,6 +261,22 @@ export const insertTechnicianSchema = createInsertSchema(technicians).omit({
 
 export type InsertTechnician = z.infer<typeof insertTechnicianSchema>;
 export type Technician = typeof technicians.$inferSelect;
+
+// Technician Departments (junction table for many-to-many relationship)
+export const technicianDepartments = pgTable("technician_departments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  technicianId: varchar("technician_id").notNull().references(() => technicians.id),
+  departmentId: varchar("department_id").notNull().references(() => departments.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertTechnicianDepartmentSchema = createInsertSchema(technicianDepartments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertTechnicianDepartment = z.infer<typeof insertTechnicianDepartmentSchema>;
+export type TechnicianDepartment = typeof technicianDepartments.$inferSelect;
 
 // Report Template
 export const reportTemplate = pgTable("report_template", {
