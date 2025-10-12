@@ -87,6 +87,26 @@ export default function Settings() {
   const { data: technicians = [] } = useQuery<Technician[]>({ queryKey: ["/api/technicians"] });
   const { data: reportTemplate } = useQuery<ReportTemplate | null>({ queryKey: ["/api/report-template"] });
   const { data: users = [] } = useQuery<SafeUser[]>({ queryKey: ["/api/users"] });
+  
+  // Fetch all technician-department assignments for grouping
+  const { data: allTechnicianDepartments = [] } = useQuery<Array<{ technicianId: string; departmentId: string }>>({
+    queryKey: ["/api/technician-departments/all"],
+    queryFn: async () => {
+      // Fetch department assignments for all technicians
+      const assignments = await Promise.all(
+        technicians.map(async (tech) => {
+          const res = await fetch(`/api/technicians/${tech.id}/departments`, {
+            credentials: "include"
+          });
+          if (!res.ok) return [];
+          const depts = await res.json();
+          return depts.map((d: any) => ({ technicianId: tech.id, departmentId: d.departmentId }));
+        })
+      );
+      return assignments.flat();
+    },
+    enabled: technicians.length > 0
+  });
 
   // Load act departments when editing an act
   useEffect(() => {
@@ -994,47 +1014,99 @@ export default function Settings() {
       );
     }
 
-    // Sort all technicians alphabetically
-    const sortedTechs = [...technicians].sort((a, b) => {
-      const nameA = a.technicianName || `${a.firstName} ${a.lastName}`;
-      const nameB = b.technicianName || `${b.firstName} ${b.lastName}`;
-      return nameA.localeCompare(nameB);
+    // Group technicians by department
+    const grouped = new Map<string, Technician[]>();
+    
+    // Add "No Department" group for technicians without any department
+    const techniciansWithDepts = new Set<string>();
+    
+    allTechnicianDepartments.forEach(({ technicianId, departmentId }) => {
+      techniciansWithDepts.add(technicianId);
+      const tech = technicians.find(t => t.id === technicianId);
+      if (!tech) return;
+      
+      if (!grouped.has(departmentId)) {
+        grouped.set(departmentId, []);
+      }
+      grouped.get(departmentId)!.push(tech);
     });
-
+    
+    // Add technicians with no departments to "No Department" group
+    const noDeptTechs = technicians.filter(t => !techniciansWithDepts.has(t.id));
+    if (noDeptTechs.length > 0) {
+      grouped.set('no-department', noDeptTechs);
+    }
+    
+    // Sort departments alphabetically, with "no-department" first
+    const sortedDeptIds = Array.from(grouped.keys()).sort((a, b) => {
+      if (a === 'no-department') return -1;
+      if (b === 'no-department') return 1;
+      const deptA = departments.find(d => d.id === a);
+      const deptB = departments.find(d => d.id === b);
+      return (deptA?.name || '').localeCompare(deptB?.name || '');
+    });
+    
     return (
-      <div className="space-y-2">
-        {sortedTechs.map((tech) => (
-          <Card key={tech.id} className="p-3 flex items-center justify-between hover-elevate" data-testid={`card-technician-${tech.id}`}>
-            <div>
-              <p className="font-medium">{tech.technicianName || `${tech.firstName} ${tech.lastName}`}</p>
-              {tech.role && <p className="text-sm text-muted-foreground">{tech.role}</p>}
+      <div className="space-y-6">
+        {sortedDeptIds.map((deptId) => {
+          const techsInDept = grouped.get(deptId) || [];
+          const dept = departments.find(d => d.id === deptId);
+          const isNoDept = deptId === 'no-department';
+          
+          // Sort technicians alphabetically within department
+          const sortedTechs = [...techsInDept].sort((a, b) => {
+            const nameA = a.technicianName || `${a.firstName} ${a.lastName}`;
+            const nameB = b.technicianName || `${b.firstName} ${b.lastName}`;
+            return nameA.localeCompare(nameB);
+          });
+          
+          return (
+            <div key={deptId} className="space-y-2">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  {isNoDept ? 'No Department' : dept?.name || 'Unknown'}
+                </h3>
+                <span className="text-xs text-muted-foreground">
+                  ({techsInDept.length})
+                </span>
+              </div>
+              <div className="space-y-2">
+                {sortedTechs.map((tech) => (
+                  <Card key={`${deptId}-${tech.id}`} className="p-3 flex items-center justify-between hover-elevate" data-testid={`card-technician-${tech.id}`}>
+                    <div>
+                      <p className="font-medium">{tech.technicianName || `${tech.firstName} ${tech.lastName}`}</p>
+                      {tech.role && <p className="text-sm text-muted-foreground">{tech.role}</p>}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setEditTarget({ type: "technician", id: tech.id, data: tech });
+                          setTechDialogOpen(true);
+                        }}
+                        data-testid={`button-edit-technician-${tech.id}`}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setDeleteTarget({ type: "technician", id: tech.id });
+                          setDeleteDialogOpen(true);
+                        }}
+                        data-testid={`button-delete-technician-${tech.id}`}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setEditTarget({ type: "technician", id: tech.id, data: tech });
-                  setTechDialogOpen(true);
-                }}
-                data-testid={`button-edit-technician-${tech.id}`}
-              >
-                <Edit className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setDeleteTarget({ type: "technician", id: tech.id });
-                  setDeleteDialogOpen(true);
-                }}
-                data-testid={`button-delete-technician-${tech.id}`}
-              >
-                <Trash2 className="w-4 h-4 text-destructive" />
-              </Button>
-            </div>
-          </Card>
-        ))}
+          );
+        })}
       </div>
     );
   };

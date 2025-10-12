@@ -182,26 +182,19 @@ export default function TrainingCard({
                 : "No Assigned Departments"}
             </p>
           </div>
-          <div className="text-xs text-muted-foreground/70 mt-2">
-            <p>
-              Created by {getUserName(training.createdBy)} on {new Date(training.createdAt).toLocaleString(undefined, { 
-                month: 'short', 
-                day: 'numeric', 
-                year: 'numeric', 
-                hour: 'numeric', 
-                minute: '2-digit'
-              })}
-              {training.updatedAt && training.updatedAt.toString() !== training.createdAt.toString() && (
-                <> | Last updated by {getUserName(training.updatedBy)} on {new Date(training.updatedAt).toLocaleString(undefined, { 
+          {training.updatedAt && training.updatedAt.toString() !== training.createdAt.toString() && (
+            <div className="text-xs text-muted-foreground/70 mt-2">
+              <p>
+                Last updated by {getUserName(training.updatedBy)} on {new Date(training.updatedAt).toLocaleString(undefined, { 
                   month: 'short', 
                   day: 'numeric', 
                   year: 'numeric', 
                   hour: 'numeric', 
                   minute: '2-digit'
-                })}</>
-              )}
-            </p>
-          </div>
+                })}
+              </p>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <Button

@@ -611,6 +611,12 @@ export default function ReportEditor() {
 
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-6xl mx-auto p-6 space-y-8">
+          {report && (
+            <div className="text-sm text-muted-foreground">
+              Last updated by {getCreatorName(report.updatedBy)} on {new Date(report.updatedAt).toLocaleString()}
+            </div>
+          )}
+          
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Training Sessions</h2>
@@ -1038,14 +1044,7 @@ export default function ReportEditor() {
           </section>
 
           <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">General Notes</h2>
-              {report && (
-                <div className="text-sm text-muted-foreground">
-                  Last updated by {getCreatorName(report.updatedBy)} on {new Date(report.updatedAt).toLocaleString()}
-                </div>
-              )}
-            </div>
+            <h2 className="text-xl font-semibold mb-4">General Notes</h2>
             <RichTextEditor
               content={content}
               onChange={setContent}
