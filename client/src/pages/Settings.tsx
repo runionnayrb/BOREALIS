@@ -1118,7 +1118,17 @@ export default function Settings() {
                         Add Scene
                       </Button>
                       <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                        {scenes.map((scene) => (
+                        {[...scenes].sort((a, b) => {
+                          // Put Rescue Scenarios and Full Show Conditions at the bottom
+                          const aIsBottom = a.name === "Rescue Scenarios" || a.name === "Full Show Conditions";
+                          const bIsBottom = b.name === "Rescue Scenarios" || b.name === "Full Show Conditions";
+                          
+                          if (aIsBottom && !bIsBottom) return 1;
+                          if (!aIsBottom && bIsBottom) return -1;
+                          
+                          // Otherwise maintain original sort order
+                          return a.sortOrder - b.sortOrder;
+                        }).map((scene) => (
                           <Card key={scene.id} className="p-3 flex items-center justify-between" data-testid={`card-scene-${scene.id}`}>
                             <p className="font-medium">{scene.name}</p>
                             <div className="flex items-center gap-1">
