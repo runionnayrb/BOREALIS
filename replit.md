@@ -31,9 +31,10 @@ The application is a full-stack web application with a clear separation between 
 - **Frontend**: React + Vite, Wouter for routing, TanStack Query for data management, shadcn/ui for components.
 - **Backend**: Express.js framework.
 - **Database**: PostgreSQL with Drizzle ORM.
-- **Authentication**: Passport.js with a local strategy, bcrypt for password hashing, and session-based authentication.
+- **Authentication**: Passport.js with a local strategy, bcrypt for password hashing, and session-based authentication. The apiRequest utility handles all API calls and returns parsed JSON directly.
 - **Data Management**: TanStack Query for data fetching, caching, and state management.
 - **XSS Protection**: Two-layer defense for rich text notes (Tiptap escaping + DOMPurify sanitization).
+- **Auto-Report Creation**: When adding the first training to a new report, the system automatically checks for an existing report on that date (GET /api/reports/date/:date) and either reuses it or creates a new one, respecting the "One Report Per Day" constraint.
 
 ### Feature Specifications
 - **Secure Authentication**: Login/signup with hashed passwords and session management.

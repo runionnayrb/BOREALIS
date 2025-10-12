@@ -301,8 +301,7 @@ export default function ReportEditor() {
 
   const createReportMutation = useMutation({
     mutationFn: async (data: { date: string; notes: string; stageManagerOnDuty: string }) => {
-      const res = await apiRequest('POST', '/api/reports', data);
-      return await res.json() as Report;
+      return await apiRequest<Report>('POST', '/api/reports', data);
     },
     onSuccess: (newReport) => {
       queryClient.invalidateQueries({ queryKey: ['/api/reports'] });
@@ -316,8 +315,7 @@ export default function ReportEditor() {
 
   const updateReportMutation = useMutation({
     mutationFn: async (data: { notes: string; stageManagerOnDuty: string }) => {
-      const res = await apiRequest('PATCH', `/api/reports/${reportId}`, data);
-      return await res.json() as Report;
+      return await apiRequest<Report>('PATCH', `/api/reports/${reportId}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/reports', reportId] });
@@ -330,8 +328,7 @@ export default function ReportEditor() {
 
   const createTrainingMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest('POST', '/api/trainings', data);
-      const training = await res.json() as Training;
+      const training = await apiRequest<Training>('POST', '/api/trainings', data);
       
       // Auto-create department assignments for the act's required departments
       if (actDepartmentIds.length > 0) {
@@ -371,8 +368,7 @@ export default function ReportEditor() {
 
   const updateTrainingMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest('PATCH', `/api/trainings/${editingTraining!.id}`, data);
-      return await res.json() as Training;
+      return await apiRequest<Training>('PATCH', `/api/trainings/${editingTraining!.id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/reports', reportId, 'trainings'] });
@@ -495,12 +491,11 @@ export default function ReportEditor() {
         if (!fullStageLocation) {
           // Create the FULL STAGE location
           try {
-            const res = await apiRequest('POST', '/api/locations', {
+            fullStageLocation = await apiRequest('POST', '/api/locations', {
               name: "FULL STAGE",
               locationTypeId: null,
               sortOrder: -1, // Sort first in the list
             });
-            fullStageLocation = await res.json();
             // Invalidate locations cache to update the list
             queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
           } catch (error) {
