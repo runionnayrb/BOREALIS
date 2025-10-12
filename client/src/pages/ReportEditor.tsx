@@ -684,7 +684,7 @@ export default function ReportEditor() {
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-full p-0" align="start">
-                            <Command>
+                            <Command className="h-auto">
                               <CommandInput 
                                 placeholder="Search or type custom name..." 
                                 value={trainingNameInput}
@@ -696,7 +696,7 @@ export default function ReportEditor() {
                                 }}
                                 data-testid="input-training-name"
                               />
-                              <CommandList className="max-h-[300px] overflow-y-auto">
+                              <CommandList>
                                 <CommandEmpty>
                                   <div className="py-2 px-2 text-sm text-muted-foreground">
                                     No scenes/acts match "{trainingNameInput}". Select a scene/act below, then you can type a custom display name.
