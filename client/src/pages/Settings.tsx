@@ -775,6 +775,13 @@ export default function Settings() {
       const sceneA = scenes.find(s => s.id === a);
       const sceneB = scenes.find(s => s.id === b);
       
+      // Put RESCUE SCENARIOS and FULL SHOW at the bottom (but before "no-scene")
+      const aIsBottom = sceneA?.name === "RESCUE SCENARIOS" || sceneA?.name === "FULL SHOW";
+      const bIsBottom = sceneB?.name === "RESCUE SCENARIOS" || sceneB?.name === "FULL SHOW";
+      
+      if (aIsBottom && !bIsBottom) return 1;
+      if (!aIsBottom && bIsBottom) return -1;
+      
       return (sceneA?.sortOrder || 0) - (sceneB?.sortOrder || 0);
     });
 
