@@ -28,6 +28,16 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 
 export default function ReportEditor() {
@@ -44,6 +54,8 @@ export default function ReportEditor() {
   
   const [selectedActId, setSelectedActId] = useState("");
   const [customName, setCustomName] = useState("");
+  const [trainingNameComboOpen, setTrainingNameComboOpen] = useState(false);
+  const [trainingNameInput, setTrainingNameInput] = useState("");
   const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([]);
   const [selectedStageManagerId, setSelectedStageManagerId] = useState("");
   const [startTime, setStartTime] = useState("14:00");
@@ -93,6 +105,23 @@ export default function ReportEditor() {
       
       setSelectedActId(value);
       
+      // Set the display input value
+      if (editingTraining.customName) {
+        setTrainingNameInput(editingTraining.customName);
+        setCustomName(editingTraining.customName);
+      } else if (value) {
+        // Find and display the scene/act name
+        const isScene = value.startsWith("scene-");
+        if (isScene) {
+          const sceneId = value.replace("scene-", "");
+          const scene = scenes.find(s => s.id === sceneId);
+          if (scene) setTrainingNameInput(scene.name);
+        } else {
+          const act = acts.find(a => a.id === value);
+          if (act) setTrainingNameInput(act.name);
+        }
+      }
+      
       // Fetch training locations
       fetch(`/api/trainings/${editingTraining.id}/locations`, {
         credentials: 'include',
@@ -139,7 +168,7 @@ export default function ReportEditor() {
       setSelectedStageManagerId(editingTraining.stageManagerId || "");
       setShowAddTraining(true);
     }
-  }, [editingTraining, locations]);
+  }, [editingTraining, locations, scenes, acts]);
 
   // Fetch departments and artists when scene or act is selected (only when creating, not editing)
   useEffect(() => {
@@ -258,6 +287,7 @@ export default function ReportEditor() {
       setEditingTraining(null);
       setSelectedActId("");
       setCustomName("");
+      setTrainingNameInput("");
       setSelectedLocationIds([]);
       setSelectedStageManagerId("");
       setStartTime("14:00");
@@ -284,6 +314,7 @@ export default function ReportEditor() {
       setEditingTraining(null);
       setSelectedActId("");
       setCustomName("");
+      setTrainingNameInput("");
       setSelectedLocationIds([]);
       setSelectedStageManagerId("");
       setStartTime("14:00");
@@ -518,6 +549,7 @@ export default function ReportEditor() {
                   setEditingTraining(null);
                   setSelectedActId("");
                   setCustomName("");
+                  setTrainingNameInput("");
                   setSelectedLocationIds([]);
                   setSelectedStageManagerId("");
                   setStartTime("14:00");
@@ -537,67 +569,137 @@ export default function ReportEditor() {
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label>Scene / Act</Label>
-                        <Select value={selectedActId} onValueChange={setSelectedActId}>
-                          <SelectTrigger data-testid="select-act">
-                            <SelectValue placeholder="Select scene or act" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[...scenes].sort((a, b) => {
-                              // Put FULL SHOW and RESCUE SCENARIOS at the bottom
-                              const aIsFullShow = a.name === "FULL SHOW";
-                              const bIsFullShow = b.name === "FULL SHOW";
-                              const aIsRescue = a.name === "RESCUE SCENARIOS";
-                              const bIsRescue = b.name === "RESCUE SCENARIOS";
-                              
-                              // RESCUE SCENARIOS is last
-                              if (aIsRescue && !bIsRescue) return 1;
-                              if (!aIsRescue && bIsRescue) return -1;
-                              
-                              // FULL SHOW is second to last
-                              if (aIsFullShow && !bIsFullShow && !bIsRescue) return 1;
-                              if (!aIsFullShow && bIsFullShow && !aIsRescue) return -1;
-                              
-                              return a.sortOrder - b.sortOrder;
-                            }).map((scene) => {
-                              const sceneActs = acts.filter(a => a.sceneId === scene.id);
-                              if (sceneActs.length === 0) return null;
-                              return (
-                                <SelectGroup key={scene.id}>
-                                  <SelectItem value={`scene-${scene.id}`}>
-                                    {scene.name}
-                                  </SelectItem>
-                                  {sceneActs.map((act) => (
-                                    <SelectItem key={act.id} value={act.id} className="pl-12">
-                                      {act.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectGroup>
-                              );
-                            })}
-                            {/* Acts without a scene */}
-                            {acts.filter(a => !a.sceneId).length > 0 && (
-                              <SelectGroup>
-                                <SelectLabel>No Scene</SelectLabel>
-                                {acts.filter(a => !a.sceneId).map((act) => (
-                                  <SelectItem key={act.id} value={act.id} className="pl-12">
-                                    {act.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectGroup>
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2 col-span-2">
-                        <Label>Custom Training Name (Optional)</Label>
-                        <Input
-                          value={customName}
-                          onChange={(e) => setCustomName(e.target.value)}
-                          placeholder="e.g., Special Safety Rehearsal, Emergency Protocol Training..."
-                          data-testid="input-custom-name"
-                        />
+                      <div className="space-y-2 col-span-3">
+                        <Label>Training Name</Label>
+                        <Popover open={trainingNameComboOpen} onOpenChange={setTrainingNameComboOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={trainingNameComboOpen}
+                              className="w-full justify-between font-normal"
+                              data-testid="select-training-name"
+                            >
+                              {trainingNameInput || "Select a scene/act or type custom name..."}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-full p-0" align="start">
+                            <Command>
+                              <CommandInput 
+                                placeholder="Search or type custom name..." 
+                                value={trainingNameInput}
+                                onValueChange={(value) => {
+                                  setTrainingNameInput(value);
+                                  // When user types, clear selected act and set as custom name
+                                  setSelectedActId("");
+                                  setCustomName(value);
+                                }}
+                                data-testid="input-training-name"
+                              />
+                              <CommandList>
+                                <CommandEmpty>
+                                  <div className="py-2 text-sm text-muted-foreground">
+                                    Press Enter to use "{trainingNameInput}" as custom name
+                                  </div>
+                                </CommandEmpty>
+                                <CommandGroup heading="Scenes & Acts">
+                                  {[...scenes].sort((a, b) => {
+                                    // Put FULL SHOW and RESCUE SCENARIOS at the bottom
+                                    const aIsFullShow = a.name === "FULL SHOW";
+                                    const bIsFullShow = b.name === "FULL SHOW";
+                                    const aIsRescue = a.name === "RESCUE SCENARIOS";
+                                    const bIsRescue = b.name === "RESCUE SCENARIOS";
+                                    
+                                    // RESCUE SCENARIOS is last
+                                    if (aIsRescue && !bIsRescue) return 1;
+                                    if (!aIsRescue && bIsRescue) return -1;
+                                    
+                                    // FULL SHOW is second to last
+                                    if (aIsFullShow && !bIsFullShow && !bIsRescue) return 1;
+                                    if (!aIsFullShow && bIsFullShow && !aIsRescue) return -1;
+                                    
+                                    return a.sortOrder - b.sortOrder;
+                                  }).map((scene) => {
+                                    const sceneActs = acts.filter(a => a.sceneId === scene.id);
+                                    if (sceneActs.length === 0) return null;
+                                    return (
+                                      <div key={scene.id}>
+                                        <CommandItem
+                                          value={scene.name}
+                                          onSelect={() => {
+                                            setTrainingNameInput(scene.name);
+                                            setSelectedActId(`scene-${scene.id}`);
+                                            setCustomName("");
+                                            setTrainingNameComboOpen(false);
+                                          }}
+                                        >
+                                          <Check
+                                            className={cn(
+                                              "mr-2 h-4 w-4",
+                                              selectedActId === `scene-${scene.id}` ? "opacity-100" : "opacity-0"
+                                            )}
+                                          />
+                                          {scene.name}
+                                        </CommandItem>
+                                        {sceneActs.map((act) => (
+                                          <CommandItem
+                                            key={act.id}
+                                            value={act.name}
+                                            onSelect={() => {
+                                              setTrainingNameInput(act.name);
+                                              setSelectedActId(act.id);
+                                              setCustomName("");
+                                              setTrainingNameComboOpen(false);
+                                            }}
+                                            className="pl-8"
+                                          >
+                                            <Check
+                                              className={cn(
+                                                "mr-2 h-4 w-4",
+                                                selectedActId === act.id ? "opacity-100" : "opacity-0"
+                                              )}
+                                            />
+                                            {act.name}
+                                          </CommandItem>
+                                        ))}
+                                      </div>
+                                    );
+                                  })}
+                                  {/* Acts without a scene */}
+                                  {acts.filter(a => !a.sceneId).length > 0 && (
+                                    <>
+                                      {acts.filter(a => !a.sceneId).map((act) => (
+                                        <CommandItem
+                                          key={act.id}
+                                          value={act.name}
+                                          onSelect={() => {
+                                            setTrainingNameInput(act.name);
+                                            setSelectedActId(act.id);
+                                            setCustomName("");
+                                            setTrainingNameComboOpen(false);
+                                          }}
+                                          className="pl-8"
+                                        >
+                                          <Check
+                                            className={cn(
+                                              "mr-2 h-4 w-4",
+                                              selectedActId === act.id ? "opacity-100" : "opacity-0"
+                                            )}
+                                          />
+                                          {act.name}
+                                        </CommandItem>
+                                      ))}
+                                    </>
+                                  )}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <p className="text-xs text-muted-foreground">
+                          Select a scene/act from the dropdown or type a custom training name
+                        </p>
                       </div>
                     </div>
                     <div className="grid grid-cols-3 gap-4">
