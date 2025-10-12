@@ -453,18 +453,33 @@ export default function ReportEditor() {
       return;
     }
 
-    // Auto-create the report if it doesn't exist yet
+    // Auto-create or fetch the report if it doesn't exist yet
     let currentReportId = reportId;
     if (!reportId && !editingTraining) {
       try {
-        const newReport = await createReportMutation.mutateAsync({
-          date: reportDate,
-          notes: content,
-          stageManagerOnDuty,
+        // First check if a report exists for this date
+        const existingReportRes = await fetch(`/api/reports/date/${reportDate}`, {
+          credentials: 'include',
         });
-        currentReportId = newReport.id;
+        const existingReport = await existingReportRes.json();
+        
+        if (existingReport) {
+          // Use the existing report
+          currentReportId = existingReport.id;
+          toast({ title: "Using existing report for this date" });
+          // Navigate to the existing report
+          setLocation(`/report/${existingReport.id}`);
+        } else {
+          // Create a new report
+          const newReport = await createReportMutation.mutateAsync({
+            date: reportDate,
+            notes: content,
+            stageManagerOnDuty,
+          });
+          currentReportId = newReport.id;
+        }
       } catch (error) {
-        // Error toast already shown by mutation onError
+        toast({ title: "Failed to get or create report", variant: "destructive" });
         return;
       }
     }
