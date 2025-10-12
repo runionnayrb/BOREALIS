@@ -702,7 +702,7 @@ export default function ReportEditor() {
                                     No scenes/acts match "{trainingNameInput}". Select a scene/act below, then you can type a custom display name.
                                   </div>
                                 </CommandEmpty>
-                                <CommandGroup heading="Scenes & Acts">
+                                <CommandGroup heading="Scenes & Acts" className="overflow-visible">
                                   {[...scenes].sort((a, b) => {
                                     // Put FULL SHOW and RESCUE SCENARIOS at the bottom
                                     const aIsFullShow = a.name === "FULL SHOW";
