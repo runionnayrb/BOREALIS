@@ -696,7 +696,7 @@ export default function ReportEditor() {
                                 }}
                                 data-testid="input-training-name"
                               />
-                              <CommandList>
+                              <CommandList className="max-h-[300px] overflow-y-auto">
                                 <CommandEmpty>
                                   <div className="py-2 px-2 text-sm text-muted-foreground">
                                     No scenes/acts match "{trainingNameInput}". Select a scene/act below, then you can type a custom display name.
