@@ -775,12 +775,19 @@ export default function Settings() {
       const sceneA = scenes.find(s => s.id === a);
       const sceneB = scenes.find(s => s.id === b);
       
-      // Put RESCUE SCENARIOS and FULL SHOW at the bottom (but before "no-scene")
-      const aIsBottom = sceneA?.name === "RESCUE SCENARIOS" || sceneA?.name === "FULL SHOW";
-      const bIsBottom = sceneB?.name === "RESCUE SCENARIOS" || sceneB?.name === "FULL SHOW";
+      // Put FULL SHOW and RESCUE SCENARIOS at the bottom (but before "no-scene")
+      const aIsFullShow = sceneA?.name === "FULL SHOW";
+      const bIsFullShow = sceneB?.name === "FULL SHOW";
+      const aIsRescue = sceneA?.name === "RESCUE SCENARIOS";
+      const bIsRescue = sceneB?.name === "RESCUE SCENARIOS";
       
-      if (aIsBottom && !bIsBottom) return 1;
-      if (!aIsBottom && bIsBottom) return -1;
+      // RESCUE SCENARIOS is last (among scenes)
+      if (aIsRescue && !bIsRescue) return 1;
+      if (!aIsRescue && bIsRescue) return -1;
+      
+      // FULL SHOW is second to last
+      if (aIsFullShow && !bIsFullShow && !bIsRescue) return 1;
+      if (!aIsFullShow && bIsFullShow && !aIsRescue) return -1;
       
       return (sceneA?.sortOrder || 0) - (sceneB?.sortOrder || 0);
     });
