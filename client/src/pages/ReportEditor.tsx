@@ -538,7 +538,23 @@ export default function ReportEditor() {
                             <SelectValue placeholder="Select scene or act" />
                           </SelectTrigger>
                           <SelectContent>
-                            {scenes.map((scene) => {
+                            {[...scenes].sort((a, b) => {
+                              // Put FULL SHOW and RESCUE SCENARIOS at the bottom
+                              const aIsFullShow = a.name === "FULL SHOW";
+                              const bIsFullShow = b.name === "FULL SHOW";
+                              const aIsRescue = a.name === "RESCUE SCENARIOS";
+                              const bIsRescue = b.name === "RESCUE SCENARIOS";
+                              
+                              // RESCUE SCENARIOS is last
+                              if (aIsRescue && !bIsRescue) return 1;
+                              if (!aIsRescue && bIsRescue) return -1;
+                              
+                              // FULL SHOW is second to last
+                              if (aIsFullShow && !bIsFullShow && !bIsRescue) return 1;
+                              if (!aIsFullShow && bIsFullShow && !aIsRescue) return -1;
+                              
+                              return a.sortOrder - b.sortOrder;
+                            }).map((scene) => {
                               const sceneActs = acts.filter(a => a.sceneId === scene.id);
                               if (sceneActs.length === 0) return null;
                               return (
