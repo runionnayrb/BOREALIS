@@ -24,7 +24,8 @@ The application is a full-stack web application with a clear separation between 
 - **Rich Text Editor**: Tiptap for rich text notes with full formatting.
 - **Grouped Displays**: Acts, locations, artists, and technicians are displayed grouped by their parent category with count badges. Ungrouped items are shown at the top or with "NO [PARENT]" sections.
 - **Hierarchical Dropdowns**: Training modal includes hierarchical dropdowns for Scene/Act selection (scenes with indented acts) and multi-select locations (types with indented locations).
-- **Training Name Combobox**: Unified combobox field for training names that allows selecting scene/act from dropdown (required) with optional custom display name override. Custom names appear as main title with scene/act as subtitle on training cards.
+- **Training Name Combobox**: Unified combobox field for training names that allows selecting scene/act from dropdown (required) with optional custom display name override. Custom names appear as the only title on training cards (no scene/act shown underneath).
+- **Training Card Layout**: 3-column grid layout with training name above start time (left), location above end time (middle), and stage manager above duration (right).
 
 ### Technical Implementations
 - **Frontend**: React + Vite, Wouter for routing, TanStack Query for data management, shadcn/ui for components.
