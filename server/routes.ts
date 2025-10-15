@@ -142,7 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     // Verify admin credentials
-    if (validation.data.adminUsername !== "admin" || validation.data.adminPassword !== "password") {
+    if (validation.data.adminUsername !== "admin" || validation.data.adminPassword !== "laperleSM2025!") {
       return res.status(403).json({ error: "Invalid admin credentials" });
     }
 
