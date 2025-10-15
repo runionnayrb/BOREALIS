@@ -15,7 +15,6 @@ export default function AppSidebar() {
 
   const items = [
     { title: "Reports", icon: FileText, path: "/" },
-    { title: "New Report", icon: Plus, path: "/new-report" },
     { title: "Settings", icon: Settings, path: "/settings" },
   ];
 

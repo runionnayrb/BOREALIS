@@ -6,13 +6,12 @@ export default function MobileNav() {
 
   const tabs = [
     { icon: FileText, label: "Reports", path: "/" },
-    { icon: Plus, label: "New Report", path: "/new-report" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-card-border backdrop-blur-md z-50 pb-safe">
-      <div className="grid grid-cols-3 h-16">
+      <div className="grid grid-cols-2 h-16">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = location === tab.path || (tab.path === "/settings" && location.startsWith("/settings"));
