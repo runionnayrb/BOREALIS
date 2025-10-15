@@ -60,6 +60,12 @@ export default function Settings() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ type: string; id: string } | null>(null);
   const [editTarget, setEditTarget] = useState<{ type: string; id: string; data: any } | null>(null);
+  
+  // Admin password dialog for user deletion
+  const [adminPasswordDialogOpen, setAdminPasswordDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [adminUsername, setAdminUsername] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
   const [selectedLocationTypeId, setSelectedLocationTypeId] = useState<string | undefined>(undefined);
   const [selectedSceneId, setSelectedSceneId] = useState<string | undefined>(undefined);
   const [selectedDepartmentIds, setSelectedDepartmentIds] = useState<string[]>([]);
@@ -654,6 +660,42 @@ export default function Settings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       toast({ title: "User status updated successfully" });
+    },
+  });
+
+  // User delete mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: async (data: { id: string; adminUsername: string; adminPassword: string }) => {
+      const response = await fetch(`/api/users/${data.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ 
+          adminUsername: data.adminUsername, 
+          adminPassword: data.adminPassword 
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Failed to delete user" }));
+        throw new Error(errorData.error || "Failed to delete user");
+      }
+
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({ title: "User deleted successfully" });
+      setAdminPasswordDialogOpen(false);
+      setUserToDelete(null);
+      setAdminUsername("");
+      setAdminPassword("");
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: error.message || "Failed to delete user", 
+        variant: "destructive" 
+      });
     },
   });
 
@@ -2523,6 +2565,17 @@ export default function Settings() {
                       >
                         {user.active === 1 ? 'Deactivate' : 'Activate'}
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setUserToDelete(user.id);
+                          setAdminPasswordDialogOpen(true);
+                        }}
+                        data-testid={`button-delete-user-${user.id}`}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
                     </div>
                   </div>
                 </Card>
@@ -2553,6 +2606,68 @@ export default function Settings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={adminPasswordDialogOpen} onOpenChange={setAdminPasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Admin Authentication Required</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="admin-username">Admin Username</Label>
+              <Input
+                id="admin-username"
+                type="text"
+                value={adminUsername}
+                onChange={(e) => setAdminUsername(e.target.value)}
+                placeholder="Enter admin username"
+                data-testid="input-admin-username"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="admin-password">Admin Password</Label>
+              <Input
+                id="admin-password"
+                type="password"
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                placeholder="Enter admin password"
+                data-testid="input-admin-password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setAdminPasswordDialogOpen(false);
+                setUserToDelete(null);
+                setAdminUsername("");
+                setAdminPassword("");
+              }}
+              data-testid="button-cancel-delete-user"
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={() => {
+                if (userToDelete) {
+                  deleteUserMutation.mutate({
+                    id: userToDelete,
+                    adminUsername,
+                    adminPassword,
+                  });
+                }
+              }}
+              disabled={!adminUsername || !adminPassword || deleteUserMutation.isPending}
+              data-testid="button-confirm-delete-user"
+            >
+              {deleteUserMutation.isPending ? "Deleting..." : "Delete User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

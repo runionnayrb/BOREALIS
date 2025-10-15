@@ -196,6 +196,10 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  async deleteUser(id: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
+  }
+
   // Scenes
   async getAllScenes(): Promise<Scene[]> {
     return await db.select().from(scenes).orderBy(asc(scenes.sortOrder));

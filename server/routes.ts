@@ -125,6 +125,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(sanitizeUser(updated));
   });
 
+  const deleteUserSchema = z.object({
+    adminUsername: z.string(),
+    adminPassword: z.string(),
+  });
+
+  app.delete("/api/users/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const validation = deleteUserSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: "Validation failed",
+        details: validation.error.issues,
+      });
+    }
+
+    // Verify admin credentials
+    if (validation.data.adminUsername !== "admin" || validation.data.adminPassword !== "password") {
+      return res.status(403).json({ error: "Invalid admin credentials" });
+    }
+
+    // Prevent self-deletion
+    if (req.params.id === req.user!.id) {
+      return res.status(400).json({ error: "Cannot delete your own account" });
+    }
+
+    // Check if user has created or updated any reports
+    const allReports = await storage.getAllReports();
+    const hasReports = allReports.some(
+      report => report.createdBy === req.params.id || report.updatedBy === req.params.id
+    );
+
+    if (hasReports) {
+      return res.status(400).json({ 
+        error: "Cannot delete user who has created or modified reports. Please reassign or delete their reports first." 
+      });
+    }
+
+    await storage.deleteUser(req.params.id);
+    res.sendStatus(204);
+  });
+
   // Scenes routes
   app.get("/api/scenes", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

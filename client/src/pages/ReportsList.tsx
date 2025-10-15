@@ -9,6 +9,7 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { parse, isValid, format as formatDate } from "date-fns";
 import type { 
   Report, 
   Training, 
@@ -86,6 +87,40 @@ export default function ReportsList() {
     },
   });
 
+  // Helper function to try parsing search query as a date
+  const tryParseDate = (query: string): Date | null => {
+    const currentYear = new Date().getFullYear();
+    
+    // Try various date formats
+    const formats = [
+      'M/d/yyyy',    // 10/12/2025
+      'M/d',         // 10/12 (assumes current year)
+      'MMM d',       // Oct 12
+      'MMMM d',      // October 12
+      'MMM d yyyy',  // Oct 12 2025
+      'MMMM d yyyy', // October 12 2025
+    ];
+    
+    for (const dateFormat of formats) {
+      try {
+        const referenceDate = new Date();
+        const parsedDate = parse(query, dateFormat, referenceDate);
+        
+        if (isValid(parsedDate)) {
+          // For formats without year, use current year
+          if (!dateFormat.includes('y')) {
+            parsedDate.setFullYear(currentYear);
+          }
+          return parsedDate;
+        }
+      } catch {
+        continue;
+      }
+    }
+    
+    return null;
+  };
+
   const filteredReports = reports.filter((report) => {
     if (!searchQuery) return true;
     
@@ -99,7 +134,18 @@ export default function ReportsList() {
       day: 'numeric' 
     });
     
-    if (dateStr.toLowerCase().includes(query) ||
+    // Try to parse query as a date
+    const parsedQueryDate = tryParseDate(query);
+    const reportDate = new Date(report.date);
+    
+    // Check if dates match (same day, month, year)
+    const datesMatch = parsedQueryDate && 
+      reportDate.getDate() === parsedQueryDate.getDate() &&
+      reportDate.getMonth() === parsedQueryDate.getMonth() &&
+      reportDate.getFullYear() === parsedQueryDate.getFullYear();
+    
+    if (datesMatch ||
+        dateStr.toLowerCase().includes(query) ||
         report.date.toLowerCase().includes(query) ||
         report.stageManagerOnDuty?.toLowerCase().includes(query) ||
         report.notes?.toLowerCase().includes(query)) {
