@@ -308,9 +308,10 @@ export default function Settings() {
   const [emailSubject, setEmailSubject] = useState(reportTemplate?.emailSubjectTemplate || "");
   const [emailBodyPrefix, setEmailBodyPrefix] = useState(reportTemplate?.emailBodyPrefix || "");
 
-  // Sync report template state with query data
+  // Sync report template state with query data (only on initial load, not during refetch)
+  const [templateInitialized, setTemplateInitialized] = useState(false);
   useEffect(() => {
-    if (reportTemplate) {
+    if (reportTemplate && !templateInitialized) {
       setLeftImage(reportTemplate.leftImageUrl || "");
       setTitle(reportTemplate.title || "Training Report");
       setRightImage(reportTemplate.rightImageUrl || "");
@@ -319,8 +320,9 @@ export default function Settings() {
       setEmailBcc(reportTemplate.emailBcc || []);
       setEmailSubject(reportTemplate.emailSubjectTemplate || "");
       setEmailBodyPrefix(reportTemplate.emailBodyPrefix || "");
+      setTemplateInitialized(true);
     }
-  }, [reportTemplate]);
+  }, [reportTemplate, templateInitialized]);
 
   // Create mutations
   const createSceneMutation = useMutation({
