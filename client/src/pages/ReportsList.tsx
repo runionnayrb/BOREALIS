@@ -63,7 +63,7 @@ export default function ReportsList() {
           </Button>
         </div>
 
-        <div className="mb-6 space-y-2">
+        <div className="mb-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -75,9 +75,6 @@ export default function ReportsList() {
               data-testid="input-search-reports"
             />
           </div>
-          <p className="text-xs text-muted-foreground">
-            Search across all training data including dates, times, acts, artists, locations, department notes, and technicians
-          </p>
         </div>
 
         {isLoading ? (
