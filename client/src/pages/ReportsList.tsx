@@ -9,7 +9,19 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Report, Training } from "@shared/schema";
+import type { 
+  Report, 
+  Training, 
+  Scene, 
+  Act, 
+  Location, 
+  Department, 
+  Artist, 
+  Technician,
+  TrainingLocation,
+  TrainingArtist,
+  DepartmentAssignment
+} from "@shared/schema";
 
 export default function ReportsList() {
   const [, setLocation] = useLocation();
@@ -22,6 +34,42 @@ export default function ReportsList() {
 
   const { data: allTrainings = [] } = useQuery<Training[]>({
     queryKey: ['/api/trainings/all'],
+  });
+
+  const { data: scenes = [] } = useQuery<Scene[]>({ 
+    queryKey: ['/api/scenes'] 
+  });
+  
+  const { data: acts = [] } = useQuery<Act[]>({ 
+    queryKey: ['/api/acts'] 
+  });
+  
+  const { data: locations = [] } = useQuery<Location[]>({ 
+    queryKey: ['/api/locations'] 
+  });
+  
+  const { data: departments = [] } = useQuery<Department[]>({ 
+    queryKey: ['/api/departments'] 
+  });
+  
+  const { data: artists = [] } = useQuery<Artist[]>({ 
+    queryKey: ['/api/artists'] 
+  });
+  
+  const { data: technicians = [] } = useQuery<Technician[]>({ 
+    queryKey: ['/api/technicians'] 
+  });
+
+  const { data: trainingLocations = [] } = useQuery<TrainingLocation[]>({ 
+    queryKey: ['/api/training-locations/all'] 
+  });
+  
+  const { data: trainingArtists = [] } = useQuery<TrainingArtist[]>({ 
+    queryKey: ['/api/training-artists/all'] 
+  });
+  
+  const { data: assignments = [] } = useQuery<DepartmentAssignment[]>({ 
+    queryKey: ['/api/assignments/all'] 
   });
 
   const deleteReportMutation = useMutation({
@@ -39,15 +87,101 @@ export default function ReportsList() {
   });
 
   const filteredReports = reports.filter((report) => {
+    if (!searchQuery) return true;
+    
+    const query = searchQuery.toLowerCase();
+    
+    // Search in report data
     const dateStr = new Date(report.date).toLocaleDateString('en-US', { 
       weekday: 'long', 
       year: 'numeric', 
       month: 'long', 
       day: 'numeric' 
     });
-    return dateStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           report.date.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           report.stageManagerOnDuty?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (dateStr.toLowerCase().includes(query) ||
+        report.date.toLowerCase().includes(query) ||
+        report.stageManagerOnDuty?.toLowerCase().includes(query) ||
+        report.notes?.toLowerCase().includes(query)) {
+      return true;
+    }
+    
+    // Search in training data for this report
+    const reportTrainings = allTrainings.filter(t => t.reportId === report.id);
+    
+    for (const training of reportTrainings) {
+      // Search times
+      if (training.startTime.toLowerCase().includes(query) ||
+          training.endTime.toLowerCase().includes(query)) {
+        return true;
+      }
+      
+      // Search training notes and custom name
+      if (training.notes?.toLowerCase().includes(query) ||
+          training.customName?.toLowerCase().includes(query)) {
+        return true;
+      }
+      
+      // Search scene name
+      if (training.sceneId) {
+        const scene = scenes.find(s => s.id === training.sceneId);
+        if (scene?.name.toLowerCase().includes(query)) {
+          return true;
+        }
+      }
+      
+      // Search act name
+      if (training.actId) {
+        const act = acts.find(a => a.id === training.actId);
+        if (act?.name.toLowerCase().includes(query)) {
+          return true;
+        }
+      }
+      
+      // Search location names
+      const trainingLocs = trainingLocations.filter(tl => tl.trainingId === training.id);
+      for (const tl of trainingLocs) {
+        const location = locations.find(l => l.id === tl.locationId);
+        if (location?.name.toLowerCase().includes(query)) {
+          return true;
+        }
+      }
+      
+      // Search artist names
+      const trainingArts = trainingArtists.filter(ta => ta.trainingId === training.id);
+      for (const ta of trainingArts) {
+        const artist = artists.find(a => a.id === ta.artistId);
+        if (artist?.firstName.toLowerCase().includes(query) ||
+            artist?.lastName.toLowerCase().includes(query) ||
+            artist?.stageName?.toLowerCase().includes(query)) {
+          return true;
+        }
+      }
+      
+      // Search department names and technician names
+      const trainingAssignments = assignments.filter(a => a.trainingId === training.id);
+      for (const assignment of trainingAssignments) {
+        const department = departments.find(d => d.id === assignment.departmentId);
+        if (department?.name.toLowerCase().includes(query)) {
+          return true;
+        }
+        
+        if (assignment.notes?.toLowerCase().includes(query)) {
+          return true;
+        }
+        
+        if (assignment.leadTechnicianId) {
+          const technician = technicians.find(t => t.id === assignment.leadTechnicianId);
+          if (technician?.firstName.toLowerCase().includes(query) ||
+              technician?.lastName.toLowerCase().includes(query) ||
+              technician?.technicianName?.toLowerCase().includes(query)) {
+            return true;
+          }
+        }
+      }
+    }
+    
+    return false;
   });
 
   return (

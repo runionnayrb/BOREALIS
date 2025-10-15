@@ -751,6 +751,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(204);
   });
 
+  // Get all junction table data for search
+  app.get("/api/training-locations/all", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const trainingLocations = await storage.getAllTrainingLocations();
+    res.json(trainingLocations);
+  });
+
+  app.get("/api/training-artists/all", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const trainingArtists = await storage.getAllTrainingArtists();
+    res.json(trainingArtists);
+  });
+
+  app.get("/api/assignments/all", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const assignments = await storage.getAllAssignments();
+    res.json(assignments);
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

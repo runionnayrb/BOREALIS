@@ -144,16 +144,19 @@ export interface IStorage {
   
   // Training Locations
   getTrainingLocations(trainingId: string): Promise<TrainingLocation[]>;
+  getAllTrainingLocations(): Promise<TrainingLocation[]>;
   setTrainingLocations(trainingId: string, locationIds: string[]): Promise<void>;
   
   // Department Assignments
   getAssignmentsByTrainingId(trainingId: string): Promise<DepartmentAssignment[]>;
+  getAllAssignments(): Promise<DepartmentAssignment[]>;
   createAssignment(assignment: InsertDepartmentAssignment): Promise<DepartmentAssignment>;
   updateAssignment(id: string, updates: Partial<InsertDepartmentAssignment>): Promise<DepartmentAssignment | undefined>;
   deleteAssignment(id: string): Promise<void>;
   
   // Training Artists
   getTrainingArtists(trainingId: string): Promise<TrainingArtist[]>;
+  getAllTrainingArtists(): Promise<TrainingArtist[]>;
   setTrainingArtists(trainingId: string, artistIds: string[]): Promise<void>;
   
   sessionStore: Store;
@@ -621,6 +624,10 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(trainingLocations).where(eq(trainingLocations.trainingId, trainingId));
   }
 
+  async getAllTrainingLocations(): Promise<TrainingLocation[]> {
+    return await db.select().from(trainingLocations);
+  }
+
   async setTrainingLocations(trainingId: string, locationIds: string[]): Promise<void> {
     await db.delete(trainingLocations).where(eq(trainingLocations.trainingId, trainingId));
     if (locationIds.length > 0) {
@@ -633,6 +640,10 @@ export class DatabaseStorage implements IStorage {
   // Department Assignments
   async getAssignmentsByTrainingId(trainingId: string): Promise<DepartmentAssignment[]> {
     return await db.select().from(departmentAssignments).where(eq(departmentAssignments.trainingId, trainingId));
+  }
+
+  async getAllAssignments(): Promise<DepartmentAssignment[]> {
+    return await db.select().from(departmentAssignments);
   }
 
   async createAssignment(assignment: InsertDepartmentAssignment): Promise<DepartmentAssignment> {
@@ -652,6 +663,10 @@ export class DatabaseStorage implements IStorage {
   // Training Artists
   async getTrainingArtists(trainingId: string): Promise<TrainingArtist[]> {
     return await db.select().from(trainingArtists).where(eq(trainingArtists.trainingId, trainingId));
+  }
+
+  async getAllTrainingArtists(): Promise<TrainingArtist[]> {
+    return await db.select().from(trainingArtists);
   }
 
   async setTrainingArtists(trainingId: string, artistIds: string[]): Promise<void> {
