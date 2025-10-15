@@ -40,7 +40,9 @@ The application is a full-stack web application with a clear separation between 
 - **Secure Authentication**: Login/signup with hashed passwords and session management.
 - **Profile Management**: Update user details and password.
 - **Settings Management**: Full CRUD operations for all entities (scenes, acts, departments, locations, artists, technicians, report template).
-- **User Management**: Control active/inactive status of users.
+- **User Management**: 
+    - Control active/inactive status of users
+    - **User Deletion with Admin Authentication**: Delete users with admin password confirmation dialog. Requires admin credentials (username: "admin", password: "password"). Prevents self-deletion and deletion of users who have created or modified reports.
 - **Hierarchical Organization**: Consistent parent-child structures for Scenes → Acts, Location Types → Locations, and Artist Groups → Artists.
 - **Reports & Trainings**:
     - CRUD for reports and trainings with audit trails.
