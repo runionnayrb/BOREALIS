@@ -19,6 +19,7 @@ interface ReportCardProps {
   title: string;
   date: string;
   trainingsCount: number;
+  onClick?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
   onExport?: () => void;
@@ -29,12 +30,17 @@ export default function ReportCard({
   title,
   date,
   trainingsCount,
+  onClick,
   onEdit,
   onDelete,
   onExport,
 }: ReportCardProps) {
   return (
-    <Card className="p-4 hover-elevate" data-testid={`card-report-${id}`}>
+    <Card 
+      className="p-4 hover-elevate cursor-pointer" 
+      data-testid={`card-report-${id}`}
+      onClick={onClick}
+    >
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="p-2 rounded-md bg-primary/10 text-primary shrink-0">
@@ -54,7 +60,10 @@ export default function ReportCard({
           <Button
             variant="ghost"
             size="icon"
-            onClick={onEdit}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit?.();
+            }}
             data-testid={`button-edit-report-${id}`}
             className="w-9 h-9"
           >
@@ -63,7 +72,10 @@ export default function ReportCard({
           <Button
             variant="ghost"
             size="icon"
-            onClick={onExport}
+            onClick={(e) => {
+              e.stopPropagation();
+              onExport?.();
+            }}
             data-testid={`button-export-report-${id}`}
             className="w-9 h-9"
           >

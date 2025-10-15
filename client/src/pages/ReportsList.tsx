@@ -56,9 +56,6 @@ export default function ReportsList() {
         <div className="flex items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-2">Training Reports</h1>
-            <p className="text-sm text-muted-foreground">
-              One report per day with all trainings
-            </p>
           </div>
           <Button onClick={() => setLocation("/new-report")} data-testid="button-create-report" className="hidden md:flex">
             <Plus className="w-4 h-4 mr-2" />
@@ -112,6 +109,7 @@ export default function ReportsList() {
                   title={dateStr}
                   date={report.date}
                   trainingsCount={trainingsCount}
+                  onClick={() => setLocation(`/report/${report.id}`)}
                   onEdit={() => setLocation(`/report/${report.id}`)}
                   onDelete={() => deleteReportMutation.mutate(report.id)}
                   onExport={() => console.log("Export", report.id)}
