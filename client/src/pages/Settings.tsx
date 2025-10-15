@@ -308,21 +308,24 @@ export default function Settings() {
   const [emailSubject, setEmailSubject] = useState(reportTemplate?.emailSubjectTemplate || "");
   const [emailBodyPrefix, setEmailBodyPrefix] = useState(reportTemplate?.emailBodyPrefix || "");
 
-  // Sync report template state with query data (only on initial load, not during refetch)
-  const [templateInitialized, setTemplateInitialized] = useState(false);
+  // Sync report template state with query data (track last sync to avoid unnecessary updates)
+  const [lastSyncedTemplate, setLastSyncedTemplate] = useState<string | null>(null);
   useEffect(() => {
-    if (reportTemplate && !templateInitialized) {
-      setLeftImage(reportTemplate.leftImageUrl || "");
-      setTitle(reportTemplate.title || "Training Report");
-      setRightImage(reportTemplate.rightImageUrl || "");
-      setEmailTo(reportTemplate.emailTo || []);
-      setEmailCc(reportTemplate.emailCc || []);
-      setEmailBcc(reportTemplate.emailBcc || []);
-      setEmailSubject(reportTemplate.emailSubjectTemplate || "");
-      setEmailBodyPrefix(reportTemplate.emailBodyPrefix || "");
-      setTemplateInitialized(true);
+    if (reportTemplate) {
+      const templateData = JSON.stringify(reportTemplate);
+      if (templateData !== lastSyncedTemplate) {
+        setLeftImage(reportTemplate.leftImageUrl || "");
+        setTitle(reportTemplate.title || "Training Report");
+        setRightImage(reportTemplate.rightImageUrl || "");
+        setEmailTo(reportTemplate.emailTo || []);
+        setEmailCc(reportTemplate.emailCc || []);
+        setEmailBcc(reportTemplate.emailBcc || []);
+        setEmailSubject(reportTemplate.emailSubjectTemplate || "");
+        setEmailBodyPrefix(reportTemplate.emailBodyPrefix || "");
+        setLastSyncedTemplate(templateData);
+      }
     }
-  }, [reportTemplate, templateInitialized]);
+  }, [reportTemplate, lastSyncedTemplate]);
 
   // Create mutations
   const createSceneMutation = useMutation({
@@ -715,13 +718,18 @@ export default function Settings() {
   // Report Template mutation
   const saveTemplateMutation = useMutation({
     mutationFn: async () => {
+      // Filter out empty strings from email arrays
+      const filteredEmailTo = emailTo.filter(e => e.trim());
+      const filteredEmailCc = emailCc.filter(e => e.trim());
+      const filteredEmailBcc = emailBcc.filter(e => e.trim());
+      
       return await apiRequest("PUT", "/api/report-template", {
         title,
         leftImageUrl: leftImage || null,
         rightImageUrl: rightImage || null,
-        emailTo: emailTo.length > 0 ? emailTo : null,
-        emailCc: emailCc.length > 0 ? emailCc : null,
-        emailBcc: emailBcc.length > 0 ? emailBcc : null,
+        emailTo: filteredEmailTo.length > 0 ? filteredEmailTo : null,
+        emailCc: filteredEmailCc.length > 0 ? filteredEmailCc : null,
+        emailBcc: filteredEmailBcc.length > 0 ? filteredEmailBcc : null,
         emailSubjectTemplate: emailSubject || null,
         emailBodyPrefix: emailBodyPrefix || null,
       });
