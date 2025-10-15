@@ -94,6 +94,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(200);
   });
 
+  // Outlook connection toggle
+  app.post("/api/profile/outlook-connection", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const { connect } = req.body;
+    if (typeof connect !== "boolean") {
+      return res.status(400).send("Invalid request");
+    }
+
+    const updated = await storage.updateUser(req.user!.id, {
+      outlookConnected: connect ? 1 : 0,
+    });
+
+    if (!updated) {
+      return res.status(404).send("User not found");
+    }
+
+    res.json(sanitizeUser(updated));
+  });
+
   // User management routes
   app.get("/api/users", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

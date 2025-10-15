@@ -16,7 +16,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { User, Lock } from "lucide-react";
+import { User, Lock, Link2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
@@ -44,7 +44,7 @@ type PasswordFormData = z.infer<typeof passwordSchema>;
 export default function Profile() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<"profile" | "security">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "security" | "integrations">("profile");
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -117,6 +117,30 @@ export default function Profile() {
     await changePasswordMutation.mutateAsync(data);
   };
 
+  const toggleOutlookConnectionMutation = useMutation({
+    mutationFn: async (connect: boolean) => {
+      const res = await apiRequest("POST", "/api/profile/outlook-connection", { connect });
+      return res;
+    },
+    onSuccess: (data, connect) => {
+      // Update user data in cache
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({
+        title: connect ? "Outlook connected" : "Outlook disconnected",
+        description: connect 
+          ? "Your Outlook account has been successfully connected." 
+          : "Your Outlook account has been disconnected.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Connection failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   if (!user) return null;
 
   return (
@@ -130,8 +154,8 @@ export default function Profile() {
         </div>
 
         <Card className="p-6">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "profile" | "security")}>
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "profile" | "security" | "integrations")}>
+            <TabsList className="grid w-full grid-cols-3 mb-6">
               <TabsTrigger value="profile" data-testid="tab-profile">
                 <User className="w-4 h-4 mr-2" />
                 Profile
@@ -139,6 +163,10 @@ export default function Profile() {
               <TabsTrigger value="security" data-testid="tab-security">
                 <Lock className="w-4 h-4 mr-2" />
                 Security
+              </TabsTrigger>
+              <TabsTrigger value="integrations" data-testid="tab-integrations">
+                <Link2 className="w-4 h-4 mr-2" />
+                Integrations
               </TabsTrigger>
             </TabsList>
 
@@ -279,6 +307,79 @@ export default function Profile() {
                   </div>
                 </form>
               </Form>
+            </TabsContent>
+
+            <TabsContent value="integrations">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Email Integration</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Connect your Outlook account to send training reports via email
+                  </p>
+                </div>
+
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-primary" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M7 22h10c1.103 0 2-.897 2-2V4c0-1.103-.897-2-2-2H7c-1.103 0-2 .897-2 2v16c0 1.103.897 2 2 2zm0-18h10v12H7V4z"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold">Microsoft Outlook</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {user.outlookConnected ? "Connected" : "Not connected"}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {user.outlookConnected ? (
+                        <p className="text-sm text-muted-foreground mt-3">
+                          Your Outlook account is connected and ready to send reports.
+                        </p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground mt-3">
+                          Connect your Outlook account to enable email sending for training reports.
+                        </p>
+                      )}
+                    </div>
+
+                    <Button
+                      variant={user.outlookConnected ? "outline" : "default"}
+                      onClick={() => toggleOutlookConnectionMutation.mutate(!user.outlookConnected)}
+                      disabled={toggleOutlookConnectionMutation.isPending}
+                      data-testid={user.outlookConnected ? "button-disconnect-outlook" : "button-connect-outlook"}
+                    >
+                      {toggleOutlookConnectionMutation.isPending 
+                        ? "Processing..." 
+                        : user.outlookConnected 
+                          ? "Disconnect" 
+                          : "Connect Outlook"
+                      }
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="bg-muted/30 border rounded-lg p-4">
+                  <h4 className="font-medium mb-2 text-sm">What can you do with Outlook integration?</h4>
+                  <ul className="space-y-1 text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      <span>Send formatted training reports directly from the app</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      <span>Automatically attach PDF reports to emails</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      <span>Use pre-configured distribution lists for quick sending</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         </Card>

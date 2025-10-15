@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   position: text("position"),
   pronouns: text("pronouns"),
   active: integer("active").notNull().default(1), // 1 = active, 0 = inactive
+  outlookConnected: integer("outlook_connected").notNull().default(0), // 0 = not connected, 1 = connected
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -284,6 +285,11 @@ export const reportTemplate = pgTable("report_template", {
   leftImageUrl: text("left_image_url"),
   title: text("title").notNull(),
   rightImageUrl: text("right_image_url"),
+  emailTo: text("email_to").array(),
+  emailCc: text("email_cc").array(),
+  emailBcc: text("email_bcc").array(),
+  emailSubjectTemplate: text("email_subject_template"),
+  emailBodyPrefix: text("email_body_prefix"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   updatedBy: varchar("updated_by").references(() => users.id),
 });

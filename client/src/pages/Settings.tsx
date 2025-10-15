@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -301,6 +302,11 @@ export default function Settings() {
   const [leftImage, setLeftImage] = useState(reportTemplate?.leftImageUrl || "");
   const [title, setTitle] = useState(reportTemplate?.title || "Training Report");
   const [rightImage, setRightImage] = useState(reportTemplate?.rightImageUrl || "");
+  const [emailTo, setEmailTo] = useState<string[]>(reportTemplate?.emailTo || []);
+  const [emailCc, setEmailCc] = useState<string[]>(reportTemplate?.emailCc || []);
+  const [emailBcc, setEmailBcc] = useState<string[]>(reportTemplate?.emailBcc || []);
+  const [emailSubject, setEmailSubject] = useState(reportTemplate?.emailSubjectTemplate || "");
+  const [emailBodyPrefix, setEmailBodyPrefix] = useState(reportTemplate?.emailBodyPrefix || "");
 
   // Sync report template state with query data
   useEffect(() => {
@@ -308,6 +314,11 @@ export default function Settings() {
       setLeftImage(reportTemplate.leftImageUrl || "");
       setTitle(reportTemplate.title || "Training Report");
       setRightImage(reportTemplate.rightImageUrl || "");
+      setEmailTo(reportTemplate.emailTo || []);
+      setEmailCc(reportTemplate.emailCc || []);
+      setEmailBcc(reportTemplate.emailBcc || []);
+      setEmailSubject(reportTemplate.emailSubjectTemplate || "");
+      setEmailBodyPrefix(reportTemplate.emailBodyPrefix || "");
     }
   }, [reportTemplate]);
 
@@ -706,6 +717,11 @@ export default function Settings() {
         title,
         leftImageUrl: leftImage || null,
         rightImageUrl: rightImage || null,
+        emailTo: emailTo.length > 0 ? emailTo : null,
+        emailCc: emailCc.length > 0 ? emailCc : null,
+        emailBcc: emailBcc.length > 0 ? emailBcc : null,
+        emailSubjectTemplate: emailSubject || null,
+        emailBodyPrefix: emailBodyPrefix || null,
       });
     },
     onSuccess: () => {
@@ -1208,7 +1224,170 @@ export default function Settings() {
                 onMiddleTitleChange={setTitle}
                 onRightImageChange={setRightImage}
               />
-              <div className="mt-4">
+              
+              <div className="mt-8 space-y-6 border-t pt-6">
+                <div>
+                  <h3 className="text-md font-semibold mb-4">Email Settings</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Configure email distribution and content for sending reports
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Subject Line Template
+                    </label>
+                    <Input
+                      value={emailSubject}
+                      onChange={(e) => setEmailSubject(e.target.value)}
+                      placeholder="e.g., La Perle Training Report - {{date}}"
+                      data-testid="input-email-subject"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Use {'{{date}}'} to insert the report date
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Email Body Prefix
+                    </label>
+                    <Textarea
+                      value={emailBodyPrefix}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEmailBodyPrefix(e.target.value)}
+                      placeholder="Enter text that will appear before the training details..."
+                      rows={4}
+                      data-testid="textarea-email-body"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      This text will appear before the training details in the email
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      To Recipients
+                    </label>
+                    <div className="space-y-2">
+                      {emailTo.map((email, index) => (
+                        <div key={index} className="flex gap-2">
+                          <Input
+                            value={email}
+                            onChange={(e) => {
+                              const newEmailTo = [...emailTo];
+                              newEmailTo[index] = e.target.value;
+                              setEmailTo(newEmailTo);
+                            }}
+                            placeholder="email@example.com"
+                            type="email"
+                            data-testid={`input-email-to-${index}`}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setEmailTo(emailTo.filter((_, i) => i !== index))}
+                            data-testid={`button-remove-to-${index}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEmailTo([...emailTo, ""])}
+                        data-testid="button-add-to"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add To Recipient
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      CC Recipients
+                    </label>
+                    <div className="space-y-2">
+                      {emailCc.map((email, index) => (
+                        <div key={index} className="flex gap-2">
+                          <Input
+                            value={email}
+                            onChange={(e) => {
+                              const newEmailCc = [...emailCc];
+                              newEmailCc[index] = e.target.value;
+                              setEmailCc(newEmailCc);
+                            }}
+                            placeholder="email@example.com"
+                            type="email"
+                            data-testid={`input-email-cc-${index}`}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setEmailCc(emailCc.filter((_, i) => i !== index))}
+                            data-testid={`button-remove-cc-${index}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEmailCc([...emailCc, ""])}
+                        data-testid="button-add-cc"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add CC Recipient
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      BCC Recipients
+                    </label>
+                    <div className="space-y-2">
+                      {emailBcc.map((email, index) => (
+                        <div key={index} className="flex gap-2">
+                          <Input
+                            value={email}
+                            onChange={(e) => {
+                              const newEmailBcc = [...emailBcc];
+                              newEmailBcc[index] = e.target.value;
+                              setEmailBcc(newEmailBcc);
+                            }}
+                            placeholder="email@example.com"
+                            type="email"
+                            data-testid={`input-email-bcc-${index}`}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setEmailBcc(emailBcc.filter((_, i) => i !== index))}
+                            data-testid={`button-remove-bcc-${index}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEmailBcc([...emailBcc, ""])}
+                        data-testid="button-add-bcc"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add BCC Recipient
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6">
                 <Button
                   onClick={() => saveTemplateMutation.mutate()}
                   disabled={saveTemplateMutation.isPending}
