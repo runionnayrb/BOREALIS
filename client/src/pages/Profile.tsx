@@ -117,24 +117,24 @@ export default function Profile() {
     await changePasswordMutation.mutateAsync(data);
   };
 
-  const toggleOutlookConnectionMutation = useMutation({
-    mutationFn: async (connect: boolean) => {
-      const res = await apiRequest("POST", "/api/profile/outlook-connection", { connect });
+  const checkOutlookStatusMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest<{ connected: boolean }>("GET", "/api/profile/outlook-status");
       return res;
     },
-    onSuccess: (data, connect) => {
+    onSuccess: (data) => {
       // Update user data in cache
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
-        title: connect ? "Outlook connected" : "Outlook disconnected",
-        description: connect 
-          ? "Your Outlook account has been successfully connected." 
-          : "Your Outlook account has been disconnected.",
+        title: data.connected ? "Outlook connected" : "Outlook not connected",
+        description: data.connected 
+          ? "Your Outlook account is connected and ready to use." 
+          : "Please connect your Outlook account through Replit's integration settings.",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Connection failed",
+        title: "Status check failed",
         description: error.message,
         variant: "destructive",
       });
@@ -340,23 +340,29 @@ export default function Profile() {
                           Your Outlook account is connected and ready to send reports.
                         </p>
                       ) : (
-                        <p className="text-sm text-muted-foreground mt-3">
-                          Connect your Outlook account to enable email sending for training reports.
-                        </p>
+                        <div className="mt-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-3">
+                          <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-2">
+                            How to connect Outlook:
+                          </p>
+                          <ol className="text-xs text-blue-800 dark:text-blue-200 space-y-1 list-decimal ml-4">
+                            <li>Open the Replit Tools panel (left sidebar)</li>
+                            <li>Click on "Integrations"</li>
+                            <li>Find and connect "Outlook"</li>
+                            <li>Return here and click "Check Connection Status"</li>
+                          </ol>
+                        </div>
                       )}
                     </div>
 
                     <Button
                       variant={user.outlookConnected ? "outline" : "default"}
-                      onClick={() => toggleOutlookConnectionMutation.mutate(!user.outlookConnected)}
-                      disabled={toggleOutlookConnectionMutation.isPending}
-                      data-testid={user.outlookConnected ? "button-disconnect-outlook" : "button-connect-outlook"}
+                      onClick={() => checkOutlookStatusMutation.mutate()}
+                      disabled={checkOutlookStatusMutation.isPending}
+                      data-testid="button-check-outlook-status"
                     >
-                      {toggleOutlookConnectionMutation.isPending 
-                        ? "Processing..." 
-                        : user.outlookConnected 
-                          ? "Disconnect" 
-                          : "Connect Outlook"
+                      {checkOutlookStatusMutation.isPending 
+                        ? "Checking..." 
+                        : "Check Connection Status"
                       }
                     </Button>
                   </div>

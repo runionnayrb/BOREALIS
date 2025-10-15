@@ -94,24 +94,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(200);
   });
 
-  // Outlook connection toggle
-  app.post("/api/profile/outlook-connection", async (req, res) => {
+  // Outlook connection status check
+  app.get("/api/profile/outlook-status", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
-    const { connect } = req.body;
-    if (typeof connect !== "boolean") {
-      return res.status(400).send("Invalid request");
-    }
+    const { isOutlookConnected } = await import("./outlook");
+    const connected = await isOutlookConnected();
 
-    const updated = await storage.updateUser(req.user!.id, {
-      outlookConnected: connect ? 1 : 0,
+    // Update user's connection status in database
+    await storage.updateUser(req.user!.id, {
+      outlookConnected: connected ? 1 : 0,
     });
 
-    if (!updated) {
-      return res.status(404).send("User not found");
-    }
-
-    res.json(sanitizeUser(updated));
+    res.json({ connected });
   });
 
   // User management routes
@@ -830,6 +825,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const assignments = await storage.getAllAssignments();
     res.json(assignments);
+  });
+
+  // Email sending endpoint
+  app.post("/api/reports/:reportId/send-email", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const { getUncachableOutlookClient } = await import("./outlook");
+      const { formatEmailBody, replaceDateVariable } = await import("./emailFormatter");
+
+      // Get report and template data
+      const report = await storage.getReport(req.params.reportId);
+      if (!report) {
+        return res.status(404).send("Report not found");
+      }
+
+      const template = await storage.getReportTemplate();
+      if (!template || !template.emailSubjectTemplate) {
+        return res.status(400).send("Email template not configured");
+      }
+
+      // Get all trainings for this report with full details
+      const trainings = await storage.getTrainingsByReportId(req.params.reportId);
+      const scenes = await storage.getAllScenes();
+      const acts = await storage.getAllActs();
+      const locations = await storage.getAllLocations();
+      const users = await storage.getAllUsers();
+      const artists = await storage.getAllArtists();
+
+      // Format training data
+      const trainingData = await Promise.all(trainings.map(async (training) => {
+        const scene = scenes.find(s => s.id === training.sceneId);
+        const act = acts.find(a => a.id === training.actId);
+        const location = locations.find(l => l.id === training.locationId);
+        const stageManager = users.find(u => u.id === training.stageManagerId);
+        const trainingArtists = await storage.getTrainingArtists(training.id);
+        const artistNames = trainingArtists
+          .map(ta => artists.find(a => a.id === ta.artistId))
+          .filter(a => a)
+          .map(a => a!.stageName || `${a!.firstName} ${a!.lastName}`);
+
+        let trainingName = training.customName || '';
+        if (!trainingName && scene) trainingName = scene.name;
+        if (!trainingName && act) trainingName = act.name;
+
+        return {
+          trainingName,
+          startTime: training.startTime,
+          endTime: training.endTime,
+          locationName: location?.name,
+          stageManagerName: stageManager?.name,
+          artistNames,
+          notes: training.notes || undefined,
+        };
+      }));
+
+      // Format email
+      const subject = replaceDateVariable(template.emailSubjectTemplate, report.date);
+      const body = formatEmailBody(
+        {
+          date: report.date,
+          stageManagerOnDuty: report.stageManagerOnDuty || undefined,
+          notes: report.notes || undefined,
+          trainings: trainingData,
+        },
+        template.emailBodyPrefix || undefined
+      );
+
+      // Get Outlook client and send email
+      const client = await getUncachableOutlookClient();
+
+      const message = {
+        subject,
+        body: {
+          contentType: 'Text',
+          content: body,
+        },
+        toRecipients: (template.emailTo || []).filter(e => e).map(email => ({
+          emailAddress: { address: email }
+        })),
+        ccRecipients: (template.emailCc || []).filter(e => e).map(email => ({
+          emailAddress: { address: email }
+        })),
+        bccRecipients: (template.emailBcc || []).filter(e => e).map(email => ({
+          emailAddress: { address: email }
+        })),
+      };
+
+      await client.api('/me/sendMail').post({ message });
+
+      res.json({ success: true, message: "Email sent successfully" });
+    } catch (error: any) {
+      console.error("Email sending error:", error);
+      res.status(500).json({ 
+        error: "Failed to send email", 
+        message: error.message || "Unknown error" 
+      });
+    }
   });
 
   const httpServer = createServer(app);

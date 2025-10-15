@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Download, Plus, Save, Calendar, Loader2 } from "lucide-react";
+import { ArrowLeft, Download, Plus, Save, Calendar, Loader2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import RichTextEditor from "@/components/RichTextEditor";
 import TrainingCard from "@/components/TrainingCard";
@@ -7,6 +7,7 @@ import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import type { Report, Training, Scene, Act, Department, LocationType, Location, Artist, Technician, DepartmentAssignment, SafeUser } from "@shared/schema";
 import {
   Dialog,
@@ -111,6 +112,7 @@ export default function ReportEditor() {
   const reportId = params.id;
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const [content, setContent] = useState("");
   const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
@@ -323,6 +325,28 @@ export default function ReportEditor() {
     },
     onError: () => {
       toast({ title: "Failed to save report", variant: "destructive" });
+    },
+  });
+
+  const sendEmailMutation = useMutation({
+    mutationFn: async () => {
+      if (!reportId) {
+        throw new Error("Report must be saved before sending");
+      }
+      return await apiRequest<{ success: boolean; message: string }>('POST', `/api/reports/${reportId}/send-email`);
+    },
+    onSuccess: (data) => {
+      toast({ 
+        title: "Email sent successfully", 
+        description: data.message 
+      });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to send email", 
+        description: error.message,
+        variant: "destructive" 
+      });
     },
   });
 
@@ -624,6 +648,21 @@ export default function ReportEditor() {
             )}
             {reportId ? "Save" : "Create Report"}
           </Button>
+          {reportId && user?.outlookConnected && (
+            <Button 
+              variant="outline" 
+              onClick={() => sendEmailMutation.mutate()}
+              disabled={sendEmailMutation.isPending}
+              data-testid="button-send-email"
+            >
+              {sendEmailMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2 text-foreground" />
+              ) : (
+                <Mail className="h-4 w-4 mr-2 text-foreground" />
+              )}
+              Send Report
+            </Button>
+          )}
           <Button variant="outline" data-testid="button-export-pdf">
             <Download className="h-4 w-4 mr-2 text-foreground" />
             Export PDF
