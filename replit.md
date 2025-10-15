@@ -35,6 +35,7 @@ The application is a full-stack web application with a clear separation between 
 - **Data Management**: TanStack Query for data fetching, caching, and state management.
 - **XSS Protection**: Two-layer defense for rich text notes (Tiptap escaping + DOMPurify sanitization).
 - **Auto-Report Creation**: When adding the first training to a new report, the system automatically checks for an existing report on that date (GET /api/reports/date/:date) and either reuses it or creates a new one, respecting the "One Report Per Day" constraint.
+- **Email Integration**: Replit Outlook connector for OAuth authentication. Training reports can be sent via email using Microsoft Graph API with customizable templates, distribution lists, and automatic date variable replacement.
 
 ### Feature Specifications
 - **Secure Authentication**: Login/signup with hashed passwords and session management.
@@ -51,6 +52,11 @@ The application is a full-stack web application with a clear separation between 
     - **Lead technician assignment**: Each department can have a lead technician assigned during training editing. Displayed as "Department (LeadName)" on training cards.
     - **Custom training names**: Optional display name override for trainings. Scene/act selection is required (provides departments/artists), custom name is optional for special naming (e.g., "Emergency Safety Protocol"). Displays custom name as title with scene/act as subtitle on training cards.
 - **Report Template**: Global header/footer template with image upload.
+- **Email Distribution**:
+    - **Outlook Integration**: Stage managers can connect their Outlook accounts via Replit connector to send reports directly from the app.
+    - **Email Templates**: Configure TO/CC/BCC distribution lists, subject line with {{date}} variable replacement, and customizable email body prefix in Settings.
+    - **Automated Formatting**: Training data is automatically formatted into readable email content with session details, times, locations, stage managers, artists, and notes.
+    - **Send Report Button**: Available in report editor when user has connected Outlook account. Sends formatted email with training details to configured recipients.
 - **Audit Trail**: All reports and trainings track `createdBy`, `updatedBy`, and timestamps.
 - **One Report Per Day**: Simplified model where a single report encompasses all trainings for a given day.
 
@@ -64,3 +70,4 @@ The application is a full-stack web application with a clear separation between 
 - **Frontend Libraries**: React, Vite, Wouter, TanStack Query, shadcn/ui, Tiptap.
 - **Backend Libraries**: Express.js, Drizzle ORM, Passport.js, bcrypt.
 - **Sanitization**: DOMPurify for XSS protection.
+- **Email Integration**: Replit Outlook connector, Microsoft Graph Client (@microsoft/microsoft-graph-client) for sending emails via Outlook.
