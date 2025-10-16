@@ -114,7 +114,9 @@ export default function ReportEditor() {
   const { toast } = useToast();
   const { user } = useAuth();
   
+  const [goalNotes, setGoalNotes] = useState("");
   const [content, setContent] = useState("");
+  const [followUpNotes, setFollowUpNotes] = useState("");
   const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
   const [stageManagerOnDuty, setStageManagerOnDuty] = useState("");
   const [showAddTraining, setShowAddTraining] = useState(false);
@@ -157,7 +159,9 @@ export default function ReportEditor() {
 
   useEffect(() => {
     if (report) {
+      setGoalNotes(report.goalNotes || "");
       setContent(report.notes || "");
+      setFollowUpNotes(report.followUpNotes || "");
       setReportDate(report.date);
       setStageManagerOnDuty(report.stageManagerOnDuty || "");
     }
@@ -474,13 +478,17 @@ export default function ReportEditor() {
   const handleSaveReport = async () => {
     if (reportId) {
       updateReportMutation.mutate({
+        goalNotes,
         notes: content,
+        followUpNotes,
         stageManagerOnDuty,
       });
     } else {
       createReportMutation.mutate({
         date: reportDate,
+        goalNotes,
         notes: content,
+        followUpNotes,
         stageManagerOnDuty,
       });
     }
@@ -594,7 +602,9 @@ export default function ReportEditor() {
           // Create a new report
           const newReport = await createReportMutation.mutateAsync({
             date: reportDate,
+            goalNotes,
             notes: content,
+            followUpNotes,
             stageManagerOnDuty,
           });
           currentReportId = newReport.id;
@@ -1215,11 +1225,29 @@ export default function ReportEditor() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-4">General Notes</h2>
+            <h2 className="text-xl font-semibold mb-4">Goal</h2>
+            <RichTextEditor
+              content={goalNotes}
+              onChange={setGoalNotes}
+              minHeight="min-h-16"
+            />
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold mb-4">Training Notes</h2>
             <RichTextEditor
               content={content}
               onChange={setContent}
-              minHeight="min-h-32"
+              minHeight="min-h-16"
+            />
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold mb-4">Follow-Up</h2>
+            <RichTextEditor
+              content={followUpNotes}
+              onChange={setFollowUpNotes}
+              minHeight="min-h-16"
             />
           </section>
         </div>
