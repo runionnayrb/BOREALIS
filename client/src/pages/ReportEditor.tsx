@@ -336,6 +336,7 @@ export default function ReportEditor() {
   const [emailBody, setEmailBody] = useState("");
   const [showCc, setShowCc] = useState(false);
   const [showBcc, setShowBcc] = useState(false);
+  const [editBodyHtml, setEditBodyHtml] = useState(false);
 
   const { data: emailTemplate } = useQuery<{
     emailTo?: string[];
@@ -367,6 +368,8 @@ export default function ReportEditor() {
       // Auto-show CC/BCC if they have values
       setShowCc(ccValue.length > 0);
       setShowBcc(bccValue.length > 0);
+      // Reset to preview mode
+      setEditBodyHtml(false);
     }
   }, [emailPreviewOpen, emailTemplate, emailPreviewData]);
 
@@ -1285,14 +1288,33 @@ export default function ReportEditor() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email-body">Email Body</Label>
-              <Textarea
-                id="email-body"
-                value={emailBody}
-                onChange={(e) => setEmailBody(e.target.value)}
-                className="min-h-[300px] font-mono text-sm"
-                data-testid="textarea-email-body"
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="email-body">Email Body</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setEditBodyHtml(!editBodyHtml)}
+                  className="h-6 text-xs text-muted-foreground"
+                  data-testid="button-toggle-body-edit"
+                >
+                  {editBodyHtml ? "Preview" : "Edit HTML"}
+                </Button>
+              </div>
+              {editBodyHtml ? (
+                <Textarea
+                  id="email-body"
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                  className="min-h-[300px] font-mono text-sm"
+                  data-testid="textarea-email-body"
+                />
+              ) : (
+                <div
+                  className="min-h-[300px] border rounded-md p-4 bg-background overflow-auto"
+                  dangerouslySetInnerHTML={{ __html: emailBody }}
+                  data-testid="preview-email-body"
+                />
+              )}
             </div>
           </div>
           <div className="flex justify-end gap-2">
