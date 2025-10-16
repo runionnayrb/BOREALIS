@@ -92,12 +92,22 @@ export function setupAuth(app: Express) {
 
     req.login(user, (err) => {
       if (err) return next(err);
-      res.status(201).json(sanitizeUser(user));
+      // Ensure session is saved before sending response
+      req.session.save((saveErr) => {
+        if (saveErr) return next(saveErr);
+        res.status(201).json(sanitizeUser(user));
+      });
     });
   });
 
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json(sanitizeUser(req.user!));
+    // Ensure session is saved before sending response
+    req.session.save((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Failed to save session" });
+      }
+      res.status(200).json(sanitizeUser(req.user!));
+    });
   });
 
   app.post("/api/logout", (req, res, next) => {
