@@ -1014,6 +1014,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set headers for PDF download
       const dateFormatted = report.date.replace(/-/g, ''); // Convert YYYY-MM-DD to YYYYMMDD
       const fileName = `ART-SM-TRN La Perle Training Report ${dateFormatted}.pdf`;
+      console.log('[PDF Export] Report date:', report.date, '-> Formatted:', dateFormatted);
+      console.log('[PDF Export] Filename:', fileName);
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
       res.send(pdfBuffer);
