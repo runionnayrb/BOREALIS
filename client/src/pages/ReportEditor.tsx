@@ -336,43 +336,45 @@ export default function ReportEditor() {
   const [emailBody, setEmailBody] = useState("");
   const [showCc, setShowCc] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isLoadingEmailPreview, setIsLoadingEmailPreview] = useState(false);
   const [showBcc, setShowBcc] = useState(false);
   const [editBodyHtml, setEditBodyHtml] = useState(false);
 
-  const { data: emailTemplate } = useQuery<{
-    emailTo?: string[];
-    emailCc?: string[];
-    emailBcc?: string[];
-    emailSubjectTemplate?: string;
-  }>({
-    queryKey: ['/api/report-template'],
-    enabled: emailPreviewOpen,
-  });
+  const handleOpenEmailPreview = async () => {
+    if (!reportId) return;
+    
+    setIsLoadingEmailPreview(true);
+    try {
+      // Fetch email template and preview data
+      const [template, previewData] = await Promise.all([
+        fetch('/api/report-template', { credentials: 'include' }).then(res => res.json()),
+        fetch(`/api/reports/${reportId}/email-preview`, { credentials: 'include' }).then(res => res.json()),
+      ]);
 
-  const { data: emailPreviewData, isLoading: isLoadingEmailPreview } = useQuery<{
-    subject: string;
-    body: string;
-  }>({
-    queryKey: ['/api/reports', reportId, 'email-preview'],
-    enabled: emailPreviewOpen && !!reportId,
-  });
-
-  useEffect(() => {
-    if (emailPreviewOpen && emailTemplate && emailPreviewData) {
-      setEmailTo((emailTemplate.emailTo || []).join(', '));
-      const ccValue = (emailTemplate.emailCc || []).join(', ');
-      const bccValue = (emailTemplate.emailBcc || []).join(', ');
+      // Set email fields
+      setEmailTo((template.emailTo || []).join(', '));
+      const ccValue = (template.emailCc || []).join(', ');
+      const bccValue = (template.emailBcc || []).join(', ');
       setEmailCc(ccValue);
       setEmailBcc(bccValue);
-      setEmailSubject(emailPreviewData.subject || '');
-      setEmailBody(emailPreviewData.body || '');
-      // Auto-show CC/BCC if they have values
+      setEmailSubject(previewData.subject || '');
+      setEmailBody(previewData.body || '');
       setShowCc(ccValue.length > 0);
       setShowBcc(bccValue.length > 0);
-      // Reset to preview mode
       setEditBodyHtml(false);
+
+      // Open dialog after data is loaded
+      setEmailPreviewOpen(true);
+    } catch (error) {
+      console.error('Failed to load email preview:', error);
+      toast({
+        title: "Failed to load email preview",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingEmailPreview(false);
     }
-  }, [emailPreviewOpen, emailTemplate, emailPreviewData]);
+  };
 
   const sendEmailMutation = useMutation({
     mutationFn: async (customValues?: {
@@ -739,10 +741,15 @@ export default function ReportEditor() {
           {reportId && user?.outlookConnected && (
             <Button 
               variant="outline" 
-              onClick={() => setEmailPreviewOpen(true)}
+              onClick={handleOpenEmailPreview}
+              disabled={isLoadingEmailPreview}
               data-testid="button-send-email"
             >
-              <Mail className="h-4 w-4 mr-2 text-foreground" />
+              {isLoadingEmailPreview ? (
+                <Loader2 className="h-4 w-4 mr-2 text-foreground animate-spin" />
+              ) : (
+                <Mail className="h-4 w-4 mr-2 text-foreground" />
+              )}
               Send Report
             </Button>
           )}
@@ -1213,12 +1220,6 @@ export default function ReportEditor() {
           <DialogHeader>
             <DialogTitle>Review Email Before Sending</DialogTitle>
           </DialogHeader>
-          {isLoadingEmailPreview ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-          <>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="email-to">To</Label>
@@ -1393,8 +1394,6 @@ export default function ReportEditor() {
               Send Email
             </Button>
           </div>
-          </>
-          )}
         </DialogContent>
       </Dialog>
     </div>
