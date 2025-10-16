@@ -349,7 +349,7 @@ export default function ReportEditor() {
     enabled: emailPreviewOpen,
   });
 
-  const { data: emailPreviewData } = useQuery<{
+  const { data: emailPreviewData, isLoading: isLoadingEmailPreview } = useQuery<{
     subject: string;
     body: string;
   }>({
@@ -1213,6 +1213,12 @@ export default function ReportEditor() {
           <DialogHeader>
             <DialogTitle>Review Email Before Sending</DialogTitle>
           </DialogHeader>
+          {isLoadingEmailPreview ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+          <>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="email-to">To</Label>
@@ -1387,6 +1393,8 @@ export default function ReportEditor() {
               Send Email
             </Button>
           </div>
+          </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
