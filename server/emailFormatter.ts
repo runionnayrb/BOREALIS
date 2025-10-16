@@ -8,15 +8,15 @@ interface TrainingData {
   stageManagerName?: string;
   artistNames: string[];
   departmentNames: string[];
+  goalNotes?: string;
   notes?: string;
+  followUpNotes?: string;
 }
 
 interface ReportData {
   date: string;
   stageManagerOnDuty?: string;
-  goalNotes?: string;
   notes?: string;
-  followUpNotes?: string;
   trainings: TrainingData[];
 }
 
@@ -54,12 +54,6 @@ export function formatEmailBody(reportData: ReportData, bodyPrefix?: string): st
     body += `<p>Stage Manager on Duty: ${reportData.stageManagerOnDuty}</p>`;
   }
 
-  // Add goal notes if any
-  if (reportData.goalNotes) {
-    body += `<h3 style="margin-top: 20px; margin-bottom: 10px;">Goal</h3>`;
-    body += `<div>${reportData.goalNotes}</div>`;
-  }
-
   // Add training sessions
   if (reportData.trainings.length > 0) {
     body += `<p style="font-weight: bold; font-size: 18px; margin-top: 20px; margin-bottom: 10px;">Today's Training Sessions</p>`;
@@ -84,10 +78,22 @@ export function formatEmailBody(reportData: ReportData, bodyPrefix?: string): st
         body += `<p style="margin: 5px 0;"><strong><u>Departments:</u></strong> ${training.departmentNames.join(', ')}</p>`;
       }
       
-      // Notes (HTML content from rich text editor)
+      // Goal Notes (HTML content from rich text editor)
+      if (training.goalNotes) {
+        body += `<p style="margin: 5px 0;"><strong><u>Goal Notes:</u></strong></p>`;
+        body += `<div style="margin: 5px 0;">${training.goalNotes}</div>`;
+      }
+      
+      // Training Notes (HTML content from rich text editor)
       if (training.notes) {
-        body += `<p style="margin: 5px 0;"><strong><u>Notes:</u></strong></p>`;
+        body += `<p style="margin: 5px 0;"><strong><u>Training Notes:</u></strong></p>`;
         body += `<div style="margin: 5px 0;">${training.notes}</div>`;
+      }
+      
+      // Follow-Up Notes (HTML content from rich text editor)
+      if (training.followUpNotes) {
+        body += `<p style="margin: 5px 0;"><strong><u>Follow-Up Notes:</u></strong></p>`;
+        body += `<div style="margin: 5px 0;">${training.followUpNotes}</div>`;
       }
       
       // Horizontal line between trainings (except after last one)
@@ -97,16 +103,10 @@ export function formatEmailBody(reportData: ReportData, bodyPrefix?: string): st
     });
   }
 
-  // Add training notes if any
+  // Add general notes if any
   if (reportData.notes) {
-    body += `<h3 style="margin-top: 20px; margin-bottom: 10px;">Training Notes</h3>`;
+    body += `<h3 style="margin-top: 20px; margin-bottom: 10px;">General Notes</h3>`;
     body += `<div>${reportData.notes}</div>`;
-  }
-
-  // Add follow-up notes if any
-  if (reportData.followUpNotes) {
-    body += `<h3 style="margin-top: 20px; margin-bottom: 10px;">Follow-Up</h3>`;
-    body += `<div>${reportData.followUpNotes}</div>`;
   }
 
   body += '</body></html>';
@@ -155,12 +155,6 @@ export function formatPdfBody(reportData: ReportData, templateHeader?: ReportTem
     body += '</div>'; // Close header container
   }
 
-  // Add goal notes if any
-  if (reportData.goalNotes) {
-    body += `<h3 style="margin-top: 20px; margin-bottom: 10px;">Goal</h3>`;
-    body += `<div>${reportData.goalNotes}</div>`;
-  }
-
   // Add training sessions
   if (reportData.trainings.length > 0) {
     body += `<p style="font-weight: bold; font-size: 18px; margin-top: 20px; margin-bottom: 10px;">Today's Training Sessions</p>`;
@@ -185,10 +179,22 @@ export function formatPdfBody(reportData: ReportData, templateHeader?: ReportTem
         body += `<p style="margin: 5px 0;"><strong><u>Departments:</u></strong> ${training.departmentNames.join(', ')}</p>`;
       }
       
-      // Notes (HTML content from rich text editor)
+      // Goal Notes (HTML content from rich text editor)
+      if (training.goalNotes) {
+        body += `<p style="margin: 5px 0;"><strong><u>Goal Notes:</u></strong></p>`;
+        body += `<div style="margin: 5px 0;">${training.goalNotes}</div>`;
+      }
+      
+      // Training Notes (HTML content from rich text editor)
       if (training.notes) {
-        body += `<p style="margin: 5px 0;"><strong><u>Notes:</u></strong></p>`;
+        body += `<p style="margin: 5px 0;"><strong><u>Training Notes:</u></strong></p>`;
         body += `<div style="margin: 5px 0;">${training.notes}</div>`;
+      }
+      
+      // Follow-Up Notes (HTML content from rich text editor)
+      if (training.followUpNotes) {
+        body += `<p style="margin: 5px 0;"><strong><u>Follow-Up Notes:</u></strong></p>`;
+        body += `<div style="margin: 5px 0;">${training.followUpNotes}</div>`;
       }
       
       // Horizontal line between trainings (except after last one)
@@ -198,16 +204,10 @@ export function formatPdfBody(reportData: ReportData, templateHeader?: ReportTem
     });
   }
 
-  // Add training notes if any
+  // Add general notes if any
   if (reportData.notes) {
-    body += `<h3 style="margin-top: 20px; margin-bottom: 10px;">Training Notes</h3>`;
+    body += `<h3 style="margin-top: 20px; margin-bottom: 10px;">General Notes</h3>`;
     body += `<div>${reportData.notes}</div>`;
-  }
-
-  // Add follow-up notes if any
-  if (reportData.followUpNotes) {
-    body += `<h3 style="margin-top: 20px; margin-bottom: 10px;">Follow-Up</h3>`;
-    body += `<div>${reportData.followUpNotes}</div>`;
   }
 
   body += '</body></html>';

@@ -898,7 +898,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           stageManagerName: stageManager?.name || undefined,
           artistNames,
           departmentNames,
+          goalNotes: training.goalNotes || undefined,
           notes: training.notes || undefined,
+          followUpNotes: training.followUpNotes || undefined,
         };
       }));
 
@@ -908,9 +910,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           date: report.date,
           stageManagerOnDuty: report.stageManagerOnDuty || undefined,
-          goalNotes: report.goalNotes || undefined,
           notes: report.notes || undefined,
-          followUpNotes: report.followUpNotes || undefined,
           trainings: trainingData,
         },
         template.emailBodyPrefix || undefined
@@ -991,7 +991,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           stageManagerName: stageManager?.name || undefined,
           artistNames,
           departmentNames,
+          goalNotes: training.goalNotes || undefined,
           notes: training.notes || undefined,
+          followUpNotes: training.followUpNotes || undefined,
         };
       }));
 
@@ -1000,9 +1002,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           date: report.date,
           stageManagerOnDuty: report.stageManagerOnDuty || undefined,
-          goalNotes: report.goalNotes || undefined,
           notes: report.notes || undefined,
-          followUpNotes: report.followUpNotes || undefined,
           trainings: trainingData,
         },
         template ? {
@@ -1121,7 +1121,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             stageManagerName: stageManager?.name || undefined,
             artistNames,
             departmentNames,
+            goalNotes: training.goalNotes || undefined,
             notes: training.notes || undefined,
+            followUpNotes: training.followUpNotes || undefined,
           };
         }));
 
@@ -1130,9 +1132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           {
             date: report.date,
             stageManagerOnDuty: report.stageManagerOnDuty || undefined,
-            goalNotes: report.goalNotes || undefined,
             notes: report.notes || undefined,
-            followUpNotes: report.followUpNotes || undefined,
             trainings: trainingData,
           },
           template.emailBodyPrefix || undefined
