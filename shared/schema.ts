@@ -335,6 +335,7 @@ export const trainings = pgTable("trainings", {
   startTime: text("start_time").notNull(), // HH:MM format
   endTime: text("end_time").notNull(), // HH:MM format
   durationMinutes: integer("duration_minutes").notNull(),
+  goal: text("goal"),
   goalNotes: text("goal_notes"),
   notes: text("notes"),
   followUpNotes: text("follow_up_notes"),
