@@ -307,7 +307,9 @@ export const reports = pgTable("reports", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   date: text("date").notNull().unique(), // YYYY-MM-DD format
   stageManagerOnDuty: text("stage_manager_on_duty"),
+  goalNotes: text("goal_notes"),
   notes: text("notes"),
+  followUpNotes: text("follow_up_notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   createdBy: varchar("created_by").references(() => users.id),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

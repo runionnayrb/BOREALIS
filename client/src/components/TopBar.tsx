@@ -72,7 +72,7 @@ export default function TopBar() {
               <Button variant="ghost" size="icon" className="w-9 h-9" data-testid="button-user-menu">
                 <Avatar className="w-8 h-8">
                   <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                    {getInitials(user.name)}
+                    {getInitials(user.name || "User")}
                   </AvatarFallback>
                 </Avatar>
               </Button>
