@@ -14,7 +14,9 @@ interface TrainingData {
 interface ReportData {
   date: string;
   stageManagerOnDuty?: string;
+  goalNotes?: string;
   notes?: string;
+  followUpNotes?: string;
   trainings: TrainingData[];
 }
 
@@ -50,6 +52,12 @@ export function formatEmailBody(reportData: ReportData, bodyPrefix?: string): st
   body += `<p><strong>Training Report - ${format(new Date(reportData.date), 'EEEE, MMMM d, yyyy')}</strong></p>`;
   if (reportData.stageManagerOnDuty) {
     body += `<p>Stage Manager on Duty: ${reportData.stageManagerOnDuty}</p>`;
+  }
+
+  // Add goal notes if any
+  if (reportData.goalNotes) {
+    body += `<h3 style="margin-top: 20px; margin-bottom: 10px;">Goal</h3>`;
+    body += `<div>${reportData.goalNotes}</div>`;
   }
 
   // Add training sessions
@@ -89,10 +97,16 @@ export function formatEmailBody(reportData: ReportData, bodyPrefix?: string): st
     });
   }
 
-  // Add report notes if any
+  // Add training notes if any
   if (reportData.notes) {
-    body += `<h3 style="margin-top: 20px; margin-bottom: 10px;">Report Notes</h3>`;
+    body += `<h3 style="margin-top: 20px; margin-bottom: 10px;">Training Notes</h3>`;
     body += `<div>${reportData.notes}</div>`;
+  }
+
+  // Add follow-up notes if any
+  if (reportData.followUpNotes) {
+    body += `<h3 style="margin-top: 20px; margin-bottom: 10px;">Follow-Up</h3>`;
+    body += `<div>${reportData.followUpNotes}</div>`;
   }
 
   body += '</body></html>';
@@ -141,6 +155,12 @@ export function formatPdfBody(reportData: ReportData, templateHeader?: ReportTem
     body += '</div>'; // Close header container
   }
 
+  // Add goal notes if any
+  if (reportData.goalNotes) {
+    body += `<h3 style="margin-top: 20px; margin-bottom: 10px;">Goal</h3>`;
+    body += `<div>${reportData.goalNotes}</div>`;
+  }
+
   // Add training sessions
   if (reportData.trainings.length > 0) {
     body += `<p style="font-weight: bold; font-size: 18px; margin-top: 20px; margin-bottom: 10px;">Today's Training Sessions</p>`;
@@ -178,10 +198,16 @@ export function formatPdfBody(reportData: ReportData, templateHeader?: ReportTem
     });
   }
 
-  // Add report notes if any
+  // Add training notes if any
   if (reportData.notes) {
-    body += `<h3 style="margin-top: 20px; margin-bottom: 10px;">Report Notes</h3>`;
+    body += `<h3 style="margin-top: 20px; margin-bottom: 10px;">Training Notes</h3>`;
     body += `<div>${reportData.notes}</div>`;
+  }
+
+  // Add follow-up notes if any
+  if (reportData.followUpNotes) {
+    body += `<h3 style="margin-top: 20px; margin-bottom: 10px;">Follow-Up</h3>`;
+    body += `<div>${reportData.followUpNotes}</div>`;
   }
 
   body += '</body></html>';
