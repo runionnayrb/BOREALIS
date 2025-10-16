@@ -133,6 +133,20 @@ export default function TrainingCard({
           <div className="mt-2">
             <div className="flex items-center gap-1.5 text-sm text-foreground">
               <FileText className="w-4 h-4 text-muted-foreground" />
+              <span className="font-medium">Goal Notes</span>
+            </div>
+            {training.goalNotes ? (
+              <div 
+                className="text-sm text-foreground/80 mt-1 ml-5 prose prose-sm max-w-none [&_ul]:my-1 [&_ul]:text-foreground/80 [&_ol]:my-1 [&_ol]:text-foreground/80 [&_li]:my-0 [&_li]:mb-0.5 [&_li]:text-foreground/80 [&_p]:my-0.5 [&_p]:text-foreground/80 [&_li::marker]:text-foreground/80 [&_ul_li::marker]:text-foreground/80 [&_ol_li::marker]:text-foreground/80 [&_strong]:text-foreground/80 [&_em]:text-foreground/80 [&_u]:text-foreground/80 [&_s]:text-foreground/80"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(training.goalNotes) }}
+              />
+            ) : (
+              <p className="text-sm text-foreground/80 mt-1 ml-5">No goal notes</p>
+            )}
+          </div>
+          <div className="mt-2">
+            <div className="flex items-center gap-1.5 text-sm text-foreground">
+              <FileText className="w-4 h-4 text-muted-foreground" />
               <span className="font-medium">Training Notes</span>
             </div>
             {training.notes ? (
@@ -141,7 +155,21 @@ export default function TrainingCard({
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(training.notes) }}
               />
             ) : (
-              <p className="text-sm text-foreground/80 mt-1 ml-5">No training notes.</p>
+              <p className="text-sm text-foreground/80 mt-1 ml-5">No training notes</p>
+            )}
+          </div>
+          <div className="mt-2">
+            <div className="flex items-center gap-1.5 text-sm text-foreground">
+              <FileText className="w-4 h-4 text-muted-foreground" />
+              <span className="font-medium">Follow-Up Notes</span>
+            </div>
+            {training.followUpNotes ? (
+              <div 
+                className="text-sm text-foreground/80 mt-1 ml-5 prose prose-sm max-w-none [&_ul]:my-1 [&_ul]:text-foreground/80 [&_ol]:my-1 [&_ol]:text-foreground/80 [&_li]:my-0 [&_li]:mb-0.5 [&_li]:text-foreground/80 [&_p]:my-0.5 [&_p]:text-foreground/80 [&_li::marker]:text-foreground/80 [&_ul_li::marker]:text-foreground/80 [&_ol_li::marker]:text-foreground/80 [&_strong]:text-foreground/80 [&_em]:text-foreground/80 [&_u]:text-foreground/80 [&_s]:text-foreground/80"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(training.followUpNotes) }}
+              />
+            ) : (
+              <p className="text-sm text-foreground/80 mt-1 ml-5">No follow up notes</p>
             )}
           </div>
           <div className="mt-2">
