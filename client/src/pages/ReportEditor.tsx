@@ -335,12 +335,20 @@ export default function ReportEditor() {
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
 
-  const { data: emailTemplate } = useQuery({
+  const { data: emailTemplate } = useQuery<{
+    emailTo?: string[];
+    emailCc?: string[];
+    emailBcc?: string[];
+    emailSubjectTemplate?: string;
+  }>({
     queryKey: ['/api/settings/report-template'],
     enabled: emailPreviewOpen,
   });
 
-  const { data: emailPreviewData } = useQuery({
+  const { data: emailPreviewData } = useQuery<{
+    subject: string;
+    body: string;
+  }>({
     queryKey: ['/api/reports', reportId, 'email-preview'],
     enabled: emailPreviewOpen && !!reportId,
   });

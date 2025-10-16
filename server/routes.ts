@@ -827,12 +827,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(assignments);
   });
 
-  // Email sending endpoint
-  app.post("/api/reports/:reportId/send-email", async (req, res) => {
+  // Email preview endpoint
+  app.get("/api/reports/:reportId/email-preview", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
-      const { getUncachableOutlookClient } = await import("./outlook");
       const { formatEmailBody, replaceDateVariable } = await import("./emailFormatter");
 
       // Get report and template data
@@ -924,6 +923,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
         template.emailBodyPrefix || undefined
       );
 
+      res.json({ subject, body });
+    } catch (error: any) {
+      console.error("Failed to preview email:", error);
+      res.status(500).send(error.message || "Failed to preview email");
+    }
+  });
+
+  // Email sending endpoint
+  app.post("/api/reports/:reportId/send-email", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const { getUncachableOutlookClient } = await import("./outlook");
+
+      // Get custom values from request body (if provided)
+      const customValues = req.body as {
+        to?: string;
+        cc?: string;
+        bcc?: string;
+        subject?: string;
+        body?: string;
+      } | undefined;
+
+      let subject: string;
+      let body: string;
+      let toEmails: string[];
+      let ccEmails: string[];
+      let bccEmails: string[];
+
+      if (customValues && customValues.subject && customValues.body) {
+        // Use custom values from the preview dialog
+        subject = customValues.subject;
+        body = customValues.body;
+        toEmails = customValues.to ? customValues.to.split(',').map(e => e.trim()).filter(e => e) : [];
+        ccEmails = customValues.cc ? customValues.cc.split(',').map(e => e.trim()).filter(e => e) : [];
+        bccEmails = customValues.bcc ? customValues.bcc.split(',').map(e => e.trim()).filter(e => e) : [];
+      } else {
+        // Use template values (fallback for direct sending)
+        const { formatEmailBody, replaceDateVariable } = await import("./emailFormatter");
+
+        const report = await storage.getReport(req.params.reportId);
+        if (!report) {
+          return res.status(404).send("Report not found");
+        }
+
+        const template = await storage.getReportTemplate();
+        if (!template || !template.emailSubjectTemplate) {
+          return res.status(400).send("Email template not configured");
+        }
+
+        const trainings = await storage.getTrainingsByReportId(req.params.reportId);
+        const scenes = await storage.getAllScenes();
+        const acts = await storage.getAllActs();
+        const locations = await storage.getAllLocations();
+        const users = await storage.getAllUsers();
+        const artists = await storage.getAllArtists();
+        const artistGroups = await storage.getAllArtistGroups();
+        const departments = await storage.getAllDepartments();
+        const technicians = await storage.getAllTechnicians();
+
+        const trainingData = await Promise.all(trainings.map(async (training) => {
+          const scene = scenes.find(s => s.id === training.sceneId);
+          const act = acts.find(a => a.id === training.actId);
+          const location = locations.find(l => l.id === training.locationId);
+          const stageManager = users.find(u => u.id === training.stageManagerId);
+          
+          const trainingArtists = await storage.getTrainingArtists(training.id);
+          const artistNames = trainingArtists
+            .map(ta => artists.find(a => a.id === ta.artistId))
+            .filter(a => a)
+            .map(a => {
+              const artistName = a!.stageName || `${a!.firstName} ${a!.lastName}`;
+              if (a!.artistGroupId) {
+                const group = artistGroups.find(g => g.id === a!.artistGroupId);
+                if (group) {
+                  return `${artistName} (${group.name.toUpperCase()})`;
+                }
+              }
+              return artistName;
+            });
+
+          const assignments = await storage.getAssignmentsByTrainingId(training.id);
+          const departmentNames = assignments.map(assignment => {
+            const dept = departments.find(d => d.id === assignment.departmentId);
+            if (!dept) return '';
+            
+            if (assignment.leadTechnicianId) {
+              const tech = technicians.find(t => t.id === assignment.leadTechnicianId);
+              if (tech) {
+                const techName = tech.technicianName || `${tech.firstName} ${tech.lastName}`;
+                return `${dept.name} (${techName})`;
+              }
+            }
+            return dept.name;
+          }).filter(n => n);
+
+          let trainingName = training.customName || '';
+          if (!trainingName && scene) trainingName = scene.name;
+          if (!trainingName && act) trainingName = act.name;
+
+          return {
+            trainingName,
+            startTime: training.startTime,
+            endTime: training.endTime,
+            locationName: location?.name,
+            stageManagerName: stageManager?.name || undefined,
+            artistNames,
+            departmentNames,
+            notes: training.notes || undefined,
+          };
+        }));
+
+        subject = replaceDateVariable(template.emailSubjectTemplate, report.date);
+        body = formatEmailBody(
+          {
+            date: report.date,
+            stageManagerOnDuty: report.stageManagerOnDuty || undefined,
+            notes: report.notes || undefined,
+            trainings: trainingData,
+          },
+          template.emailBodyPrefix || undefined
+        );
+
+        toEmails = template.emailTo || [];
+        ccEmails = template.emailCc || [];
+        bccEmails = template.emailBcc || [];
+      }
+
       // Get Outlook client and send email
       const client = await getUncachableOutlookClient();
 
@@ -933,13 +1060,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           contentType: 'HTML',
           content: body,
         },
-        toRecipients: (template.emailTo || []).filter(e => e).map(email => ({
+        toRecipients: toEmails.filter(e => e).map(email => ({
           emailAddress: { address: email }
         })),
-        ccRecipients: (template.emailCc || []).filter(e => e).map(email => ({
+        ccRecipients: ccEmails.filter(e => e).map(email => ({
           emailAddress: { address: email }
         })),
-        bccRecipients: (template.emailBcc || []).filter(e => e).map(email => ({
+        bccRecipients: bccEmails.filter(e => e).map(email => ({
           emailAddress: { address: email }
         })),
       };
