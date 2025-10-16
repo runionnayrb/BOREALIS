@@ -128,6 +128,7 @@ export default function ReportEditor() {
   const [selectedStageManagerId, setSelectedStageManagerId] = useState("");
   const [startTime, setStartTime] = useState("14:00");
   const [endTime, setEndTime] = useState("16:30");
+  const [trainingGoal, setTrainingGoal] = useState("");
   const [trainingGoalNotes, setTrainingGoalNotes] = useState("");
   const [trainingNotes, setTrainingNotes] = useState("");
   const [trainingFollowUpNotes, setTrainingFollowUpNotes] = useState("");
@@ -233,6 +234,7 @@ export default function ReportEditor() {
       
       setStartTime(editingTraining.startTime);
       setEndTime(editingTraining.endTime);
+      setTrainingGoal(editingTraining.goal || "");
       setTrainingGoalNotes(editingTraining.goalNotes || "");
       setTrainingNotes(editingTraining.notes || "");
       setTrainingFollowUpNotes(editingTraining.followUpNotes || "");
@@ -439,6 +441,7 @@ export default function ReportEditor() {
       setSelectedStageManagerId("");
       setStartTime("14:00");
       setEndTime("16:30");
+      setTrainingGoal("");
       setTrainingGoalNotes("");
       setTrainingNotes("");
       setTrainingFollowUpNotes("");
@@ -467,6 +470,7 @@ export default function ReportEditor() {
       setSelectedStageManagerId("");
       setStartTime("14:00");
       setEndTime("16:30");
+      setTrainingGoal("");
       setTrainingGoalNotes("");
       setTrainingNotes("");
       setTrainingFollowUpNotes("");
@@ -662,6 +666,7 @@ export default function ReportEditor() {
       startTime,
       endTime,
       durationMinutes: duration,
+      goal: trainingGoal || undefined,
       goalNotes: trainingGoalNotes,
       notes: trainingNotes,
       followUpNotes: trainingFollowUpNotes,
@@ -1102,6 +1107,16 @@ export default function ReportEditor() {
                           data-testid="text-duration"
                         />
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Training Goal</Label>
+                      <Input
+                        value={trainingGoal}
+                        onChange={(e) => setTrainingGoal(e.target.value)}
+                        placeholder="e.g., Standard Training, Emergency Procedures, New Sequence"
+                        data-testid="input-training-goal"
+                      />
                     </div>
 
                     <div className="space-y-2">

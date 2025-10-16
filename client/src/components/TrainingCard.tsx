@@ -107,7 +107,7 @@ export default function TrainingCard({
           <div className="flex items-center justify-between gap-4">
             <div className="flex-shrink-0">
               <h3 className="font-semibold text-base" data-testid={training.customName ? `text-custom-name-${training.id}` : `text-act-${training.id}`}>
-                {training.customName || (scene ? `${scene.name} (Full Scene)` : act?.name || "Unknown")}
+                {training.customName || (scene ? `${scene.name} (Full Scene)` : act?.name || "Unknown")} - {training.goal || "No Goal Set"}
               </h3>
             </div>
             <div className="flex items-center gap-4 flex-shrink-0">
