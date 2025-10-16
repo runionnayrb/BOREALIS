@@ -46,35 +46,38 @@ export function formatEmailBody(reportData: ReportData, bodyPrefix?: string): st
 
   // Add training sessions
   if (reportData.trainings.length > 0) {
-    body += `<h3 style="margin-top: 20px; margin-bottom: 10px;">Training Sessions</h3>`;
+    body += `<p style="font-weight: bold; font-size: 18px; margin-top: 20px; margin-bottom: 10px;">Today's Training Sessions</p>`;
     
     reportData.trainings.forEach((training, index) => {
-      body += `<div style="margin-bottom: 20px;">`;
-      
       // Training header with name, time, and stage manager
       let header = `<strong>${training.trainingName}</strong>`;
       header += ` | ${training.startTime} - ${training.endTime}`;
       if (training.stageManagerName) {
-        header += ` | Stage Manager: ${training.stageManagerName}`;
+        header += ` | SM: ${training.stageManagerName}`;
       }
-      body += `<p style="margin: 5px 0;">${header}</p>`;
+      body += `<p style="margin: 10px 0 5px 0;">${header}</p>`;
       
       // Artists
       if (training.artistNames.length > 0) {
-        body += `<p style="margin: 5px 0; padding-left: 20px;"><strong>Artists:</strong> ${training.artistNames.join(', ')}</p>`;
+        body += `<p style="margin: 5px 0;"><strong><u>Artists:</u></strong></p>`;
+        body += `<p style="margin: 5px 0;">${training.artistNames.join(', ')}</p>`;
       }
       
       // Departments
       if (training.departmentNames.length > 0) {
-        body += `<p style="margin: 5px 0; padding-left: 20px;"><strong>Departments:</strong> ${training.departmentNames.join(', ')}</p>`;
+        body += `<p style="margin: 5px 0;"><strong><u>Departments:</u></strong> ${training.departmentNames.join(', ')}</p>`;
       }
       
       // Notes (HTML content from rich text editor)
       if (training.notes) {
-        body += `<div style="margin: 5px 0; padding-left: 20px;"><strong>Notes:</strong> ${training.notes}</div>`;
+        body += `<p style="margin: 5px 0;"><strong><u>Notes:</u></strong></p>`;
+        body += `<div style="margin: 5px 0;">${training.notes}</div>`;
       }
       
-      body += `</div>`;
+      // Horizontal line between trainings (except after last one)
+      if (index < reportData.trainings.length - 1) {
+        body += `<hr style="border: none; border-top: 1px solid #ccc; margin: 20px 0;">`;
+      }
     });
   }
 

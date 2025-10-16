@@ -853,6 +853,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const locations = await storage.getAllLocations();
       const users = await storage.getAllUsers();
       const artists = await storage.getAllArtists();
+      const artistGroups = await storage.getAllArtistGroups();
       const departments = await storage.getAllDepartments();
       const technicians = await storage.getAllTechnicians();
 
@@ -863,12 +864,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const location = locations.find(l => l.id === training.locationId);
         const stageManager = users.find(u => u.id === training.stageManagerId);
         
-        // Get artists
+        // Get artists with their groups
         const trainingArtists = await storage.getTrainingArtists(training.id);
         const artistNames = trainingArtists
           .map(ta => artists.find(a => a.id === ta.artistId))
           .filter(a => a)
-          .map(a => a!.stageName || `${a!.firstName} ${a!.lastName}`);
+          .map(a => {
+            const artistName = a!.stageName || `${a!.firstName} ${a!.lastName}`;
+            if (a!.artistGroupId) {
+              const group = artistGroups.find(g => g.id === a!.artistGroupId);
+              if (group) {
+                return `${artistName} (${group.name.toUpperCase()})`;
+              }
+            }
+            return artistName;
+          });
 
         // Get departments with lead technicians
         const assignments = await storage.getAssignmentsByTrainingId(training.id);
