@@ -899,7 +899,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const message = {
         subject,
         body: {
-          contentType: 'Text',
+          contentType: 'HTML',
           content: body,
         },
         toRecipients: (template.emailTo || []).filter(e => e).map(email => ({

@@ -30,47 +30,49 @@ export function replaceDateVariable(template: string, date: string): string {
 }
 
 export function formatEmailBody(reportData: ReportData, bodyPrefix?: string): string {
-  let body = '';
+  let body = '<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">';
 
   // Add custom prefix if provided
   if (bodyPrefix) {
-    body += bodyPrefix + '\n\n';
+    body += `<p>${bodyPrefix}</p>`;
   }
 
   // Add report header info
-  body += `Training Report - ${format(new Date(reportData.date), 'MMMM d, yyyy')}\n`;
+  body += `<p><strong>Training Report - ${format(new Date(reportData.date), 'MMMM d, yyyy')}</strong></p>`;
   if (reportData.stageManagerOnDuty) {
-    body += `Stage Manager on Duty: ${reportData.stageManagerOnDuty}\n`;
+    body += `<p>Stage Manager on Duty: ${reportData.stageManagerOnDuty}</p>`;
   }
-  body += '\n';
 
   // Add training sessions
   if (reportData.trainings.length > 0) {
-    body += `=== Training Sessions ===\n\n`;
+    body += `<h3 style="margin-top: 20px; margin-bottom: 10px;">Training Sessions</h3>`;
     
     reportData.trainings.forEach((training, index) => {
-      body += `${index + 1}. ${training.trainingName}\n`;
-      body += `   Time: ${training.startTime} - ${training.endTime}\n`;
+      body += `<div style="margin-bottom: 20px; padding-left: 10px;">`;
+      body += `<p style="margin: 5px 0;"><strong>${index + 1}. ${training.trainingName}</strong></p>`;
+      body += `<p style="margin: 5px 0; padding-left: 20px;">Time: ${training.startTime} - ${training.endTime}</p>`;
       if (training.locationName) {
-        body += `   Location: ${training.locationName}\n`;
+        body += `<p style="margin: 5px 0; padding-left: 20px;">Location: ${training.locationName}</p>`;
       }
       if (training.stageManagerName) {
-        body += `   Stage Manager: ${training.stageManagerName}\n`;
+        body += `<p style="margin: 5px 0; padding-left: 20px;">Stage Manager: ${training.stageManagerName}</p>`;
       }
       if (training.artistNames.length > 0) {
-        body += `   Artists: ${training.artistNames.join(', ')}\n`;
+        body += `<p style="margin: 5px 0; padding-left: 20px;">Artists: ${training.artistNames.join(', ')}</p>`;
       }
       if (training.notes) {
-        body += `   Notes: ${training.notes}\n`;
+        body += `<div style="margin: 5px 0; padding-left: 20px;">Notes: ${training.notes}</div>`;
       }
-      body += '\n';
+      body += `</div>`;
     });
   }
 
   // Add report notes if any
   if (reportData.notes) {
-    body += `=== Report Notes ===\n${reportData.notes}\n\n`;
+    body += `<h3 style="margin-top: 20px; margin-bottom: 10px;">Report Notes</h3>`;
+    body += `<div>${reportData.notes}</div>`;
   }
 
+  body += '</body></html>';
   return body;
 }
