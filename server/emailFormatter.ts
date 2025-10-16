@@ -7,6 +7,7 @@ interface TrainingData {
   locationName?: string;
   stageManagerName?: string;
   artistNames: string[];
+  departmentNames: string[];
   notes?: string;
 }
 
@@ -48,21 +49,31 @@ export function formatEmailBody(reportData: ReportData, bodyPrefix?: string): st
     body += `<h3 style="margin-top: 20px; margin-bottom: 10px;">Training Sessions</h3>`;
     
     reportData.trainings.forEach((training, index) => {
-      body += `<div style="margin-bottom: 20px; padding-left: 10px;">`;
-      body += `<p style="margin: 5px 0;"><strong>${index + 1}. ${training.trainingName}</strong></p>`;
-      body += `<p style="margin: 5px 0; padding-left: 20px;">Time: ${training.startTime} - ${training.endTime}</p>`;
-      if (training.locationName) {
-        body += `<p style="margin: 5px 0; padding-left: 20px;">Location: ${training.locationName}</p>`;
-      }
+      body += `<div style="margin-bottom: 20px;">`;
+      
+      // Training header with name, time, and stage manager
+      let header = `<strong>${training.trainingName}</strong>`;
+      header += ` | ${training.startTime} - ${training.endTime}`;
       if (training.stageManagerName) {
-        body += `<p style="margin: 5px 0; padding-left: 20px;">Stage Manager: ${training.stageManagerName}</p>`;
+        header += ` | Stage Manager: ${training.stageManagerName}`;
       }
+      body += `<p style="margin: 5px 0;">${header}</p>`;
+      
+      // Artists
       if (training.artistNames.length > 0) {
-        body += `<p style="margin: 5px 0; padding-left: 20px;">Artists: ${training.artistNames.join(', ')}</p>`;
+        body += `<p style="margin: 5px 0; padding-left: 20px;"><strong>Artists:</strong> ${training.artistNames.join(', ')}</p>`;
       }
+      
+      // Departments
+      if (training.departmentNames.length > 0) {
+        body += `<p style="margin: 5px 0; padding-left: 20px;"><strong>Departments:</strong> ${training.departmentNames.join(', ')}</p>`;
+      }
+      
+      // Notes (HTML content from rich text editor)
       if (training.notes) {
-        body += `<div style="margin: 5px 0; padding-left: 20px;">Notes: ${training.notes}</div>`;
+        body += `<div style="margin: 5px 0; padding-left: 20px;"><strong>Notes:</strong> ${training.notes}</div>`;
       }
+      
       body += `</div>`;
     });
   }

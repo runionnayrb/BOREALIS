@@ -853,6 +853,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const locations = await storage.getAllLocations();
       const users = await storage.getAllUsers();
       const artists = await storage.getAllArtists();
+      const departments = await storage.getAllDepartments();
+      const technicians = await storage.getAllTechnicians();
 
       // Format training data
       const trainingData = await Promise.all(trainings.map(async (training) => {
@@ -860,11 +862,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const act = acts.find(a => a.id === training.actId);
         const location = locations.find(l => l.id === training.locationId);
         const stageManager = users.find(u => u.id === training.stageManagerId);
+        
+        // Get artists
         const trainingArtists = await storage.getTrainingArtists(training.id);
         const artistNames = trainingArtists
           .map(ta => artists.find(a => a.id === ta.artistId))
           .filter(a => a)
           .map(a => a!.stageName || `${a!.firstName} ${a!.lastName}`);
+
+        // Get departments with lead technicians
+        const assignments = await storage.getAssignmentsByTrainingId(training.id);
+        const departmentNames = assignments.map(assignment => {
+          const dept = departments.find(d => d.id === assignment.departmentId);
+          if (!dept) return '';
+          
+          if (assignment.leadTechnicianId) {
+            const tech = technicians.find(t => t.id === assignment.leadTechnicianId);
+            if (tech) {
+              const techName = tech.technicianName || `${tech.firstName} ${tech.lastName}`;
+              return `${dept.name} (${techName})`;
+            }
+          }
+          return dept.name;
+        }).filter(n => n);
 
         let trainingName = training.customName || '';
         if (!trainingName && scene) trainingName = scene.name;
@@ -875,8 +895,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           startTime: training.startTime,
           endTime: training.endTime,
           locationName: location?.name,
-          stageManagerName: stageManager?.name,
+          stageManagerName: stageManager?.name || undefined,
           artistNames,
+          departmentNames,
           notes: training.notes || undefined,
         };
       }));
