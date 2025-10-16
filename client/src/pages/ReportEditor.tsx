@@ -483,6 +483,38 @@ export default function ReportEditor() {
     }
   };
 
+  const handleExportPdf = async () => {
+    if (!reportId) {
+      toast({ title: "Please save the report first", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/reports/${reportId}/pdf`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Training_Report_${reportDate}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({ title: "PDF downloaded successfully" });
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast({ title: "Failed to export PDF", variant: "destructive" });
+    }
+  };
+
   const handleRemoveDepartment = async (departmentId: string) => {
     const assignment = trainingAssignments.find(a => a.departmentId === departmentId);
     if (!assignment) return;
@@ -710,7 +742,11 @@ export default function ReportEditor() {
               Send Report
             </Button>
           )}
-          <Button variant="outline" data-testid="button-export-pdf">
+          <Button 
+            variant="outline" 
+            onClick={handleExportPdf}
+            data-testid="button-export-pdf"
+          >
             <Download className="h-4 w-4 mr-2 text-foreground" />
             Export PDF
           </Button>

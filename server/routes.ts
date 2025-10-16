@@ -921,6 +921,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PDF generation endpoint
+  app.get("/api/reports/:reportId/pdf", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const { formatEmailBody, replaceDateVariable } = await import("./emailFormatter");
+      const { generatePdfFromHtml } = await import("./pdfGenerator");
+
+      // Get report and template data
+      const report = await storage.getReport(req.params.reportId);
+      if (!report) {
+        return res.status(404).send("Report not found");
+      }
+
+      const template = await storage.getReportTemplate();
+
+      // Get all trainings for this report with full details
+      const trainings = await storage.getTrainingsByReportId(req.params.reportId);
+      const scenes = await storage.getAllScenes();
+      const acts = await storage.getAllActs();
+      const locations = await storage.getAllLocations();
+      const users = await storage.getAllUsers();
+      const artists = await storage.getAllArtists();
+      const departments = await storage.getAllDepartments();
+      const technicians = await storage.getAllTechnicians();
+
+      // Format training data
+      const trainingData = await Promise.all(trainings.map(async (training) => {
+        const scene = scenes.find(s => s.id === training.sceneId);
+        const act = acts.find(a => a.id === training.actId);
+        const location = locations.find(l => l.id === training.locationId);
+        const stageManager = users.find(u => u.id === training.stageManagerId);
+        
+        // Get artists (just names, no roles)
+        const trainingArtists = await storage.getTrainingArtists(training.id);
+        const artistNames = trainingArtists
+          .map(ta => artists.find(a => a.id === ta.artistId))
+          .filter(a => a)
+          .map(a => a!.stageName || `${a!.firstName} ${a!.lastName}`);
+
+        // Get departments with lead technicians
+        const assignments = await storage.getAssignmentsByTrainingId(training.id);
+        const departmentNames = assignments.map(assignment => {
+          const dept = departments.find(d => d.id === assignment.departmentId);
+          if (!dept) return '';
+          
+          if (assignment.leadTechnicianId) {
+            const tech = technicians.find(t => t.id === assignment.leadTechnicianId);
+            if (tech) {
+              const techName = tech.technicianName || `${tech.firstName} ${tech.lastName}`;
+              return `${dept.name} (${techName})`;
+            }
+          }
+          return dept.name;
+        }).filter(n => n);
+
+        let trainingName = training.customName || '';
+        if (!trainingName && scene) trainingName = scene.name;
+        if (!trainingName && act) trainingName = act.name;
+
+        return {
+          trainingName,
+          startTime: training.startTime,
+          endTime: training.endTime,
+          locationName: location?.name,
+          stageManagerName: stageManager?.name || undefined,
+          artistNames,
+          departmentNames,
+          notes: training.notes || undefined,
+        };
+      }));
+
+      // Format HTML for PDF
+      const htmlContent = formatEmailBody(
+        {
+          date: report.date,
+          stageManagerOnDuty: report.stageManagerOnDuty || undefined,
+          notes: report.notes || undefined,
+          trainings: trainingData,
+        },
+        template?.emailBodyPrefix || undefined
+      );
+
+      // Generate PDF
+      const pdfBuffer = await generatePdfFromHtml(htmlContent);
+
+      // Set headers for PDF download
+      const fileName = `Training_Report_${report.date}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.send(pdfBuffer);
+    } catch (error: any) {
+      console.error("Failed to generate PDF:", error);
+      res.status(500).send(error.message || "Failed to generate PDF");
+    }
+  });
+
   // Email sending endpoint
   app.post("/api/reports/:reportId/send-email", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -1033,6 +1130,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bccEmails = template.emailBcc || [];
       }
 
+      // Generate PDF for attachment
+      const { generatePdfFromHtml } = await import("./pdfGenerator");
+      const report = await storage.getReport(req.params.reportId);
+      
+      if (!report) {
+        return res.status(404).send("Report not found");
+      }
+
+      const pdfBuffer = await generatePdfFromHtml(body);
+      const pdfBase64 = pdfBuffer.toString('base64');
+      const pdfFileName = `Training_Report_${report.date}.pdf`;
+
       // Get Outlook client and send email
       const client = await getUncachableOutlookClient();
 
@@ -1051,11 +1160,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bccRecipients: bccEmails.filter(e => e).map(email => ({
           emailAddress: { address: email }
         })),
+        attachments: [
+          {
+            "@odata.type": "#microsoft.graph.fileAttachment",
+            "name": pdfFileName,
+            "contentType": "application/pdf",
+            "contentBytes": pdfBase64
+          }
+        ]
       };
 
       await client.api('/me/sendMail').post({ message });
 
-      res.json({ success: true, message: "Email sent successfully" });
+      res.json({ success: true, message: "Email sent successfully with PDF attachment" });
     } catch (error: any) {
       console.error("Email sending error:", error);
       res.status(500).json({ 
