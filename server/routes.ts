@@ -863,18 +863,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const location = locations.find(l => l.id === training.locationId);
         const stageManager = users.find(u => u.id === training.stageManagerId);
         
-        // Get artists with their roles
+        // Get artists (just names, no roles)
         const trainingArtists = await storage.getTrainingArtists(training.id);
         const artistNames = trainingArtists
           .map(ta => artists.find(a => a.id === ta.artistId))
           .filter(a => a)
-          .map(a => {
-            const artistName = a!.stageName || `${a!.firstName} ${a!.lastName}`;
-            if (a!.role) {
-              return `${artistName} (${a!.role})`;
-            }
-            return artistName;
-          });
+          .map(a => a!.stageName || `${a!.firstName} ${a!.lastName}`);
 
         // Get departments with lead technicians
         const assignments = await storage.getAssignmentsByTrainingId(training.id);
@@ -990,13 +984,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const artistNames = trainingArtists
             .map(ta => artists.find(a => a.id === ta.artistId))
             .filter(a => a)
-            .map(a => {
-              const artistName = a!.stageName || `${a!.firstName} ${a!.lastName}`;
-              if (a!.role) {
-                return `${artistName} (${a!.role})`;
-              }
-              return artistName;
-            });
+            .map(a => a!.stageName || `${a!.firstName} ${a!.lastName}`);
 
           const assignments = await storage.getAssignmentsByTrainingId(training.id);
           const departmentNames = assignments.map(assignment => {
