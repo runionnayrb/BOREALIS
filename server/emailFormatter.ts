@@ -110,7 +110,10 @@ export function formatPdfBody(reportData: ReportData, templateHeader?: ReportTem
 
   // Add header with images and title if template provided
   if (templateHeader) {
-    body += '<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #333;">';
+    body += '<div style="margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #333;">';
+    
+    // Top row: images and title
+    body += '<div style="display: flex; align-items: center; justify-content: space-between;">';
     
     // Left image
     if (templateHeader.leftImageUrl) {
@@ -125,13 +128,17 @@ export function formatPdfBody(reportData: ReportData, templateHeader?: ReportTem
       body += `<div style="flex: 0 0 auto;"><img src="${templateHeader.rightImageUrl}" alt="Right Logo" style="max-height: 80px; max-width: 150px;" /></div>`;
     }
     
-    body += '</div>';
-  }
-
-  // Add report header info
-  body += `<p><strong>Training Report - ${format(new Date(reportData.date), 'EEEE, MMMM d, yyyy')}</strong></p>`;
-  if (reportData.stageManagerOnDuty) {
-    body += `<p>Stage Manager on Duty: ${reportData.stageManagerOnDuty}</p>`;
+    body += '</div>'; // Close top row
+    
+    // Date below title
+    body += `<p style="text-align: center; margin: 10px 0 5px 0; font-size: 16px;">${format(new Date(reportData.date), 'EEEE, MMMM d, yyyy')}</p>`;
+    
+    // Stage Manager below date
+    if (reportData.stageManagerOnDuty) {
+      body += `<p style="text-align: center; margin: 5px 0 0 0; font-size: 14px;">Stage Manager on Duty: ${reportData.stageManagerOnDuty}</p>`;
+    }
+    
+    body += '</div>'; // Close header container
   }
 
   // Add training sessions
