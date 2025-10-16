@@ -114,9 +114,7 @@ export default function ReportEditor() {
   const { toast } = useToast();
   const { user } = useAuth();
   
-  const [goalNotes, setGoalNotes] = useState("");
   const [content, setContent] = useState("");
-  const [followUpNotes, setFollowUpNotes] = useState("");
   const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
   const [stageManagerOnDuty, setStageManagerOnDuty] = useState("");
   const [showAddTraining, setShowAddTraining] = useState(false);
@@ -130,7 +128,9 @@ export default function ReportEditor() {
   const [selectedStageManagerId, setSelectedStageManagerId] = useState("");
   const [startTime, setStartTime] = useState("14:00");
   const [endTime, setEndTime] = useState("16:30");
+  const [trainingGoalNotes, setTrainingGoalNotes] = useState("");
   const [trainingNotes, setTrainingNotes] = useState("");
+  const [trainingFollowUpNotes, setTrainingFollowUpNotes] = useState("");
   const [actDepartmentIds, setActDepartmentIds] = useState<string[]>([]);
   const [actArtistIds, setActArtistIds] = useState<string[]>([]);
   const [trainingAssignments, setTrainingAssignments] = useState<DepartmentAssignment[]>([]);
@@ -159,9 +159,7 @@ export default function ReportEditor() {
 
   useEffect(() => {
     if (report) {
-      setGoalNotes(report.goalNotes || "");
       setContent(report.notes || "");
-      setFollowUpNotes(report.followUpNotes || "");
       setReportDate(report.date);
       setStageManagerOnDuty(report.stageManagerOnDuty || "");
     }
@@ -235,7 +233,9 @@ export default function ReportEditor() {
       
       setStartTime(editingTraining.startTime);
       setEndTime(editingTraining.endTime);
+      setTrainingGoalNotes(editingTraining.goalNotes || "");
       setTrainingNotes(editingTraining.notes || "");
+      setTrainingFollowUpNotes(editingTraining.followUpNotes || "");
       setCustomName(editingTraining.customName || "");
       setSelectedStageManagerId(editingTraining.stageManagerId || "");
       setShowAddTraining(true);
@@ -439,7 +439,9 @@ export default function ReportEditor() {
       setSelectedStageManagerId("");
       setStartTime("14:00");
       setEndTime("16:30");
+      setTrainingGoalNotes("");
       setTrainingNotes("");
+      setTrainingFollowUpNotes("");
       setActDepartmentIds([]);
       setActArtistIds([]);
       setTrainingAssignments([]);
@@ -465,7 +467,9 @@ export default function ReportEditor() {
       setSelectedStageManagerId("");
       setStartTime("14:00");
       setEndTime("16:30");
+      setTrainingGoalNotes("");
       setTrainingNotes("");
+      setTrainingFollowUpNotes("");
       setActDepartmentIds([]);
       setActArtistIds([]);
       setTrainingAssignments([]);
@@ -478,17 +482,13 @@ export default function ReportEditor() {
   const handleSaveReport = async () => {
     if (reportId) {
       updateReportMutation.mutate({
-        goalNotes,
         notes: content,
-        followUpNotes,
         stageManagerOnDuty,
       });
     } else {
       createReportMutation.mutate({
         date: reportDate,
-        goalNotes,
         notes: content,
-        followUpNotes,
         stageManagerOnDuty,
       });
     }
@@ -602,9 +602,7 @@ export default function ReportEditor() {
           // Create a new report
           const newReport = await createReportMutation.mutateAsync({
             date: reportDate,
-            goalNotes,
             notes: content,
-            followUpNotes,
             stageManagerOnDuty,
           });
           currentReportId = newReport.id;
@@ -664,7 +662,9 @@ export default function ReportEditor() {
       startTime,
       endTime,
       durationMinutes: duration,
+      goalNotes: trainingGoalNotes,
       notes: trainingNotes,
+      followUpNotes: trainingFollowUpNotes,
     };
 
     if (editingTraining) {
@@ -812,7 +812,9 @@ export default function ReportEditor() {
                   setSelectedStageManagerId("");
                   setStartTime("14:00");
                   setEndTime("16:30");
+                  setTrainingGoalNotes("");
                   setTrainingNotes("");
+                  setTrainingFollowUpNotes("");
                 }
               }}>
                 <DialogTrigger asChild>
@@ -1103,10 +1105,29 @@ export default function ReportEditor() {
                     </div>
 
                     <div className="space-y-2">
+                      <Label>Goal Notes</Label>
+                      <RichTextEditor
+                        content={trainingGoalNotes}
+                        onChange={setTrainingGoalNotes}
+                        minHeight="min-h-16"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
                       <Label>Training Notes</Label>
                       <RichTextEditor
                         content={trainingNotes}
                         onChange={setTrainingNotes}
+                        minHeight="min-h-16"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Follow-Up Notes</Label>
+                      <RichTextEditor
+                        content={trainingFollowUpNotes}
+                        onChange={setTrainingFollowUpNotes}
+                        minHeight="min-h-16"
                       />
                     </div>
 
@@ -1225,28 +1246,10 @@ export default function ReportEditor() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-4">Goal</h2>
-            <RichTextEditor
-              content={goalNotes}
-              onChange={setGoalNotes}
-              minHeight="min-h-16"
-            />
-          </section>
-
-          <section>
-            <h2 className="text-xl font-semibold mb-4">Training Notes</h2>
+            <h2 className="text-xl font-semibold mb-4">General Notes</h2>
             <RichTextEditor
               content={content}
               onChange={setContent}
-              minHeight="min-h-16"
-            />
-          </section>
-
-          <section>
-            <h2 className="text-xl font-semibold mb-4">Follow-Up</h2>
-            <RichTextEditor
-              content={followUpNotes}
-              onChange={setFollowUpNotes}
               minHeight="min-h-16"
             />
           </section>
