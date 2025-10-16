@@ -51,6 +51,7 @@ The application is a full-stack web application with a clear separation between 
     - Per-training artist and department customization with auto-population from scene/act assignments.
     - **Lead technician assignment**: Each department can have a lead technician assigned during training editing. Displayed as "Department (LeadName)" on training cards.
     - **Custom training names**: Optional display name override for trainings. Scene/act selection is required (provides departments/artists), custom name is optional for special naming (e.g., "Emergency Safety Protocol"). Displays custom name as title with scene/act as subtitle on training cards.
+    - **Report Sections**: Each report includes three rich text sections with half-height editors (min-h-16): Goal (for daily objectives), Training Notes (for general training observations), and Follow-Up (for action items and next steps). All sections support full Tiptap formatting and are included in PDF exports and email distribution.
 - **Report Template**: Global header/footer template with image upload.
 - **PDF Export**:
     - **Custom Header**: PDF reports include template header with left/right logo images and centered title. Date and Stage Manager on Duty appear centered below the title within the header section.
