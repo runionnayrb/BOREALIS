@@ -52,11 +52,15 @@ The application is a full-stack web application with a clear separation between 
     - **Lead technician assignment**: Each department can have a lead technician assigned during training editing. Displayed as "Department (LeadName)" on training cards.
     - **Custom training names**: Optional display name override for trainings. Scene/act selection is required (provides departments/artists), custom name is optional for special naming (e.g., "Emergency Safety Protocol"). Displays custom name as title with scene/act as subtitle on training cards.
 - **Report Template**: Global header/footer template with image upload.
+- **PDF Export**:
+    - **Custom Header**: PDF reports include template header with left/right logo images and centered title. Date and Stage Manager on Duty appear centered below the title within the header section.
+    - **Filename Format**: Exported PDFs use the naming convention `ART-SM-TRN La Perle Training Report YYYYMMDD.pdf` where the date is dynamically generated from the report date.
+    - **Export Button**: Loading spinner displayed during PDF generation. Download triggers automatically upon completion.
 - **Email Distribution**:
     - **Outlook Integration**: Stage managers can connect their Outlook accounts via Replit connector to send reports directly from the app.
     - **Email Templates**: Configure TO/CC/BCC distribution lists, subject line with {{date}} variable replacement, and customizable email body prefix in Settings.
     - **Automated Formatting**: Training data is automatically formatted into readable email content with session details, times, locations, stage managers, artists, and notes.
-    - **Send Report Button**: Available in report editor when user has connected Outlook account. Sends formatted email with training details to configured recipients.
+    - **Send Report Button**: Available in report editor when user has connected Outlook account. Sends formatted email with training details to configured recipients. Email dialog opens instantly with loading state while fetching preview data.
 - **Audit Trail**: All reports and trainings track `createdBy`, `updatedBy`, and timestamps.
 - **One Report Per Day**: Simplified model where a single report encompasses all trainings for a given day.
 
