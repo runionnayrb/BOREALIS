@@ -863,18 +863,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const location = locations.find(l => l.id === training.locationId);
         const stageManager = users.find(u => u.id === training.stageManagerId);
         
-        // Get artists with their groups
+        // Get artists with their roles
         const trainingArtists = await storage.getTrainingArtists(training.id);
         const artistNames = trainingArtists
           .map(ta => artists.find(a => a.id === ta.artistId))
           .filter(a => a)
           .map(a => {
             const artistName = a!.stageName || `${a!.firstName} ${a!.lastName}`;
-            if (a!.artistGroupId) {
-              const group = artistGroups.find(g => g.id === a!.artistGroupId);
-              if (group) {
-                return `${artistName} (${group.name.toUpperCase()})`;
-              }
+            if (a!.role) {
+              return `${artistName} (${a!.role})`;
             }
             return artistName;
           });
@@ -995,11 +992,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .filter(a => a)
             .map(a => {
               const artistName = a!.stageName || `${a!.firstName} ${a!.lastName}`;
-              if (a!.artistGroupId) {
-                const group = artistGroups.find(g => g.id === a!.artistGroupId);
-                if (group) {
-                  return `${artistName} (${group.name.toUpperCase()})`;
-                }
+              if (a!.role) {
+                return `${artistName} (${a!.role})`;
               }
               return artistName;
             });
