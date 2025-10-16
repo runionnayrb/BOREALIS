@@ -83,7 +83,7 @@ export default function AuthPage() {
           <div className="flex justify-center mb-6">
             <img src={logoPath} alt="La Perle" className="h-24 w-auto" />
           </div>
-          <h1 className="text-3xl font-bold mb-2">La Perle Training Reports</h1>
+          <h1 className="text-3xl font-bold mb-2">La Perle</h1>
           <p className="text-muted-foreground">Stage Manager Portal</p>
         </div>
 
