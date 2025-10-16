@@ -328,14 +328,48 @@ export default function ReportEditor() {
     },
   });
 
+  const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
+  const [emailTo, setEmailTo] = useState("");
+  const [emailCc, setEmailCc] = useState("");
+  const [emailBcc, setEmailBcc] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+
+  const { data: emailTemplate } = useQuery({
+    queryKey: ['/api/settings/report-template'],
+    enabled: emailPreviewOpen,
+  });
+
+  const { data: emailPreviewData } = useQuery({
+    queryKey: ['/api/reports', reportId, 'email-preview'],
+    enabled: emailPreviewOpen && !!reportId,
+  });
+
+  useEffect(() => {
+    if (emailPreviewOpen && emailTemplate && emailPreviewData) {
+      setEmailTo((emailTemplate.emailTo || []).join(', '));
+      setEmailCc((emailTemplate.emailCc || []).join(', '));
+      setEmailBcc((emailTemplate.emailBcc || []).join(', '));
+      setEmailSubject(emailPreviewData.subject || '');
+      setEmailBody(emailPreviewData.body || '');
+    }
+  }, [emailPreviewOpen, emailTemplate, emailPreviewData]);
+
   const sendEmailMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (customValues?: {
+      to: string;
+      cc: string;
+      bcc: string;
+      subject: string;
+      body: string;
+    }) => {
       if (!reportId) {
         throw new Error("Report must be saved before sending");
       }
-      return await apiRequest<{ success: boolean; message: string }>('POST', `/api/reports/${reportId}/send-email`);
+      return await apiRequest<{ success: boolean; message: string }>('POST', `/api/reports/${reportId}/send-email`, customValues);
     },
     onSuccess: (data) => {
+      setEmailPreviewOpen(false);
       toast({ 
         title: "Email sent successfully", 
         description: data.message 
@@ -651,15 +685,10 @@ export default function ReportEditor() {
           {reportId && user?.outlookConnected && (
             <Button 
               variant="outline" 
-              onClick={() => sendEmailMutation.mutate()}
-              disabled={sendEmailMutation.isPending}
+              onClick={() => setEmailPreviewOpen(true)}
               data-testid="button-send-email"
             >
-              {sendEmailMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2 text-foreground" />
-              ) : (
-                <Mail className="h-4 w-4 mr-2 text-foreground" />
-              )}
+              <Mail className="h-4 w-4 mr-2 text-foreground" />
               Send Report
             </Button>
           )}
@@ -1114,6 +1143,92 @@ export default function ReportEditor() {
           </section>
         </div>
       </main>
+
+      {/* Email Preview Dialog */}
+      <Dialog open={emailPreviewOpen} onOpenChange={setEmailPreviewOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Review Email Before Sending</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="email-to">To</Label>
+              <Input
+                id="email-to"
+                value={emailTo}
+                onChange={(e) => setEmailTo(e.target.value)}
+                placeholder="recipient@example.com, another@example.com"
+                data-testid="input-email-to"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email-cc">CC</Label>
+              <Input
+                id="email-cc"
+                value={emailCc}
+                onChange={(e) => setEmailCc(e.target.value)}
+                placeholder="cc@example.com"
+                data-testid="input-email-cc"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email-bcc">BCC</Label>
+              <Input
+                id="email-bcc"
+                value={emailBcc}
+                onChange={(e) => setEmailBcc(e.target.value)}
+                placeholder="bcc@example.com"
+                data-testid="input-email-bcc"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email-subject">Subject</Label>
+              <Input
+                id="email-subject"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                placeholder="Email subject"
+                data-testid="input-email-subject"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email-body">Email Body</Label>
+              <Textarea
+                id="email-body"
+                value={emailBody}
+                onChange={(e) => setEmailBody(e.target.value)}
+                className="min-h-[300px] font-mono text-sm"
+                data-testid="textarea-email-body"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setEmailPreviewOpen(false)}
+              data-testid="button-cancel-email"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => sendEmailMutation.mutate({
+                to: emailTo,
+                cc: emailCc,
+                bcc: emailBcc,
+                subject: emailSubject,
+                body: emailBody,
+              })}
+              disabled={sendEmailMutation.isPending}
+              data-testid="button-confirm-send-email"
+            >
+              {sendEmailMutation.isPending && (
+                <Loader2 className="h-4 w-4 animate-spin mr-2 text-primary-foreground" />
+              )}
+              Send Email
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
