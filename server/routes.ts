@@ -994,6 +994,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }));
 
       // Format HTML for PDF with template header
+      console.log('PDF Generation - Template:', template ? { left: template.leftImageUrl, title: template.title, right: template.rightImageUrl } : 'NO TEMPLATE');
       const htmlContent = formatPdfBody(
         {
           date: report.date,
@@ -1007,6 +1008,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           rightImageUrl: template.rightImageUrl,
         } : undefined
       );
+      console.log('PDF HTML Content (first 500 chars):', htmlContent.substring(0, 500));
 
       // Generate PDF
       const pdfBuffer = await generatePdfFromHtml(htmlContent);
