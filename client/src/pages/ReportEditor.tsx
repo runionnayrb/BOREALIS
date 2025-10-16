@@ -334,6 +334,8 @@ export default function ReportEditor() {
   const [emailBcc, setEmailBcc] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
+  const [showCc, setShowCc] = useState(false);
+  const [showBcc, setShowBcc] = useState(false);
 
   const { data: emailTemplate } = useQuery<{
     emailTo?: string[];
@@ -356,10 +358,15 @@ export default function ReportEditor() {
   useEffect(() => {
     if (emailPreviewOpen && emailTemplate && emailPreviewData) {
       setEmailTo((emailTemplate.emailTo || []).join(', '));
-      setEmailCc((emailTemplate.emailCc || []).join(', '));
-      setEmailBcc((emailTemplate.emailBcc || []).join(', '));
+      const ccValue = (emailTemplate.emailCc || []).join(', ');
+      const bccValue = (emailTemplate.emailBcc || []).join(', ');
+      setEmailCc(ccValue);
+      setEmailBcc(bccValue);
       setEmailSubject(emailPreviewData.subject || '');
       setEmailBody(emailPreviewData.body || '');
+      // Auto-show CC/BCC if they have values
+      setShowCc(ccValue.length > 0);
+      setShowBcc(bccValue.length > 0);
     }
   }, [emailPreviewOpen, emailTemplate, emailPreviewData]);
 
@@ -1169,26 +1176,104 @@ export default function ReportEditor() {
                 data-testid="input-email-to"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email-cc">CC</Label>
-              <Input
-                id="email-cc"
-                value={emailCc}
-                onChange={(e) => setEmailCc(e.target.value)}
-                placeholder="cc@example.com"
-                data-testid="input-email-cc"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email-bcc">BCC</Label>
-              <Input
-                id="email-bcc"
-                value={emailBcc}
-                onChange={(e) => setEmailBcc(e.target.value)}
-                placeholder="bcc@example.com"
-                data-testid="input-email-bcc"
-              />
-            </div>
+            
+            {!showCc && !showBcc && (
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowCc(true)}
+                  data-testid="button-show-cc"
+                >
+                  Add CC
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowBcc(true)}
+                  data-testid="button-show-bcc"
+                >
+                  Add BCC
+                </Button>
+              </div>
+            )}
+
+            {showCc && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="email-cc">CC</Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowCc(false);
+                      setEmailCc("");
+                    }}
+                    className="h-6 text-xs text-muted-foreground"
+                    data-testid="button-hide-cc"
+                  >
+                    Remove
+                  </Button>
+                </div>
+                <Input
+                  id="email-cc"
+                  value={emailCc}
+                  onChange={(e) => setEmailCc(e.target.value)}
+                  placeholder="cc@example.com"
+                  data-testid="input-email-cc"
+                />
+              </div>
+            )}
+
+            {showBcc && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="email-bcc">BCC</Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowBcc(false);
+                      setEmailBcc("");
+                    }}
+                    className="h-6 text-xs text-muted-foreground"
+                    data-testid="button-hide-bcc"
+                  >
+                    Remove
+                  </Button>
+                </div>
+                <Input
+                  id="email-bcc"
+                  value={emailBcc}
+                  onChange={(e) => setEmailBcc(e.target.value)}
+                  placeholder="bcc@example.com"
+                  data-testid="input-email-bcc"
+                />
+              </div>
+            )}
+
+            {!showCc && showBcc && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowCc(true)}
+                data-testid="button-show-cc-alt"
+              >
+                Add CC
+              </Button>
+            )}
+
+            {showCc && !showBcc && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowBcc(true)}
+                data-testid="button-show-bcc-alt"
+              >
+                Add BCC
+              </Button>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email-subject">Subject</Label>
               <Input
