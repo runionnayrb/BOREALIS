@@ -341,7 +341,7 @@ export default function ReportEditor() {
     emailBcc?: string[];
     emailSubjectTemplate?: string;
   }>({
-    queryKey: ['/api/settings/report-template'],
+    queryKey: ['/api/report-template'],
     enabled: emailPreviewOpen,
   });
 
