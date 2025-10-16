@@ -39,6 +39,12 @@ export default function AuthPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (user) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
+
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -59,7 +65,6 @@ export default function AuthPage() {
   });
 
   if (user) {
-    setLocation("/");
     return null;
   }
 
