@@ -335,6 +335,7 @@ export default function ReportEditor() {
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [showCc, setShowCc] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [showBcc, setShowBcc] = useState(false);
   const [editBodyHtml, setEditBodyHtml] = useState(false);
 
@@ -489,6 +490,7 @@ export default function ReportEditor() {
       return;
     }
 
+    setIsExportingPdf(true);
     try {
       const response = await fetch(`/api/reports/${reportId}/pdf`, {
         credentials: 'include',
@@ -512,6 +514,8 @@ export default function ReportEditor() {
     } catch (error) {
       console.error('PDF export error:', error);
       toast({ title: "Failed to export PDF", variant: "destructive" });
+    } finally {
+      setIsExportingPdf(false);
     }
   };
 
@@ -745,9 +749,14 @@ export default function ReportEditor() {
           <Button 
             variant="outline" 
             onClick={handleExportPdf}
+            disabled={isExportingPdf}
             data-testid="button-export-pdf"
           >
-            <Download className="h-4 w-4 mr-2 text-foreground" />
+            {isExportingPdf ? (
+              <Loader2 className="h-4 w-4 mr-2 text-foreground animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-2 text-foreground" />
+            )}
             Export PDF
           </Button>
         </div>

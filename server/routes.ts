@@ -926,7 +926,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
-      const { formatEmailBody, replaceDateVariable } = await import("./emailFormatter");
+      const { formatPdfBody } = await import("./emailFormatter");
       const { generatePdfFromHtml } = await import("./pdfGenerator");
 
       // Get report and template data
@@ -993,15 +993,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }));
 
-      // Format HTML for PDF
-      const htmlContent = formatEmailBody(
+      // Format HTML for PDF with template header
+      const htmlContent = formatPdfBody(
         {
           date: report.date,
           stageManagerOnDuty: report.stageManagerOnDuty || undefined,
           notes: report.notes || undefined,
           trainings: trainingData,
         },
-        template?.emailBodyPrefix || undefined
+        template ? {
+          leftImageUrl: template.leftImageUrl,
+          title: template.title,
+          rightImageUrl: template.rightImageUrl,
+        } : undefined
       );
 
       // Generate PDF
