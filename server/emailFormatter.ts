@@ -35,7 +35,15 @@ export function formatEmailBody(reportData: ReportData, bodyPrefix?: string): st
 
   // Add custom prefix if provided
   if (bodyPrefix) {
-    body += `<p>${bodyPrefix}</p>`;
+    // Convert line breaks to HTML: double line breaks = new paragraph, single line break = <br>
+    const formattedPrefix = bodyPrefix
+      .split('\n\n')
+      .map(para => {
+        const paraWithBreaks = para.replace(/\n/g, '<br>');
+        return `<p style="margin: 10px 0;">${paraWithBreaks}</p>`;
+      })
+      .join('');
+    body += formattedPrefix;
   }
 
   // Add report header info
