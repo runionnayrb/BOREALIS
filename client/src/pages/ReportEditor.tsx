@@ -1057,7 +1057,7 @@ export default function ReportEditor() {
                                   return (
                                     <div key={artistId} className="flex items-center justify-between p-2 rounded hover-elevate">
                                       <div className="text-sm">
-                                        <div>{`${artist.firstName} ${artist.lastName}`}</div>
+                                        <div>{artist.stageName || `${artist.firstName} ${artist.lastName}`}</div>
                                         {artist.role && <div className="text-xs text-muted-foreground">{artist.role}</div>}
                                       </div>
                                       <Button
