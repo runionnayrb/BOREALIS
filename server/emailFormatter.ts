@@ -20,9 +20,9 @@ interface ReportData {
 
 export function replaceDateVariable(template: string, date: string): string {
   try {
-    // Parse the date string (YYYY-MM-DD format) and format it nicely
+    // Parse the date string (YYYY-MM-DD format) and format it with day of week
     const dateObj = new Date(date);
-    const formattedDate = format(dateObj, 'MMMM d, yyyy');
+    const formattedDate = format(dateObj, 'EEEE, MMMM d, yyyy');
     return template.replace(/\{\{date\}\}/g, formattedDate);
   } catch {
     // If date parsing fails, just replace with the raw date
@@ -39,7 +39,7 @@ export function formatEmailBody(reportData: ReportData, bodyPrefix?: string): st
   }
 
   // Add report header info
-  body += `<p><strong>Training Report - ${format(new Date(reportData.date), 'MMMM d, yyyy')}</strong></p>`;
+  body += `<p><strong>Training Report - ${format(new Date(reportData.date), 'EEEE, MMMM d, yyyy')}</strong></p>`;
   if (reportData.stageManagerOnDuty) {
     body += `<p>Stage Manager on Duty: ${reportData.stageManagerOnDuty}</p>`;
   }
