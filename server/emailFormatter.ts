@@ -75,9 +75,9 @@ export function formatEmailBody(reportData: ReportData, bodyPrefix?: string): st
         body += `<div style="margin: 5px 0;">${training.notes}</div>`;
       }
       
-      // Follow-Up Notes (HTML content from rich text editor)
+      // Next Steps (HTML content from rich text editor)
       if (training.followUpNotes) {
-        body += `<p style="margin: 5px 0;"><strong><u>Follow-Up Notes:</u></strong></p>`;
+        body += `<p style="margin: 5px 0;"><strong><u>Next Steps:</u></strong></p>`;
         body += `<div style="margin: 5px 0;">${training.followUpNotes}</div>`;
       }
       
@@ -171,9 +171,9 @@ export function formatPdfBody(reportData: ReportData, templateHeader?: ReportTem
         body += `<div style="margin: 5px 0; font-size: 12px;">${training.notes}</div>`;
       }
       
-      // Follow-Up Notes (13px header, 12px content)
+      // Next Steps (13px header, 12px content)
       if (training.followUpNotes) {
-        body += `<p style="margin: 5px 0; font-size: 13px;"><strong><u>Follow-Up Notes:</u></strong></p>`;
+        body += `<p style="margin: 5px 0; font-size: 13px;"><strong><u>Next Steps:</u></strong></p>`;
         body += `<div style="margin: 5px 0; font-size: 12px;">${training.followUpNotes}</div>`;
       }
       
