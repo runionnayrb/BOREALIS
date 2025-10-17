@@ -93,7 +93,8 @@ export function formatEmailBody(reportData: ReportData, bodyPrefix?: string): st
       
       // Departments
       if (training.departmentNames.length > 0) {
-        body += `<p style="margin: 5px 0;"><strong><u>Departments:</u></strong> ${training.departmentNames.join(', ')}</p>`;
+        body += `<p style="margin: 5px 0;"><strong><u>Departments:</u></strong></p>`;
+        body += `<p style="margin: 5px 0;">${training.departmentNames.join(', ')}</p>`;
       }
       
       // Horizontal line between trainings (except after last one)
@@ -194,7 +195,8 @@ export function formatPdfBody(reportData: ReportData, templateHeader?: ReportTem
       
       // Departments
       if (training.departmentNames.length > 0) {
-        body += `<p style="margin: 5px 0;"><strong><u>Departments:</u></strong> ${training.departmentNames.join(', ')}</p>`;
+        body += `<p style="margin: 5px 0;"><strong><u>Departments:</u></strong></p>`;
+        body += `<p style="margin: 5px 0;">${training.departmentNames.join(', ')}</p>`;
       }
       
       // Horizontal line between trainings (except after last one)
