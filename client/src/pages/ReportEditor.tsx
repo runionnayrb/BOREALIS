@@ -1138,7 +1138,7 @@ export default function ReportEditor() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Follow-Up Notes</Label>
+                      <Label>Next Steps</Label>
                       <RichTextEditor
                         content={trainingFollowUpNotes}
                         onChange={setTrainingFollowUpNotes}
