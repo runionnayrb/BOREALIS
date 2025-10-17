@@ -81,7 +81,7 @@ export default function AuthPage() {
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="flex justify-center mb-6">
-            <img src={logoPath} alt="Borealis" className="h-24 w-auto" />
+            <img src={logoPath} alt="Borealis" className="h-36 w-auto" />
           </div>
           <h1 className="text-3xl font-bold mb-2">Borealis</h1>
         </div>
