@@ -46,12 +46,8 @@ export function formatEmailBody(reportData: ReportData, bodyPrefix?: string): st
       })
       .join('');
     body += formattedPrefix;
-  }
-
-  // Add report header info
-  body += `<p><strong>Training Report - ${format(new Date(reportData.date), 'EEEE, MMMM d, yyyy')}</strong></p>`;
-  if (reportData.stageManagerOnDuty) {
-    body += `<p>Stage Manager on Duty: ${reportData.stageManagerOnDuty}</p>`;
+    // Add spacing after the message
+    body += '<br><br>';
   }
 
   // Add training sessions
@@ -144,14 +140,6 @@ export function formatPdfBody(reportData: ReportData, templateHeader?: ReportTem
     }
     
     body += '</div>'; // Close top row
-    
-    // Date below title
-    body += `<p style="text-align: center; margin: 10px 0 5px 0; font-size: 16px;">${format(new Date(reportData.date), 'EEEE, MMMM d, yyyy')}</p>`;
-    
-    // Stage Manager below date
-    if (reportData.stageManagerOnDuty) {
-      body += `<p style="text-align: center; margin: 5px 0 0 0; font-size: 14px;">Stage Manager on Duty: ${reportData.stageManagerOnDuty}</p>`;
-    }
     
     body += '</div>'; // Close header container
   }
