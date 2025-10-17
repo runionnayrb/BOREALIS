@@ -1017,7 +1017,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Set headers for PDF download
       const dateFormatted = report.date.replace(/-/g, ''); // Convert YYYY-MM-DD to YYYYMMDD
-      const fileName = `ART-SM-REP Borealis Training Report ${dateFormatted}.pdf`;
+      const fileName = `ART-SM-REP La Perle Training Report ${dateFormatted}.pdf`;
       console.log('[PDF Export] Report date:', report.date, '-> Formatted:', dateFormatted);
       console.log('[PDF Export] Filename:', fileName);
       res.setHeader('Content-Type', 'application/pdf');
@@ -1154,7 +1154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pdfBuffer = await generatePdfFromHtml(body);
       const pdfBase64 = pdfBuffer.toString('base64');
       const dateFormatted = report.date.replace(/-/g, ''); // Convert YYYY-MM-DD to YYYYMMDD
-      const pdfFileName = `ART-SM-REP Borealis Training Report ${dateFormatted}.pdf`;
+      const pdfFileName = `ART-SM-REP La Perle Training Report ${dateFormatted}.pdf`;
 
       // Get Outlook client and send email
       const client = await getUncachableOutlookClient();
