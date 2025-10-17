@@ -131,8 +131,11 @@ export function formatPdfBody(reportData: ReportData, templateHeader?: ReportTem
       body += `<div style="flex: 0 0 auto;"><img src="${templateHeader.leftImageUrl}" alt="Left Logo" style="max-height: 80px; max-width: 150px;" /></div>`;
     }
     
-    // Title
-    body += `<div style="flex: 1; text-align: center;"><h1 style="margin: 0; font-size: 24px; line-height: 1.2;">${templateHeader.title}</h1></div>`;
+    // Title and Date in same centered block
+    body += `<div style="flex: 1; text-align: center;">`;
+    body += `<h1 style="margin: 0; padding: 0; font-size: 24px; line-height: 1.2;">${templateHeader.title}</h1>`;
+    body += `<p style="margin: 0; padding: 0; font-size: 16px; line-height: 1.2;">${format(new Date(reportData.date), 'EEEE, MMMM d, yyyy')}</p>`;
+    body += `</div>`;
     
     // Right image
     if (templateHeader.rightImageUrl) {
@@ -140,9 +143,6 @@ export function formatPdfBody(reportData: ReportData, templateHeader?: ReportTem
     }
     
     body += '</div>'; // Close top row
-    
-    // Date below title with 1.2 line spacing (directly below, no spacing)
-    body += `<p style="text-align: center; margin: 0; font-size: 16px; line-height: 1.2;">${format(new Date(reportData.date), 'EEEE, MMMM d, yyyy')}</p>`;
     
     body += '</div>'; // Close header container
   }
