@@ -151,42 +151,42 @@ export function formatPdfBody(reportData: ReportData, templateHeader?: ReportTem
   if (reportData.trainings.length > 0) {
     
     reportData.trainings.forEach((training, index) => {
-      // Training header with name, time, and stage manager
+      // Training title header (14px)
       let header = `<strong>${training.trainingName}</strong>`;
       header += ` | ${training.startTime} - ${training.endTime}`;
       if (training.stageManagerName) {
         header += ` | SM: ${training.stageManagerName}`;
       }
-      body += `<p style="margin: 10px 0 5px 0;">${header}</p>`;
+      body += `<p style="margin: 10px 0 5px 0; font-size: 14px;">${header}</p>`;
       
-      // Goal Notes (HTML content from rich text editor)
+      // Goal Notes (13px header, 12px content)
       if (training.goalNotes) {
-        body += `<p style="margin: 5px 0;"><strong><u>Goal Notes:</u></strong></p>`;
-        body += `<div style="margin: 5px 0;">${training.goalNotes}</div>`;
+        body += `<p style="margin: 5px 0; font-size: 13px;"><strong><u>Goal Notes:</u></strong></p>`;
+        body += `<div style="margin: 5px 0; font-size: 12px;">${training.goalNotes}</div>`;
       }
       
-      // Training Notes (HTML content from rich text editor)
+      // Training Notes (13px header, 12px content)
       if (training.notes) {
-        body += `<p style="margin: 5px 0;"><strong><u>Training Notes:</u></strong></p>`;
-        body += `<div style="margin: 5px 0;">${training.notes}</div>`;
+        body += `<p style="margin: 5px 0; font-size: 13px;"><strong><u>Training Notes:</u></strong></p>`;
+        body += `<div style="margin: 5px 0; font-size: 12px;">${training.notes}</div>`;
       }
       
-      // Follow-Up Notes (HTML content from rich text editor)
+      // Follow-Up Notes (13px header, 12px content)
       if (training.followUpNotes) {
-        body += `<p style="margin: 5px 0;"><strong><u>Follow-Up Notes:</u></strong></p>`;
-        body += `<div style="margin: 5px 0;">${training.followUpNotes}</div>`;
+        body += `<p style="margin: 5px 0; font-size: 13px;"><strong><u>Follow-Up Notes:</u></strong></p>`;
+        body += `<div style="margin: 5px 0; font-size: 12px;">${training.followUpNotes}</div>`;
       }
       
-      // Artists
+      // Artists (13px header, 12px content)
       if (training.artistNames.length > 0) {
-        body += `<p style="margin: 5px 0;"><strong><u>Artists:</u></strong></p>`;
-        body += `<p style="margin: 5px 0;">${training.artistNames.join(', ')}</p>`;
+        body += `<p style="margin: 5px 0; font-size: 13px;"><strong><u>Artists:</u></strong></p>`;
+        body += `<p style="margin: 5px 0; font-size: 12px;">${training.artistNames.join(', ')}</p>`;
       }
       
-      // Departments
+      // Departments (13px header, 12px content)
       if (training.departmentNames.length > 0) {
-        body += `<p style="margin: 5px 0;"><strong><u>Departments:</u></strong></p>`;
-        body += `<p style="margin: 5px 0;">${training.departmentNames.join(', ')}</p>`;
+        body += `<p style="margin: 5px 0; font-size: 13px;"><strong><u>Departments:</u></strong></p>`;
+        body += `<p style="margin: 5px 0; font-size: 12px;">${training.departmentNames.join(', ')}</p>`;
       }
       
       // Horizontal line between trainings (except after last one)
