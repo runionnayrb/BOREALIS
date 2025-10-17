@@ -1251,7 +1251,7 @@ export default function Settings() {
                     <Input
                       value={emailSubject}
                       onChange={(e) => setEmailSubject(e.target.value)}
-                      placeholder="e.g., La Perle Training Report - {{date}}"
+                      placeholder="e.g., Borealis Training Report - {{date}}"
                       data-testid="input-email-subject"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
