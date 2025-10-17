@@ -1,4 +1,4 @@
-import { Clock, Users, Pencil, Trash2, MapPin, Loader2, FileText, Briefcase } from "lucide-react";
+import { Clock, Users, Pencil, Trash2, MapPin, Loader2, FileText, Briefcase, Target, ArrowUpCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -125,14 +125,14 @@ export default function TrainingCard({
             </div>
           </div>
           {trainingLocationsList.length > 0 && (
-            <div className="flex items-center gap-1.5 text-sm text-foreground mt-1" data-testid={`text-locations-${training.id}`}>
+            <div className="flex items-center gap-1.5 text-sm text-foreground mt-1 mb-3" data-testid={`text-locations-${training.id}`}>
               <MapPin className="w-4 h-4 text-muted-foreground" />
               <span className="font-medium">{trainingLocationsList.map(l => l.name).join(", ")}</span>
             </div>
           )}
           <div className="mt-2">
             <div className="flex items-center gap-1.5 text-sm text-foreground">
-              <FileText className="w-4 h-4 text-muted-foreground" />
+              <Target className="w-4 h-4 text-muted-foreground" />
               <span className="font-medium">Goal Notes</span>
             </div>
             {training.goalNotes ? (
@@ -160,7 +160,7 @@ export default function TrainingCard({
           </div>
           <div className="mt-2">
             <div className="flex items-center gap-1.5 text-sm text-foreground">
-              <FileText className="w-4 h-4 text-muted-foreground" />
+              <ArrowUpCircle className="w-4 h-4 text-muted-foreground" />
               <span className="font-medium">Follow-Up Notes</span>
             </div>
             {training.followUpNotes ? (
@@ -172,7 +172,7 @@ export default function TrainingCard({
               <p className="text-sm text-foreground/80 mt-1 ml-5">No follow up notes</p>
             )}
           </div>
-          <div className="mt-2">
+          <div className="mt-3">
             <div className="flex items-center gap-1.5 text-sm text-foreground">
               <Users className="w-4 h-4 text-muted-foreground" />
               <span className="font-medium">Artists</span>
