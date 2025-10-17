@@ -128,7 +128,7 @@ export function formatPdfBody(reportData: ReportData, templateHeader?: ReportTem
     
     // Left image
     if (templateHeader.leftImageUrl) {
-      body += `<div style="flex: 0 0 auto;"><img src="${templateHeader.leftImageUrl}" alt="Left Logo" style="max-height: 120px; max-width: 225px;" /></div>`;
+      body += `<div style="flex: 0 0 auto;"><img src="${templateHeader.leftImageUrl}" alt="Left Logo" style="max-height: 80px; max-width: 150px;" /></div>`;
     }
     
     // Title and Date in same centered block
@@ -139,7 +139,7 @@ export function formatPdfBody(reportData: ReportData, templateHeader?: ReportTem
     
     // Right image
     if (templateHeader.rightImageUrl) {
-      body += `<div style="flex: 0 0 auto;"><img src="${templateHeader.rightImageUrl}" alt="Right Logo" style="max-height: 120px; max-width: 225px;" /></div>`;
+      body += `<div style="flex: 0 0 auto;"><img src="${templateHeader.rightImageUrl}" alt="Right Logo" style="max-height: 80px; max-width: 150px;" /></div>`;
     }
     
     body += '</div>'; // Close top row
