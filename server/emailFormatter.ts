@@ -132,7 +132,7 @@ export function formatPdfBody(reportData: ReportData, templateHeader?: ReportTem
     }
     
     // Title
-    body += `<div style="flex: 1; text-align: center;"><h1 style="margin: 0; font-size: 24px;">${templateHeader.title}</h1></div>`;
+    body += `<div style="flex: 1; text-align: center;"><h1 style="margin: 0; font-size: 24px; line-height: 1.2;">${templateHeader.title}</h1></div>`;
     
     // Right image
     if (templateHeader.rightImageUrl) {
@@ -141,12 +141,14 @@ export function formatPdfBody(reportData: ReportData, templateHeader?: ReportTem
     
     body += '</div>'; // Close top row
     
+    // Date below title with 1.2 line spacing
+    body += `<p style="text-align: center; margin: 10px 0 0 0; font-size: 16px; line-height: 1.2;">${format(new Date(reportData.date), 'EEEE, MMMM d, yyyy')}</p>`;
+    
     body += '</div>'; // Close header container
   }
 
   // Add training sessions
   if (reportData.trainings.length > 0) {
-    body += `<p style="font-weight: bold; font-size: 18px; margin-top: 20px; margin-bottom: 10px;">Today's Training Sessions</p>`;
     
     reportData.trainings.forEach((training, index) => {
       // Training header with name, time, and stage manager
