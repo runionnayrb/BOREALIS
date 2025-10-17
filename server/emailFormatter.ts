@@ -141,8 +141,8 @@ export function formatPdfBody(reportData: ReportData, templateHeader?: ReportTem
     
     body += '</div>'; // Close top row
     
-    // Date below title with 1.2 line spacing
-    body += `<p style="text-align: center; margin: 10px 0 0 0; font-size: 16px; line-height: 1.2;">${format(new Date(reportData.date), 'EEEE, MMMM d, yyyy')}</p>`;
+    // Date below title with 1.2 line spacing (directly below, minimal spacing)
+    body += `<p style="text-align: center; margin: 2px 0 0 0; font-size: 16px; line-height: 1.2;">${format(new Date(reportData.date), 'EEEE, MMMM d, yyyy')}</p>`;
     
     body += '</div>'; // Close header container
   }
