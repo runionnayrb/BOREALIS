@@ -67,17 +67,6 @@ export function formatEmailBody(reportData: ReportData, bodyPrefix?: string): st
       }
       body += `<p style="margin: 10px 0 5px 0;">${header}</p>`;
       
-      // Artists
-      if (training.artistNames.length > 0) {
-        body += `<p style="margin: 5px 0;"><strong><u>Artists:</u></strong></p>`;
-        body += `<p style="margin: 5px 0;">${training.artistNames.join(', ')}</p>`;
-      }
-      
-      // Departments
-      if (training.departmentNames.length > 0) {
-        body += `<p style="margin: 5px 0;"><strong><u>Departments:</u></strong> ${training.departmentNames.join(', ')}</p>`;
-      }
-      
       // Goal Notes (HTML content from rich text editor)
       if (training.goalNotes) {
         body += `<p style="margin: 5px 0;"><strong><u>Goal Notes:</u></strong></p>`;
@@ -94,6 +83,17 @@ export function formatEmailBody(reportData: ReportData, bodyPrefix?: string): st
       if (training.followUpNotes) {
         body += `<p style="margin: 5px 0;"><strong><u>Follow-Up Notes:</u></strong></p>`;
         body += `<div style="margin: 5px 0;">${training.followUpNotes}</div>`;
+      }
+      
+      // Artists
+      if (training.artistNames.length > 0) {
+        body += `<p style="margin: 5px 0;"><strong><u>Artists:</u></strong></p>`;
+        body += `<p style="margin: 5px 0;">${training.artistNames.join(', ')}</p>`;
+      }
+      
+      // Departments
+      if (training.departmentNames.length > 0) {
+        body += `<p style="margin: 5px 0;"><strong><u>Departments:</u></strong> ${training.departmentNames.join(', ')}</p>`;
       }
       
       // Horizontal line between trainings (except after last one)
@@ -168,17 +168,6 @@ export function formatPdfBody(reportData: ReportData, templateHeader?: ReportTem
       }
       body += `<p style="margin: 10px 0 5px 0;">${header}</p>`;
       
-      // Artists
-      if (training.artistNames.length > 0) {
-        body += `<p style="margin: 5px 0;"><strong><u>Artists:</u></strong></p>`;
-        body += `<p style="margin: 5px 0;">${training.artistNames.join(', ')}</p>`;
-      }
-      
-      // Departments
-      if (training.departmentNames.length > 0) {
-        body += `<p style="margin: 5px 0;"><strong><u>Departments:</u></strong> ${training.departmentNames.join(', ')}</p>`;
-      }
-      
       // Goal Notes (HTML content from rich text editor)
       if (training.goalNotes) {
         body += `<p style="margin: 5px 0;"><strong><u>Goal Notes:</u></strong></p>`;
@@ -195,6 +184,17 @@ export function formatPdfBody(reportData: ReportData, templateHeader?: ReportTem
       if (training.followUpNotes) {
         body += `<p style="margin: 5px 0;"><strong><u>Follow-Up Notes:</u></strong></p>`;
         body += `<div style="margin: 5px 0;">${training.followUpNotes}</div>`;
+      }
+      
+      // Artists
+      if (training.artistNames.length > 0) {
+        body += `<p style="margin: 5px 0;"><strong><u>Artists:</u></strong></p>`;
+        body += `<p style="margin: 5px 0;">${training.artistNames.join(', ')}</p>`;
+      }
+      
+      // Departments
+      if (training.departmentNames.length > 0) {
+        body += `<p style="margin: 5px 0;"><strong><u>Departments:</u></strong> ${training.departmentNames.join(', ')}</p>`;
       }
       
       // Horizontal line between trainings (except after last one)
