@@ -1419,7 +1419,7 @@ export default function ReportEditor() {
                 />
               ) : (
                 <div
-                  className="min-h-[300px] border rounded-md p-4 bg-background overflow-auto prose prose-sm max-w-none [&_ul]:list-disc [&_ul]:ml-6 [&_ol]:list-decimal [&_ol]:ml-6 [&_li]:my-1"
+                  className="min-h-[300px] border rounded-md p-4 bg-background overflow-auto prose prose-sm max-w-none [&_ul]:list-disc [&_ul]:ml-6 [&_ol]:list-decimal [&_ol]:ml-6 [&_li]:my-1 [&_*]:!text-foreground [&_strong]:!text-foreground [&_p]:!text-foreground"
                   dangerouslySetInnerHTML={{ __html: emailBody }}
                   data-testid="preview-email-body"
                 />
