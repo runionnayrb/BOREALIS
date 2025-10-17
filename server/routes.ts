@@ -1153,7 +1153,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const pdfBuffer = await generatePdfFromHtml(body);
       const pdfBase64 = pdfBuffer.toString('base64');
-      const pdfFileName = `Training_Report_${report.date}.pdf`;
+      const dateFormatted = report.date.replace(/-/g, ''); // Convert YYYY-MM-DD to YYYYMMDD
+      const pdfFileName = `ART-SM-REP Borealis Training Report ${dateFormatted}.pdf`;
 
       // Get Outlook client and send email
       const client = await getUncachableOutlookClient();
