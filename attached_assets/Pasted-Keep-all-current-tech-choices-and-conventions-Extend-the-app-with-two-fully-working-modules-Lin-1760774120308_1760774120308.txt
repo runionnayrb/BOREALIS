@@ -1,0 +1,148 @@
+Keep all current tech choices and conventions. Extend the app with two fully working modules:
+
+• Lineup Builder
+• Daily Lineup
+
+Make everything configurable inside the app. No future coding should be required for normal operations. Construct schemas, migrations, API routes, frontend pages, hooks, validation services, and print or display templates from the requirements below. Reuse existing authentication, design system, and data layer patterns.
+
+Context that already exists
+• Stack: React with Vite, Wouter for routing, TanStack Query for data, shadcn for components, Tiptap with DOMPurify in rich text areas
+• Backend: Express with PostgreSQL using Drizzle ORM, Passport local strategy with session auth
+• App style: linear inspired dark UI, Inter and JetBrains Mono, cyan accent, mobile first
+• Reports and trainings already exist with CRUD, PDF export, Outlook email via Microsoft Graph, audit trails, and one report per day behavior
+
+New goals at a glance
+
+Lineup Builder is a visual drag and drop editor to design the canonical lineup template. It is opened from a button inside the Daily Lineup page, not as a top level route.
+
+Daily Lineup is the show day tool that instantiates a template for a specific date and show number, validates eligibility, and publishes to PDF and a digital lineup screen.
+
+Performance Wellness owns restrictions. Coaching owns certain positions and creates integration plans. Stage Management runs the daily assignment workflow.
+
+Distinguished Artists controls day of OUT, BACK IN, and Long Term Out states. OUT and Long Term Out artists must never appear as eligible.
+
+Daily Lineup shows scenes as tabs, prints with four scenes per page on A3 and A4, and provides a read only high contrast digital display route, plus a mobile friendly view.
+
+All configuration is done in the UI. No engineer is required for routine changes.
+
+Domain model to infer and implement
+Design normalized relational schemas that satisfy these behaviors.
+
+A. Lineup templates
+• A template contains ordered scenes. Each scene contains free positioned Position blocks laid out on a canvas.
+• Each Position has label, department, optional maximum assignees, required competencies, optional tags, an ownership flag of Stage Management or Coaching, style controls, and a layout rectangle.
+• Version the template so editors can save V1, V1.1, and similar.
+
+B. Competencies and tasks
+• Competencies belong to departments and can require tasks.
+• Tasks include title, detail, evidence type, and a required signoff role such as Coach, SM, Physio, Rigging, or Other.
+
+C. Integration plans and reintegration plans
+• Integration Plan templates define steps an artist must complete to enter a cue, act, or position. Steps have order, title, detail, required flag, and signoff role. A plan can link to a scene, act, or position.
+• Re integration Plan is per artist for return after a long absence. Steps mirror the template behavior but are specific to that artist.
+
+D. Distinguished Artists
+• Status values: OUT, BACK IN, LONG TERM OUT, with reason, effective from, optional expected return.
+• If OUT or LONG TERM OUT is active, the artist must be hidden from position pickers and must be ineligible for assignment.
+
+E. Performance Wellness restrictions
+• A restriction has category like medical, coaching, rigging, physio, other, severity of hard or soft, optional scope across scenes, acts, positions, or departments, notes, and effective dates.
+• Hard restriction blocks assignment. Soft restriction is a warning.
+• Restrictions originate from the Performance Wellness side, but are readable in Lineup and used for eligibility.
+
+F. Daily Lineup instance
+• A Daily Lineup is created from a template for a specific date and show number.
+• It stores day specific outs, notes, assignments, warnings, and publish time.
+• Assignments link a position to an artist with validation state, reasons, and optional justification for overrides.
+
+G. Print and display presets
+• Create presets for four scenes per page on A3 and A4 with margins, gutter, header and footer logos, and font scale.
+• Create a digital display preset for read only high contrast screens that auto refresh and can rotate scenes.
+
+Key behaviors to implement
+
+Lineup Builder
+• Opened from a button inside the Daily Lineup page. Use a full screen modal or drawer. Gate access by role.
+• Visual canvas with drag, resize, snap to grid, undo, redo, duplicate, keyboard nudge.
+• Scene list for add, rename, reorder.
+• Inspector for a selected Position with label, department, max assignees, required competencies, ownership flag, style controls, and optional link to a relevant Integration Plan template.
+• Competency manager and task editor.
+• Plan designer for Integration Plan templates with draggable steps and signoff roles.
+• Save versions, compare diffs, and preview read only.
+
+Daily Lineup
+• Scene tabs along the top, one tab per scene, badges for unassigned count or warnings.
+• Artist rail with filters for department, eligibility for the current scene, has restrictions, has active reintegration plan, and search.
+• OUT and LONG TERM OUT artists are hidden by default and cannot be assigned. Include a toggle to show them for reference while still blocking assignment.
+• Drag an artist chip onto a position to assign. Immediately run eligibility. Show pass, warn, or fail with clear reasons.
+• Swap gesture by dropping one assigned artist onto another to swap.
+• Conflicts and Warnings panel consolidates issues.
+• Distinguished Artists drawer with Out Today and Back In history, and a separate Long Term Out list.
+• Publish locks the instance for editing, writes an audit, exports a four scenes per page PDF per preset, and generates a token based digital display URL for backstage monitors.
+• Mobile view uses a scene selector instead of tabs, large tap targets, and a sticky publish bar.
+• Include a small button labeled Lineup Builder that opens the builder overlay. Only Admin and Stage Management can open it.
+
+Eligibility service rules
+Run checks in this order, return result pass, warn, or fail and an array of reasons.
+
+Distinguished Artists. If OUT or LONG TERM OUT is active, fail and hide from pickers.
+
+Performance Wellness restrictions. If a hard restriction applies to this position by scope, fail with reason. If a soft restriction applies, warn with reason.
+
+Ownership and access. In the Coaching application scope, positions owned by Stage Management are view only. Stage Management can assign anywhere.
+
+Competencies and required tasks. If required competencies or tasks are incomplete, fail. If an Integration Plan is linked and required steps are incomplete, warn or fail based on plan settings.
+
+Re integration plan. If the artist has an active plan with steps that constrain this position, warn or fail as configured.
+
+Capacity and duplicates. Enforce maximum assignees and flag double booking.
+Support an override pathway for Stage Management with required justification on the assignment and an audit trail. Provide a separate permission for overriding a hard Performance Wellness restriction, default off.
+
+Routes and pages to add
+
+Frontend
+• Daily Lineup list and detail at /lineups/daily
+• Digital display at /display/:dailyId with token query
+• Settings screens for competencies, tasks, integration plan templates, print presets
+• Do not add a top level route for Lineup Builder. Instead add a button on the Daily Lineup detail view that opens a full screen builder overlay.
+
+Backend
+• REST endpoints for templates, scenes, positions, competencies, tasks, integration plan templates and steps, re integration plans and steps, distinguished artists, restrictions, daily lineup instances, assignments, eligibility check, publish, exports.
+• Keep session auth and follow existing Express patterns.
+• Add audit events for create, update, delete, assign, override, and publish.
+
+Printing and export
+• A3 and A4 presets with four scenes per page, arranged two by two, auto flow scenes in template order, page break after each four.
+• Optional cover that lists Distinguished Artists and global notes.
+• Export filename format: ART SM LNP La Perle Lineup YYYYMMDD HHMM.pdf
+
+Digital display
+• High contrast read only scene view that auto refreshes and can auto rotate scenes every N seconds. Accept a token in the URL. Hide editing controls.
+
+Security, roles, and visibility
+• Roles: Admin, Stage Management, Coaching, Performance Wellness, Read only
+• Enforce role based permissions on APIs and UI.
+• Keep XSS protections on all rich text inputs through Tiptap and DOMPurify.
+• Maintain audit trails with who, when, and JSON diff.
+
+Data fetching and caching
+• Use TanStack Query for all data. Use fine grained keys. Invalidate specific keys after mutations.
+
+Performance and UX
+• Canvas interactions must be smooth with undo, redo, snap to grid, and keyboard support.
+• Daily view must remain responsive with hundreds of positions and dozens of artists. Use virtualization where needed.
+
+Deliverables
+• Database migrations and seed scripts with one example template, several scenes, sample positions, competencies and tasks, and at least one Integration Plan template.
+• Complete Express routes with validation and useful errors.
+• React pages and components with dark theme, scene tabs, drag and drop canvas, inspector, artist rail, warnings panel, distinguished drawer, publish bar, digital display route, and print layout.
+• Eligibility service with unit tests that cover pass, warn, and fail for all rules and edge cases like OUT becoming BACK IN mid day, a restriction scoped to a scene, and a multi assign position at capacity.
+• PDF export that meets the four scenes per page requirement on A3 and A4 and uses the filename format above.
+• README section titled Lineup Builder and Daily Lineup that explains concepts, permissions, how to configure positions and plans, how to publish and export, and how to connect the digital display.
+
+Acceptance criteria
+• A non technical Stage Manager can edit a template via the Lineup Builder button on Daily Lineup, set ownership and competencies, link an Integration Plan, create a Daily Lineup, assign artists with instant feedback, publish, and export a correct four scenes per page PDF.
+• Coaching users see only positions marked for Coaching and can manage Integration Plan templates.
+• Performance Wellness users can create and manage restrictions that immediately affect eligibility.
+• OUT and Long Term Out artists never appear as eligible.
+• Digital display shows the published lineup in high contrast mode and updates on republish.
