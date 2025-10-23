@@ -428,7 +428,7 @@ export class DatabaseStorage implements IStorage {
 
   // Artists
   async getAllArtists(): Promise<Artist[]> {
-    return await db.select().from(artists);
+    return await db.select().from(artists).orderBy(asc(artists.sortOrder));
   }
 
   async getArtist(id: string): Promise<Artist | undefined> {
@@ -448,6 +448,14 @@ export class DatabaseStorage implements IStorage {
 
   async deleteArtist(id: string): Promise<void> {
     await db.delete(artists).where(eq(artists.id, id));
+  }
+
+  async reorderArtists(artistIds: string[]): Promise<void> {
+    await db.transaction(async (tx) => {
+      for (let i = 0; i < artistIds.length; i++) {
+        await tx.update(artists).set({ sortOrder: i }).where(eq(artists.id, artistIds[i]));
+      }
+    });
   }
 
   // Act Artists

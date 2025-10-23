@@ -617,6 +617,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(204);
   });
 
+  app.post("/api/artists/reorder", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const { artistIds } = req.body;
+    if (!Array.isArray(artistIds)) {
+      return res.status(400).json({ error: "artistIds must be an array" });
+    }
+    await storage.reorderArtists(artistIds);
+    res.sendStatus(204);
+  });
+
   // Technicians routes
   app.get("/api/technicians", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
