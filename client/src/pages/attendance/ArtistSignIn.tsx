@@ -190,15 +190,15 @@ export default function ArtistSignIn() {
   const ungroupedArtists = activeArtists.filter(a => !a.artistGroupId);
   
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="min-h-screen bg-white p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-center mb-8">
           <img src={logoPath} alt="La Perle" className="h-36 w-auto" data-testid="img-logo" />
         </div>
 
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Artist Sign In</h1>
-          <p className="text-muted-foreground">Tap your photo to sign in or out</p>
+          <h1 className="text-3xl font-bold text-black mb-2">Artist Sign In</h1>
+          <p className="text-gray-600">Tap your photo to sign in or out</p>
         </div>
 
         {activeArtists.length === 0 ? (
@@ -212,7 +212,7 @@ export default function ArtistSignIn() {
             {ungroupedArtists.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-4">
-                  <h2 className="text-xl font-semibold">No Group</h2>
+                  <h2 className="text-xl font-semibold text-black">No Group</h2>
                   <Badge variant="secondary">{ungroupedArtists.length}</Badge>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -246,7 +246,7 @@ export default function ArtistSignIn() {
               return (
                 <div key={group.id}>
                   <div className="flex items-center gap-2 mb-4">
-                    <h2 className="text-xl font-semibold">{group.name}</h2>
+                    <h2 className="text-xl font-semibold text-black">{group.name}</h2>
                     <Badge variant="secondary">{groupArtists.length}</Badge>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
