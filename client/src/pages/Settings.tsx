@@ -301,6 +301,13 @@ export default function Settings() {
     }
   }, [editTarget, techDialogOpen]);
 
+  // Reset uploaded photo URL when opening artist dialog or changing edit target
+  useEffect(() => {
+    if (!artistDialogOpen || editTarget?.type !== "artist") {
+      setUploadedPhotoUrl(null);
+    }
+  }, [artistDialogOpen, editTarget]);
+
   // Report Template state
   const [leftImage, setLeftImage] = useState(reportTemplate?.leftImageUrl || "");
   const [title, setTitle] = useState(reportTemplate?.title || "Training Report");
