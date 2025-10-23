@@ -797,6 +797,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(statusList);
   });
 
+  app.get("/api/attendance/week", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const validation = z.object({
+      startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    }).safeParse(req.query);
+    
+    if (!validation.success) {
+      return res.status(400).json({ error: "Invalid date range", details: validation.error.issues });
+    }
+
+    const records = await storage.getAttendanceRecordsByDateRange(
+      validation.data.startDate,
+      validation.data.endDate
+    );
+    
+    res.json(records);
+  });
+
+  app.post("/api/attendance/manual-sign-out", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const validation = z.object({
+      artistId: z.string(),
+    }).safeParse(req.body);
+    
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+
+    const artist = await storage.getArtist(validation.data.artistId);
+    if (!artist) {
+      return res.status(404).json({ error: "Artist not found" });
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const record = await storage.getAttendanceRecord(validation.data.artistId, today);
+
+    if (!record || !record.signInTime) {
+      return res.status(400).json({ error: "Artist is not signed in" });
+    }
+
+    if (record.signOutTime) {
+      return res.status(400).json({ error: "Artist already signed out" });
+    }
+
+    const updatedRecord = await storage.updateAttendanceRecord(record.id, {
+      signOutTime: new Date(),
+      signedOutBy: req.user!.id,
+    });
+
+    if (updatedRecord) {
+      broadcastAttendanceUpdate({
+        record: updatedRecord,
+        artist,
+        action: "sign_out",
+      });
+    }
+
+    res.json({ success: true, record: updatedRecord });
+  });
+
+  app.patch("/api/artists/:id/status", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const validation = z.object({
+      status: z.enum(['active', 'out', 'long_term_out']),
+    }).safeParse(req.body);
+    
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+
+    const artist = await storage.updateArtist(req.params.id, {
+      status: validation.data.status,
+    });
+
+    if (!artist) {
+      return res.status(404).json({ error: "Artist not found" });
+    }
+
+    broadcastArtistStatusUpdate({
+      artistId: req.params.id,
+      status: validation.data.status,
+    });
+
+    res.json(artist);
+  });
+
   // Report Template routes
   app.get("/api/report-template", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
