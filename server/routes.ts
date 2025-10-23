@@ -6,7 +6,9 @@ import { z } from "zod";
 import { db } from "./db";
 import { trainings, actDepartments, departmentAssignments, technicians, technicianDepartments } from "@shared/schema";
 import { asc, eq } from "drizzle-orm";
-import { setupWebSocket } from "./websocket";
+import { setupWebSocket, broadcastAttendanceUpdate, broadcastArtistStatusUpdate } from "./websocket";
+import { isWithinVenue, getDistanceFromVenue } from "./geofencing";
+import { insertAttendanceRecordSchema } from "@shared/schema";
 import {
   insertSceneSchema,
   insertActSchema,
@@ -623,6 +625,176 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await storage.setTechnicianDepartments(req.params.id, validation.data.departmentIds);
     const departments = await storage.getTechnicianDepartments(req.params.id);
     res.json(departments);
+  });
+
+  // Attendance routes
+  app.post("/api/attendance/setup-pin", async (req, res) => {
+    const validation = z.object({
+      artistId: z.string(),
+      pinCode: z.string().length(4).regex(/^\d{4}$/, "PIN must be 4 digits"),
+    }).safeParse(req.body);
+    
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+
+    const artist = await storage.getArtist(validation.data.artistId);
+    if (!artist) {
+      return res.status(404).json({ error: "Artist not found" });
+    }
+
+    if (artist.pinCode) {
+      return res.status(400).json({ error: "PIN already set" });
+    }
+
+    await storage.updateArtist(validation.data.artistId, {
+      pinCode: validation.data.pinCode,
+    });
+
+    res.json({ success: true });
+  });
+
+  app.post("/api/attendance/sign-in", async (req, res) => {
+    const validation = z.object({
+      artistId: z.string(),
+      pinCode: z.string().length(4),
+      latitude: z.number(),
+      longitude: z.number(),
+    }).safeParse(req.body);
+    
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+
+    const artist = await storage.getArtist(validation.data.artistId);
+    if (!artist) {
+      return res.status(404).json({ error: "Artist not found" });
+    }
+
+    if (artist.pinCode !== validation.data.pinCode) {
+      return res.status(401).json({ error: "Invalid PIN" });
+    }
+
+    if (!isWithinVenue(validation.data.latitude, validation.data.longitude)) {
+      const distance = Math.round(getDistanceFromVenue(validation.data.latitude, validation.data.longitude));
+      return res.status(403).json({ 
+        error: "Not at venue", 
+        message: `You must be at La Perle to sign in. You are ${distance}m away.`,
+        distance 
+      });
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const existingRecord = await storage.getAttendanceRecord(validation.data.artistId, today);
+
+    if (existingRecord?.signInTime && !existingRecord.signOutTime) {
+      return res.status(400).json({ error: "Already signed in" });
+    }
+
+    let record;
+    if (existingRecord && existingRecord.signOutTime) {
+      record = await storage.updateAttendanceRecord(existingRecord.id, {
+        signInTime: new Date(),
+        signInLatitude: validation.data.latitude.toString(),
+        signInLongitude: validation.data.longitude.toString(),
+        signOutTime: null,
+        signOutLatitude: null,
+        signOutLongitude: null,
+      });
+    } else {
+      record = await storage.createAttendanceRecord({
+        artistId: validation.data.artistId,
+        date: today,
+        signInTime: new Date(),
+        signInLatitude: validation.data.latitude.toString(),
+        signInLongitude: validation.data.longitude.toString(),
+      });
+    }
+
+    if (record) {
+      broadcastAttendanceUpdate({
+        record,
+        artist,
+        action: "sign_in",
+      });
+    }
+
+    res.json({ success: true, record });
+  });
+
+  app.post("/api/attendance/sign-out", async (req, res) => {
+    const validation = z.object({
+      artistId: z.string(),
+      pinCode: z.string().length(4),
+      latitude: z.number(),
+      longitude: z.number(),
+    }).safeParse(req.body);
+    
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+
+    const artist = await storage.getArtist(validation.data.artistId);
+    if (!artist) {
+      return res.status(404).json({ error: "Artist not found" });
+    }
+
+    if (artist.pinCode !== validation.data.pinCode) {
+      return res.status(401).json({ error: "Invalid PIN" });
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const record = await storage.getAttendanceRecord(validation.data.artistId, today);
+
+    if (!record || !record.signInTime) {
+      return res.status(400).json({ error: "Not signed in" });
+    }
+
+    if (record.signOutTime) {
+      return res.status(400).json({ error: "Already signed out" });
+    }
+
+    const updatedRecord = await storage.updateAttendanceRecord(record.id, {
+      signOutTime: new Date(),
+      signOutLatitude: validation.data.latitude.toString(),
+      signOutLongitude: validation.data.longitude.toString(),
+    });
+
+    if (updatedRecord) {
+      broadcastAttendanceUpdate({
+        record: updatedRecord,
+        artist,
+        action: "sign_out",
+      });
+    }
+
+    res.json({ success: true, record: updatedRecord });
+  });
+
+  app.get("/api/attendance/status/:artistId", async (req, res) => {
+    const today = new Date().toISOString().split('T')[0];
+    const record = await storage.getAttendanceRecord(req.params.artistId, today);
+    res.json(record || null);
+  });
+
+  app.get("/api/attendance/today", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const today = new Date().toISOString().split('T')[0];
+    const records = await storage.getAttendanceRecordsByDate(today);
+    const artists = await storage.getAllArtists();
+    
+    const attendanceMap = new Map(records.map(r => [r.artistId, r]));
+    
+    const statusList = artists
+      .filter(a => a.status === 'active')
+      .map(artist => ({
+        artist,
+        record: attendanceMap.get(artist.id) || null,
+        isSignedIn: attendanceMap.get(artist.id)?.signInTime && !attendanceMap.get(artist.id)?.signOutTime,
+      }));
+    
+    res.json(statusList);
   });
 
   // Report Template routes
