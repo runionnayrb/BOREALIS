@@ -12,6 +12,7 @@ A production-ready full-stack web application designed for theatrical production
 - I prefer that training notes use RichTextEditor (Tiptap) with full formatting support including bullet/numbered lists.
 - I want toast notifications for all user actions (create, update, delete).
 - I prefer that all queries use TanStack Query for data fetching with automatic caching and all mutations invalidate relevant query caches for real-time updates.
+- I want artist order to be manually controllable and not change when artists are updated.
 
 ## System Architecture
 The application is a full-stack web application with a clear separation between frontend and backend.
@@ -44,6 +45,7 @@ The application is a full-stack web application with a clear separation between 
 - **Secure Authentication**: Login/signup with hashed passwords and session management.
 - **Profile Management**: Update user details and password.
 - **Settings Management**: Full CRUD operations for all entities (scenes, acts, departments, locations, artists, technicians, report template).
+    - **Artist Ordering**: Drag-and-drop reordering for artists in Settings using @dnd-kit. Artists maintain their custom order persistently via sortOrder field, preventing order changes during updates. Optimistic UI updates ensure smooth drag experience.
 - **User Management**: 
     - Control active/inactive status of users
     - **User Deletion with Admin Authentication**: Delete users with admin password confirmation dialog. Requires admin credentials (username: "admin", password: "laperleSM2025!"). Prevents self-deletion and deletion of users who have created or modified reports.
