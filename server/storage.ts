@@ -21,9 +21,12 @@ import {
   type TrainingLocation, type InsertTrainingLocation, trainingLocations,
   type DepartmentAssignment, type InsertDepartmentAssignment, departmentAssignments,
   type TrainingArtist, type InsertTrainingArtist, trainingArtists,
+  type AttendanceRecord, type InsertAttendanceRecord, attendanceRecords,
+  type TickSheet, type InsertTickSheet, tickSheets,
+  type TickSheetMark, type InsertTickSheetMark, tickSheetMarks,
 } from "@shared/schema";
 import { db, pool } from "./db";
-import { eq, asc, desc, inArray } from "drizzle-orm";
+import { eq, asc, desc, inArray, and, gte, lte } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import type { Store } from "express-session";
@@ -158,6 +161,29 @@ export interface IStorage {
   getTrainingArtists(trainingId: string): Promise<TrainingArtist[]>;
   getAllTrainingArtists(): Promise<TrainingArtist[]>;
   setTrainingArtists(trainingId: string, artistIds: string[]): Promise<void>;
+  
+  // Attendance Records
+  getAttendanceRecord(artistId: string, date: string): Promise<AttendanceRecord | undefined>;
+  getAttendanceRecordsByDate(date: string): Promise<AttendanceRecord[]>;
+  getAttendanceRecordsByDateRange(startDate: string, endDate: string): Promise<AttendanceRecord[]>;
+  getAttendanceRecordsByArtist(artistId: string, startDate?: string, endDate?: string): Promise<AttendanceRecord[]>;
+  createAttendanceRecord(record: InsertAttendanceRecord): Promise<AttendanceRecord>;
+  updateAttendanceRecord(id: string, updates: Partial<InsertAttendanceRecord>): Promise<AttendanceRecord | undefined>;
+  
+  // Tick Sheets
+  getAllTickSheets(): Promise<TickSheet[]>;
+  getActiveTickSheets(): Promise<TickSheet[]>;
+  getTickSheet(id: string): Promise<TickSheet | undefined>;
+  createTickSheet(tickSheet: InsertTickSheet): Promise<TickSheet>;
+  updateTickSheet(id: string, updates: Partial<InsertTickSheet>): Promise<TickSheet | undefined>;
+  deleteTickSheet(id: string): Promise<void>;
+  resetTickSheet(id: string): Promise<void>;
+  
+  // Tick Sheet Marks
+  getTickSheetMarks(tickSheetId: string): Promise<TickSheetMark[]>;
+  createTickSheetMark(mark: InsertTickSheetMark): Promise<TickSheetMark>;
+  deleteTickSheetMark(id: string): Promise<void>;
+  deleteTickSheetMarksByArtist(tickSheetId: string, artistId: string): Promise<void>;
   
   sessionStore: Store;
 }
@@ -680,6 +706,136 @@ export class DatabaseStorage implements IStorage {
         artistIds.map(artistId => ({ trainingId, artistId }))
       );
     }
+  }
+
+  // Attendance Records
+  async getAttendanceRecord(artistId: string, date: string): Promise<AttendanceRecord | undefined> {
+    const result = await db
+      .select()
+      .from(attendanceRecords)
+      .where(and(
+        eq(attendanceRecords.artistId, artistId),
+        eq(attendanceRecords.date, date)
+      ));
+    return result[0];
+  }
+
+  async getAttendanceRecordsByDate(date: string): Promise<AttendanceRecord[]> {
+    return await db
+      .select()
+      .from(attendanceRecords)
+      .where(eq(attendanceRecords.date, date));
+  }
+
+  async getAttendanceRecordsByDateRange(startDate: string, endDate: string): Promise<AttendanceRecord[]> {
+    return await db
+      .select()
+      .from(attendanceRecords)
+      .where(and(
+        gte(attendanceRecords.date, startDate),
+        lte(attendanceRecords.date, endDate)
+      ))
+      .orderBy(desc(attendanceRecords.date));
+  }
+
+  async getAttendanceRecordsByArtist(artistId: string, startDate?: string, endDate?: string): Promise<AttendanceRecord[]> {
+    const conditions = [eq(attendanceRecords.artistId, artistId)];
+    
+    if (startDate) {
+      conditions.push(gte(attendanceRecords.date, startDate));
+    }
+    if (endDate) {
+      conditions.push(lte(attendanceRecords.date, endDate));
+    }
+
+    return await db
+      .select()
+      .from(attendanceRecords)
+      .where(and(...conditions))
+      .orderBy(desc(attendanceRecords.date));
+  }
+
+  async createAttendanceRecord(record: InsertAttendanceRecord): Promise<AttendanceRecord> {
+    const result = await db.insert(attendanceRecords).values(record).returning();
+    return result[0];
+  }
+
+  async updateAttendanceRecord(id: string, updates: Partial<InsertAttendanceRecord>): Promise<AttendanceRecord | undefined> {
+    const result = await db
+      .update(attendanceRecords)
+      .set(updates)
+      .where(eq(attendanceRecords.id, id))
+      .returning();
+    return result[0];
+  }
+
+  // Tick Sheets
+  async getAllTickSheets(): Promise<TickSheet[]> {
+    return await db.select().from(tickSheets).orderBy(desc(tickSheets.createdAt));
+  }
+
+  async getActiveTickSheets(): Promise<TickSheet[]> {
+    return await db
+      .select()
+      .from(tickSheets)
+      .where(eq(tickSheets.isActive, 1))
+      .orderBy(desc(tickSheets.createdAt));
+  }
+
+  async getTickSheet(id: string): Promise<TickSheet | undefined> {
+    const result = await db.select().from(tickSheets).where(eq(tickSheets.id, id));
+    return result[0];
+  }
+
+  async createTickSheet(tickSheet: InsertTickSheet): Promise<TickSheet> {
+    const result = await db.insert(tickSheets).values(tickSheet).returning();
+    return result[0];
+  }
+
+  async updateTickSheet(id: string, updates: Partial<InsertTickSheet>): Promise<TickSheet | undefined> {
+    const result = await db
+      .update(tickSheets)
+      .set(updates)
+      .where(eq(tickSheets.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteTickSheet(id: string): Promise<void> {
+    await db.delete(tickSheets).where(eq(tickSheets.id, id));
+  }
+
+  async resetTickSheet(id: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx.delete(tickSheetMarks).where(eq(tickSheetMarks.tickSheetId, id));
+      await tx.update(tickSheets)
+        .set({ resetAt: new Date() })
+        .where(eq(tickSheets.id, id));
+    });
+  }
+
+  // Tick Sheet Marks
+  async getTickSheetMarks(tickSheetId: string): Promise<TickSheetMark[]> {
+    return await db
+      .select()
+      .from(tickSheetMarks)
+      .where(eq(tickSheetMarks.tickSheetId, tickSheetId));
+  }
+
+  async createTickSheetMark(mark: InsertTickSheetMark): Promise<TickSheetMark> {
+    const result = await db.insert(tickSheetMarks).values(mark).returning();
+    return result[0];
+  }
+
+  async deleteTickSheetMark(id: string): Promise<void> {
+    await db.delete(tickSheetMarks).where(eq(tickSheetMarks.id, id));
+  }
+
+  async deleteTickSheetMarksByArtist(tickSheetId: string, artistId: string): Promise<void> {
+    await db.delete(tickSheetMarks).where(and(
+      eq(tickSheetMarks.tickSheetId, tickSheetId),
+      eq(tickSheetMarks.artistId, artistId)
+    ));
   }
 }
 
