@@ -6,9 +6,10 @@ import { z } from "zod";
 import { db } from "./db";
 import { trainings, actDepartments, departmentAssignments, technicians, technicianDepartments } from "@shared/schema";
 import { asc, eq } from "drizzle-orm";
-import { setupWebSocket, broadcastAttendanceUpdate, broadcastArtistStatusUpdate } from "./websocket";
+import { setupWebSocket, broadcastAttendanceUpdate, broadcastArtistStatusUpdate, broadcastTickSheetUpdate } from "./websocket";
 import { isWithinVenue, getDistanceFromVenue } from "./geofencing";
-import { insertAttendanceRecordSchema } from "@shared/schema";
+import { insertAttendanceRecordSchema, insertTickSheetSchema, insertTickSheetMarkSchema } from "@shared/schema";
+import { requireRole } from "./middleware/roleAuth";
 import {
   insertSceneSchema,
   insertActSchema,
@@ -777,9 +778,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(record || null);
   });
 
-  app.get("/api/attendance/today", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  app.get("/api/attendance/today", requireRole('stage_management', 'admin'), async (req, res) => {
     const today = new Date().toISOString().split('T')[0];
     const records = await storage.getAttendanceRecordsByDate(today);
     const artists = await storage.getAllArtists();
@@ -797,8 +796,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(statusList);
   });
 
-  app.get("/api/attendance/week", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/attendance/week", requireRole('stage_management', 'admin'), async (req, res) => {
     
     const validation = z.object({
       startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -817,8 +815,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(records);
   });
 
-  app.post("/api/attendance/manual-sign-out", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.post("/api/attendance/manual-sign-out", requireRole('stage_management', 'admin'), async (req, res) => {
     
     const validation = z.object({
       artistId: z.string(),
@@ -860,8 +857,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ success: true, record: updatedRecord });
   });
 
-  app.patch("/api/artists/:id/status", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.patch("/api/artists/:id/status", requireRole('stage_management', 'admin'), async (req, res) => {
     
     const validation = z.object({
       status: z.enum(['active', 'out', 'long_term_out']),
@@ -885,6 +881,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     res.json(artist);
+  });
+
+  // Tick Sheet routes
+  app.get("/api/tick-sheets", requireRole('stage_management', 'admin'), async (req, res) => {
+    
+    const activeOnly = req.query.active === 'true';
+    const sheets = activeOnly 
+      ? await storage.getActiveTickSheets() 
+      : await storage.getAllTickSheets();
+    
+    res.json(sheets);
+  });
+
+  app.post("/api/tick-sheets", requireRole('stage_management', 'admin'), async (req, res) => {
+    
+    const validation = insertTickSheetSchema.safeParse({
+      ...req.body,
+      createdBy: req.user!.id,
+    });
+    
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+
+    const sheet = await storage.createTickSheet(validation.data);
+    res.json(sheet);
+  });
+
+  app.get("/api/tick-sheets/:id", requireRole('stage_management', 'admin'), async (req, res) => {
+    
+    const sheet = await storage.getTickSheet(req.params.id);
+    if (!sheet) {
+      return res.status(404).json({ error: "Tick sheet not found" });
+    }
+    
+    res.json(sheet);
+  });
+
+  app.get("/api/tick-sheets/:id/marks", requireRole('stage_management', 'admin'), async (req, res) => {
+    
+    const marks = await storage.getTickSheetMarks(req.params.id);
+    res.json(marks);
+  });
+
+  app.post("/api/tick-sheets/:id/marks", requireRole('stage_management', 'admin'), async (req, res) => {
+    
+    const validation = z.object({
+      artistId: z.string(),
+    }).safeParse(req.body);
+    
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+
+    const sheet = await storage.getTickSheet(req.params.id);
+    if (!sheet) {
+      return res.status(404).json({ error: "Tick sheet not found" });
+    }
+
+    const mark = await storage.createTickSheetMark({
+      tickSheetId: req.params.id,
+      artistId: validation.data.artistId,
+      markedBy: req.user!.id,
+    });
+
+    broadcastTickSheetUpdate({
+      tickSheetId: req.params.id,
+      mark,
+      artistId: validation.data.artistId,
+      action: "mark",
+    });
+
+    res.json(mark);
+  });
+
+  app.delete("/api/tick-sheets/:id/marks/:artistId", requireRole('stage_management', 'admin'), async (req, res) => {
+    
+    await storage.deleteTickSheetMarksByArtist(req.params.id, req.params.artistId);
+
+    broadcastTickSheetUpdate({
+      tickSheetId: req.params.id,
+      artistId: req.params.artistId,
+      action: "unmark",
+    });
+
+    res.sendStatus(204);
+  });
+
+  app.post("/api/tick-sheets/:id/reset", requireRole('stage_management', 'admin'), async (req, res) => {
+    
+    const sheet = await storage.getTickSheet(req.params.id);
+    if (!sheet) {
+      return res.status(404).json({ error: "Tick sheet not found" });
+    }
+
+    await storage.resetTickSheet(req.params.id);
+
+    broadcastTickSheetUpdate({
+      tickSheetId: req.params.id,
+      artistId: "",
+      action: "reset",
+    });
+
+    res.json({ success: true });
+  });
+
+  app.patch("/api/tick-sheets/:id", requireRole('stage_management', 'admin'), async (req, res) => {
+    
+    const validation = insertTickSheetSchema.partial().safeParse(req.body);
+    
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+
+    const sheet = await storage.updateTickSheet(req.params.id, validation.data);
+    if (!sheet) {
+      return res.status(404).json({ error: "Tick sheet not found" });
+    }
+    
+    res.json(sheet);
   });
 
   // Report Template routes
