@@ -3,6 +3,10 @@ import { pgTable, text, varchar, timestamp, integer } from "drizzle-orm/pg-core"
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// User roles
+export const userRoles = ['admin', 'stage_management', 'coaching', 'performance_wellness', 'read_only'] as const;
+export type UserRole = typeof userRoles[number];
+
 // Users/Stage Managers
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -11,6 +15,7 @@ export const users = pgTable("users", {
   name: text("name"),
   position: text("position"),
   pronouns: text("pronouns"),
+  role: text("role").notNull().default('stage_management'), // admin, stage_management, coaching, performance_wellness, read_only
   active: integer("active").notNull().default(1), // 1 = active, 0 = inactive
   outlookConnected: integer("outlook_connected").notNull().default(0), // 0 = not connected, 1 = connected
   resetToken: text("reset_token"),
@@ -24,6 +29,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   name: true,
   position: true,
   pronouns: true,
+  role: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
