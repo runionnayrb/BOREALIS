@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
-import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit, Settings as SettingsIcon, Shield, UserCircle2 } from "lucide-react";
+import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit, Settings as SettingsIcon, Shield, UserCircle2, GripVertical } from "lucide-react";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -83,6 +86,9 @@ export default function Settings() {
   
   // Technician department assignments
   const [selectedTechnicianDepartmentIds, setSelectedTechnicianDepartmentIds] = useState<string[]>([]);
+  
+  // Local state for artist ordering
+  const [orderedArtists, setOrderedArtists] = useState<Artist[]>([]);
 
   const { toast} = useToast();
 
@@ -93,7 +99,8 @@ export default function Settings() {
   const { data: locationTypes = [] } = useQuery<LocationType[]>({ queryKey: ["/api/location-types"] });
   const { data: locations = [] } = useQuery<Location[]>({ queryKey: ["/api/locations"] });
   const { data: artistGroups = [] } = useQuery<ArtistGroup[]>({ queryKey: ["/api/artist-groups"] });
-  const { data: artists = [] } = useQuery<Artist[]>({ queryKey: ["/api/artists"] });
+  const artistsQuery = useQuery<Artist[]>({ queryKey: ["/api/artists"] });
+  const artists = artistsQuery.data || [];
   const { data: technicians = [] } = useQuery<Technician[]>({ queryKey: ["/api/technicians"] });
   const { data: reportTemplate } = useQuery<ReportTemplate | null>({ queryKey: ["/api/report-template"] });
   const { data: users = [] } = useQuery<SafeUser[]>({ queryKey: ["/api/users"] });
@@ -307,6 +314,36 @@ export default function Settings() {
       setUploadedPhotoUrl(null);
     }
   }, [artistDialogOpen, editTarget]);
+
+  // Sync local artist order with query data
+  useEffect(() => {
+    if (artistsQuery.data) {
+      setOrderedArtists(artistsQuery.data);
+    }
+  }, [artistsQuery.data]);
+
+  // Drag-and-drop sensors for artist reordering
+  const artistDragSensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleArtistDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      const oldIndex = orderedArtists.findIndex((a) => a.id === active.id);
+      const newIndex = orderedArtists.findIndex((a) => a.id === over.id);
+      
+      const newArtists = arrayMove(orderedArtists, oldIndex, newIndex);
+      // Optimistically update local state
+      setOrderedArtists(newArtists);
+      // Save to backend
+      reorderArtistsMutation.mutate(newArtists.map(a => a.id));
+    }
+  };
 
   // Report Template state
   const [leftImage, setLeftImage] = useState(reportTemplate?.leftImageUrl || "");
@@ -670,6 +707,15 @@ export default function Settings() {
     },
   });
 
+  const reorderArtistsMutation = useMutation({
+    mutationFn: async (artistIds: string[]) => {
+      return await apiRequest("POST", "/api/artists/reorder", { artistIds });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artists"] });
+    },
+  });
+
   const deleteTechMutation = useMutation({
     mutationFn: async (id: string) => {
       return await apiRequest("DELETE", `/api/technicians/${id}`);
@@ -999,8 +1045,68 @@ export default function Settings() {
     );
   };
 
+  const SortableArtistCard = ({ artist }: { artist: Artist }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: artist.id });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+      <Card
+        ref={setNodeRef}
+        style={style}
+        className="p-3 flex items-center justify-between hover-elevate"
+        data-testid={`card-artist-${artist.id}`}
+      >
+        <div className="flex items-center gap-3 flex-1">
+          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+            <GripVertical className="w-4 h-4 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="font-medium">{artist.stageName || `${artist.firstName} ${artist.lastName}`}</p>
+            {artist.role && <p className="text-sm text-muted-foreground">{artist.role}</p>}
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setEditTarget({ type: "artist", id: artist.id, data: artist });
+              setArtistDialogOpen(true);
+            }}
+            data-testid={`button-edit-artist-${artist.id}`}
+          >
+            <Edit className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setDeleteTarget({ type: "artist", id: artist.id });
+              setDeleteDialogOpen(true);
+            }}
+            data-testid={`button-delete-artist-${artist.id}`}
+          >
+            <Trash2 className="w-4 h-4 text-destructive" />
+          </Button>
+        </div>
+      </Card>
+    );
+  };
+
   const renderGroupedArtists = () => {
-    if (artists.length === 0) {
+    if (orderedArtists.length === 0) {
       return (
         <Card className="p-6 text-center text-muted-foreground">
           <p>No artists yet. Click "Add Artist" to create one.</p>
@@ -1008,82 +1114,56 @@ export default function Settings() {
       );
     }
 
-    // Group artists by artistGroupId
-    const grouped = artists.reduce((acc, artist) => {
-      const key = artist.artistGroupId || 'no-group';
-      if (!acc[key]) {
-        acc[key] = [];
-      }
-      acc[key].push(artist);
-      return acc;
-    }, {} as Record<string, Artist[]>);
-
-    // Sort groups by their sortOrder
-    const sortedGroupIds = Object.keys(grouped).sort((a, b) => {
-      if (a === 'no-group') return 1; // Always put "no-group" last
-      if (b === 'no-group') return -1;
-      
-      const groupA = artistGroups.find(g => g.id === a);
-      const groupB = artistGroups.find(g => g.id === b);
-      
-      return (groupA?.sortOrder || 0) - (groupB?.sortOrder || 0);
-    });
-
     return (
-      <div className="space-y-6">
-        {sortedGroupIds.map((groupId) => {
-          const artistsInGroup = grouped[groupId];
-          const group = artistGroups.find(g => g.id === groupId);
-          const groupName = groupId === 'no-group' ? 'No Group' : group?.name || 'Unknown';
+      <DndContext sensors={artistDragSensors} collisionDetection={closestCenter} onDragEnd={handleArtistDragEnd}>
+        <SortableContext items={orderedArtists.map(a => a.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-6">
+            {artistGroups.map((group) => {
+              const artistsInGroup = orderedArtists.filter(a => a.artistGroupId === group.id);
+              if (artistsInGroup.length === 0) return null;
 
-          return (
-            <div key={groupId} className="space-y-2">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  {groupName}
-                </h3>
-                <span className="text-xs text-muted-foreground">
-                  ({artistsInGroup.length})
-                </span>
-              </div>
-              <div className="space-y-2">
-                {artistsInGroup.map((artist) => (
-                  <Card key={artist.id} className="p-3 flex items-center justify-between hover-elevate" data-testid={`card-artist-${artist.id}`}>
-                    <div>
-                      <p className="font-medium">{artist.stageName || `${artist.firstName} ${artist.lastName}`}</p>
-                      {artist.role && <p className="text-sm text-muted-foreground">{artist.role}</p>}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditTarget({ type: "artist", id: artist.id, data: artist });
-                          setArtistDialogOpen(true);
-                        }}
-                        data-testid={`button-edit-artist-${artist.id}`}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setDeleteTarget({ type: "artist", id: artist.id });
-                          setDeleteDialogOpen(true);
-                        }}
-                        data-testid={`button-delete-artist-${artist.id}`}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              return (
+                <div key={group.id} className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      {group.name}
+                    </h3>
+                    <span className="text-xs text-muted-foreground">
+                      ({artistsInGroup.length})
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {artistsInGroup.map((artist) => (
+                      <SortableArtistCard key={artist.id} artist={artist} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            {(() => {
+              const noGroupArtists = orderedArtists.filter(a => !a.artistGroupId);
+              if (noGroupArtists.length === 0) return null;
+              return (
+                <div key="no-group" className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      No Group
+                    </h3>
+                    <span className="text-xs text-muted-foreground">
+                      ({noGroupArtists.length})
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {noGroupArtists.map((artist) => (
+                      <SortableArtistCard key={artist.id} artist={artist} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </SortableContext>
+      </DndContext>
     );
   };
 
