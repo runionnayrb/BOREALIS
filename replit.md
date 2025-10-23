@@ -70,7 +70,7 @@ The application is a full-stack web application with a clear separation between 
 - **Audit Trail**: All reports and trainings track `createdBy`, `updatedBy`, and timestamps.
 - **One Report Per Day**: Simplified model where a single report encompasses all trainings for a given day.
 - **Attendance System**:
-    - **Artist Sign-In**: Public sign-in page at /attendance/sign-in with photo grid display. Artists tap their photo, enter 4-digit PIN, and sign in/out. Validates geolocation (100m radius from La Perle venue: 25.1872° N, 55.2674° E) before allowing sign-in.
+    - **Artist Sign-In**: Public sign-in page at /attendance/sign-in with photo grid display. Artists tap their photo, enter 4-digit PIN, and sign in/out. Validates geolocation (100m radius from La Perle venue: 25.1872° N, 55.2674° E) before allowing sign-in. Uses public API endpoints `/api/attendance/artists` and `/api/attendance/artist-groups` that don't require authentication and exclude sensitive data (PIN codes).
     - **Stage Manager Dashboard**: Real-time attendance tracking at /attendance/dashboard (requires 'stage_management' or 'admin' role). Shows who's currently in/out, weekly attendance calendar with pattern visualization, and manual sign-out override capability.
     - **Tick Sheets**: Meeting attendance tracking at /attendance/tick-sheet (requires 'stage_management' or 'admin' role). Create tick sheets, mark artists present with real-time checkbox updates via WebSocket, reset sheets for new meetings. Automatically filters out artists marked as OUT or Long-Term OUT.
     - **Artist Management**: Settings page includes Photo URL field and Status dropdown (Active, Out, Long-Term OUT) for each artist. Artists can set their 4-digit PIN codes during first sign-in.

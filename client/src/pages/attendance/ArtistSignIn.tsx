@@ -8,7 +8,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, UserCircle2, LogIn, LogOut, MapPin } from "lucide-react";
-import type { Artist, ArtistGroup } from "@shared/schema";
+import type { PublicArtist, ArtistGroup } from "@shared/schema";
 import logoPath from "@assets/LaPerle-logo-basic_1760100706441.png";
 
 interface AttendanceRecord {
@@ -21,23 +21,23 @@ interface AttendanceRecord {
   longitude: number;
 }
 
-function getArtistDisplayName(artist: Artist): string {
+function getArtistDisplayName(artist: PublicArtist): string {
   return artist.stageName || `${artist.firstName} ${artist.lastName}`;
 }
 
 export default function ArtistSignIn() {
-  const [selectedArtist, setSelectedArtist] = useState<Artist | null>(null);
+  const [selectedArtist, setSelectedArtist] = useState<PublicArtist | null>(null);
   const [pin, setPin] = useState("");
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [geolocation, setGeolocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const { toast } = useToast();
 
-  const { data: artists = [], isLoading } = useQuery<Artist[]>({
-    queryKey: ["/api/artists"],
+  const { data: artists = [], isLoading } = useQuery<PublicArtist[]>({
+    queryKey: ["/api/attendance/artists"],
   });
 
   const { data: artistGroups = [] } = useQuery<ArtistGroup[]>({
-    queryKey: ["/api/artist-groups"],
+    queryKey: ["/api/attendance/artist-groups"],
   });
 
   const activeArtists = artists.filter(a => a.status === 'active');
@@ -99,7 +99,7 @@ export default function ArtistSignIn() {
 
   const isSignedIn = currentRecord && currentRecord.signInTime && !currentRecord.signOutTime;
 
-  const handleArtistSelect = async (artist: Artist) => {
+  const handleArtistSelect = async (artist: PublicArtist) => {
     setSelectedArtist(artist);
     setPin("");
     setIsGettingLocation(true);

@@ -682,6 +682,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Attendance routes
+  app.get("/api/attendance/artists", async (req, res) => {
+    const artists = await storage.getAllArtists();
+    const activeArtists = artists.filter(a => a.status === 'active');
+    // Return only public fields, excluding sensitive data like pinCode
+    const publicArtists = activeArtists.map(({ pinCode, role, createdAt, ...publicFields }) => publicFields);
+    res.json(publicArtists);
+  });
+
+  app.get("/api/attendance/artist-groups", async (req, res) => {
+    const groups = await storage.getAllArtistGroups();
+    res.json(groups);
+  });
+
   app.post("/api/attendance/setup-pin", async (req, res) => {
     const validation = z.object({
       artistId: z.string(),

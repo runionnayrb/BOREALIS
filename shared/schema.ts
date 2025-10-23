@@ -179,6 +179,9 @@ export const insertArtistSchema = createInsertSchema(artists).omit({
 export type InsertArtist = z.infer<typeof insertArtistSchema>;
 export type Artist = typeof artists.$inferSelect;
 
+// Public artist type for sign-in page (excludes sensitive fields like pinCode)
+export type PublicArtist = Omit<Artist, 'pinCode' | 'role' | 'createdAt'>;
+
 // Act Artists (junction table for many-to-many relationship)
 export const actArtists = pgTable("act_artists", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
