@@ -83,8 +83,16 @@ export function PhotoUploader({ onUploadComplete, currentPhotoUrl, className }: 
         throw new Error("Failed to upload file");
       }
 
-      // The uploadURL is the full GCS URL, we need to convert it to /objects/... path
-      onUploadComplete(uploadURL);
+      // Extract the object path from the GCS URL and convert to /objects/... format
+      const url = new URL(uploadURL);
+      // The pathname is like /bucket-name/private/artist-photos/filename.jpg
+      // We need to extract everything after the bucket name
+      const pathParts = url.pathname.split('/').filter(p => p);
+      // Skip the bucket name (first part) and join the rest
+      const objectPath = pathParts.slice(1).join('/');
+      const displayPath = `/objects/${objectPath}`;
+      
+      onUploadComplete(displayPath);
       
       toast({
         title: "Upload Successful",
