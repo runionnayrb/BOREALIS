@@ -5,9 +5,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, UserCircle2, LogIn, LogOut, MapPin } from "lucide-react";
-import type { Artist } from "@shared/schema";
+import type { Artist, ArtistGroup } from "@shared/schema";
+import logoPath from "@assets/LaPerle-logo-basic_1760100706441.png";
 
 interface AttendanceRecord {
   artistId: string;
@@ -32,6 +34,10 @@ export default function ArtistSignIn() {
 
   const { data: artists = [], isLoading } = useQuery<Artist[]>({
     queryKey: ["/api/artists"],
+  });
+
+  const { data: artistGroups = [] } = useQuery<ArtistGroup[]>({
+    queryKey: ["/api/artist-groups"],
   });
 
   const activeArtists = artists.filter(a => a.status === 'active');
@@ -180,40 +186,93 @@ export default function ArtistSignIn() {
     );
   }
 
+  // Group artists by artist group
+  const ungroupedArtists = activeArtists.filter(a => !a.artistGroupId);
+  
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
+        <div className="flex justify-center mb-8">
+          <img src={logoPath} alt="La Perle" className="h-36 w-auto" data-testid="img-logo" />
+        </div>
+
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">Artist Sign In</h1>
           <p className="text-muted-foreground">Tap your photo to sign in or out</p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {activeArtists.map((artist) => (
-            <Card
-              key={artist.id}
-              data-testid={`card-artist-${artist.id}`}
-              className="p-4 text-center cursor-pointer hover-elevate active-elevate-2 transition-all"
-              onClick={() => handleArtistSelect(artist)}
-            >
-              <Avatar className="w-20 h-20 mx-auto mb-3">
-                {artist.photoUrl ? (
-                  <AvatarImage src={artist.photoUrl} alt={getArtistDisplayName(artist)} />
-                ) : null}
-                <AvatarFallback>
-                  <UserCircle2 className="w-12 h-12" />
-                </AvatarFallback>
-              </Avatar>
-              <p className="font-medium text-sm line-clamp-2">{getArtistDisplayName(artist)}</p>
-            </Card>
-          ))}
-        </div>
-
-        {activeArtists.length === 0 && (
+        {activeArtists.length === 0 ? (
           <Card className="p-12 text-center">
             <UserCircle2 className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground">No active artists available</p>
           </Card>
+        ) : (
+          <div className="space-y-8">
+            {/* Ungrouped artists */}
+            {ungroupedArtists.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <h2 className="text-xl font-semibold">No Group</h2>
+                  <Badge variant="secondary">{ungroupedArtists.length}</Badge>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {ungroupedArtists.map((artist) => (
+                    <Card
+                      key={artist.id}
+                      data-testid={`card-artist-${artist.id}`}
+                      className="p-4 text-center cursor-pointer hover-elevate active-elevate-2 transition-all"
+                      onClick={() => handleArtistSelect(artist)}
+                    >
+                      <Avatar className="w-20 h-20 mx-auto mb-3">
+                        {artist.photoUrl ? (
+                          <AvatarImage src={artist.photoUrl} alt={getArtistDisplayName(artist)} />
+                        ) : null}
+                        <AvatarFallback>
+                          <UserCircle2 className="w-12 h-12" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <p className="font-medium text-sm line-clamp-2">{getArtistDisplayName(artist)}</p>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Grouped artists */}
+            {artistGroups.map((group) => {
+              const groupArtists = activeArtists.filter(a => a.artistGroupId === group.id);
+              if (groupArtists.length === 0) return null;
+
+              return (
+                <div key={group.id}>
+                  <div className="flex items-center gap-2 mb-4">
+                    <h2 className="text-xl font-semibold">{group.name}</h2>
+                    <Badge variant="secondary">{groupArtists.length}</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {groupArtists.map((artist) => (
+                      <Card
+                        key={artist.id}
+                        data-testid={`card-artist-${artist.id}`}
+                        className="p-4 text-center cursor-pointer hover-elevate active-elevate-2 transition-all"
+                        onClick={() => handleArtistSelect(artist)}
+                      >
+                        <Avatar className="w-20 h-20 mx-auto mb-3">
+                          {artist.photoUrl ? (
+                            <AvatarImage src={artist.photoUrl} alt={getArtistDisplayName(artist)} />
+                          ) : null}
+                          <AvatarFallback>
+                            <UserCircle2 className="w-12 h-12" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <p className="font-medium text-sm line-clamp-2">{getArtistDisplayName(artist)}</p>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 
