@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "./db";
 import { trainings, actDepartments, departmentAssignments, technicians, technicianDepartments } from "@shared/schema";
 import { asc, eq } from "drizzle-orm";
+import { setupWebSocket } from "./websocket";
 import {
   insertSceneSchema,
   insertActSchema,
@@ -1197,6 +1198,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  setupWebSocket(httpServer);
 
   return httpServer;
 }
