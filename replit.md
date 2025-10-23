@@ -1,7 +1,7 @@
 # La Perle Training Reports
 
 ## Overview
-A production-ready full-stack web application designed for theatrical production training management. It enables Stage Managers to create daily training reports with rich text notes, track trainings by various criteria (act, department, artist, location), assign technician leads, and export reports to PDF. The project's vision is to streamline and professionalize the administrative tasks associated with managing theatrical training schedules and reporting.
+A production-ready full-stack web application designed for theatrical production training management. It enables Stage Managers to create daily training reports with rich text notes, track trainings by various criteria (act, department, artist, location), assign technician leads, and export reports to PDF. The application also features a comprehensive Attendance System with real-time artist sign-in/sign-out using geofencing and PIN codes, meeting tick sheets with live updates, and role-based access control. The project's vision is to streamline and professionalize the administrative tasks associated with managing theatrical training schedules, attendance tracking, and reporting.
 
 ## User Preferences
 - All Stage Managers see the same interface (no user-based filtering).
@@ -36,6 +36,9 @@ The application is a full-stack web application with a clear separation between 
 - **XSS Protection**: Two-layer defense for rich text notes (Tiptap escaping + DOMPurify sanitization).
 - **Auto-Report Creation**: When adding the first training to a new report, the system automatically checks for an existing report on that date (GET /api/reports/date/:date) and either reuses it or creates a new one, respecting the "One Report Per Day" constraint.
 - **Email Integration**: Replit Outlook connector for OAuth authentication. Training reports can be sent via email using Microsoft Graph API with customizable templates, distribution lists, and automatic date variable replacement.
+- **Real-time Updates**: WebSocket server on /ws endpoint for live attendance and tick sheet updates. Broadcasts sign-in/sign-out events and tick sheet marks to all connected clients.
+- **Geofencing**: Server-side geolocation validation using Haversine formula. La Perle venue coordinates: 25.1872° N, 55.2674° E with 100-meter radius.
+- **Role-Based Access Control**: Middleware-based authorization requiring 'stage_management' or 'admin' role for privileged endpoints (attendance dashboard, tick sheets).
 
 ### Feature Specifications
 - **Secure Authentication**: Login/signup with hashed passwords and session management.
@@ -64,11 +67,19 @@ The application is a full-stack web application with a clear separation between 
     - **Send Report Button**: Available in report editor when user has connected Outlook account. Sends formatted email with training details to configured recipients. Email dialog opens instantly with loading state while fetching preview data.
 - **Audit Trail**: All reports and trainings track `createdBy`, `updatedBy`, and timestamps.
 - **One Report Per Day**: Simplified model where a single report encompasses all trainings for a given day.
+- **Attendance System**:
+    - **Artist Sign-In**: Public sign-in page at /attendance/sign-in with photo grid display. Artists tap their photo, enter 4-digit PIN, and sign in/out. Validates geolocation (100m radius from La Perle venue: 25.1872° N, 55.2674° E) before allowing sign-in.
+    - **Stage Manager Dashboard**: Real-time attendance tracking at /attendance/dashboard (requires 'stage_management' or 'admin' role). Shows who's currently in/out, weekly attendance calendar with pattern visualization, and manual sign-out override capability.
+    - **Tick Sheets**: Meeting attendance tracking at /attendance/tick-sheet (requires 'stage_management' or 'admin' role). Create tick sheets, mark artists present with real-time checkbox updates via WebSocket, reset sheets for new meetings. Automatically filters out artists marked as OUT or Long-Term OUT.
+    - **Artist Management**: Settings page includes Photo URL field and Status dropdown (Active, Out, Long-Term OUT) for each artist. Artists can set their 4-digit PIN codes during first sign-in.
+    - **Real-time Synchronization**: All sign-in/sign-out events and tick sheet marks broadcast via WebSocket to update all connected Stage Manager dashboards and tick sheets instantly.
+    - **Security**: Artists authenticate with artistId + PIN (no system user accounts needed). Stage Manager features require authenticated users with proper roles. Geofencing validation prevents remote sign-ins.
 
 ### System Design Choices
-- **Database Schema**: Comprehensive PostgreSQL schema covering users, scenes, acts, departments, locations, artists, technicians, reports, and trainings, including junction tables for many-to-many relationships.
-- **API Endpoints**: RESTful API for authentication, user management, profile updates, settings CRUD, and reports/trainings management.
+- **Database Schema**: Comprehensive PostgreSQL schema covering users, scenes, acts, departments, locations, artists, technicians, reports, trainings, attendance records, and tick sheets, including junction tables for many-to-many relationships.
+- **API Endpoints**: RESTful API for authentication, user management, profile updates, settings CRUD, reports/trainings management, and attendance operations (sign-in/out, dashboard, tick sheets).
 - **Session Management**: Session-based authentication with PostgreSQL session store.
+- **WebSocket Architecture**: Standalone WebSocket server handling real-time updates. Broadcasts attendance events and tick sheet changes to all connected clients. Integrates with TanStack Query cache invalidation.
 
 ## External Dependencies
 - **Database**: PostgreSQL
