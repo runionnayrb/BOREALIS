@@ -84,12 +84,13 @@ export function PhotoUploader({ onUploadComplete, currentPhotoUrl, className }: 
       }
 
       // Extract the object path from the GCS URL and convert to /objects/... format
+      // The uploadURL is like: https://storage.googleapis.com/bucket-name/private/artist-photos/uuid
+      // We need to convert it to: /objects/artist-photos/uuid
+      // The server's getObjectEntityFile will add the 'private/' prefix back
       const url = new URL(uploadURL);
-      // The pathname is like /bucket-name/private/artist-photos/filename.jpg
-      // We need to extract everything after the bucket name
       const pathParts = url.pathname.split('/').filter(p => p);
-      // Skip the bucket name (first part) and join the rest
-      const objectPath = pathParts.slice(1).join('/');
+      // Skip bucket-name and 'private', keep 'artist-photos/uuid'
+      const objectPath = pathParts.slice(2).join('/');
       const displayPath = `/objects/${objectPath}`;
       
       onUploadComplete(displayPath);
