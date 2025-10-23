@@ -410,7 +410,7 @@ export default function Settings() {
   });
 
   const createArtistMutation = useMutation({
-    mutationFn: async (data: { firstName: string; lastName: string; stageName?: string; role?: string; artistGroupId?: string }) => {
+    mutationFn: async (data: { firstName: string; lastName: string; stageName?: string; role?: string; photoUrl?: string; status?: string; artistGroupId?: string }) => {
       return await apiRequest("POST", "/api/artists", data);
     },
     onSuccess: () => {
@@ -538,12 +538,14 @@ export default function Settings() {
   });
 
   const updateArtistMutation = useMutation({
-    mutationFn: async (data: { id: string; firstName: string; lastName: string; stageName?: string; role?: string; artistGroupId?: string }) => {
+    mutationFn: async (data: { id: string; firstName: string; lastName: string; stageName?: string; role?: string; photoUrl?: string; status?: string; artistGroupId?: string }) => {
       return await apiRequest("PATCH", `/api/artists/${data.id}`, {
         firstName: data.firstName,
         lastName: data.lastName,
         stageName: data.stageName,
         role: data.role,
+        photoUrl: data.photoUrl,
+        status: data.status,
         artistGroupId: data.artistGroupId,
       });
     },
@@ -2461,6 +2463,8 @@ export default function Settings() {
                           const lastName = formData.get("lastName") as string;
                           const stageName = formData.get("stageName") as string;
                           const role = (formData.get("role") as string) || undefined;
+                          const photoUrl = (formData.get("photoUrl") as string) || undefined;
+                          const status = (formData.get("status") as string) || "active";
                           const artistGroupId = formData.get("groupId") as string;
 
                           if (editTarget?.type === "artist") {
@@ -2470,6 +2474,8 @@ export default function Settings() {
                               lastName,
                               stageName,
                               role,
+                              photoUrl,
+                              status,
                               artistGroupId,
                             });
                           } else {
@@ -2478,6 +2484,8 @@ export default function Settings() {
                               lastName,
                               stageName,
                               role,
+                              photoUrl,
+                              status,
                               artistGroupId,
                             });
                           }
@@ -2527,6 +2535,33 @@ export default function Settings() {
                               defaultValue={editTarget?.type === "artist" ? editTarget.data.role || "" : ""}
                               data-testid="input-artist-role" 
                             />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Photo URL</Label>
+                            <Input 
+                              name="photoUrl" 
+                              placeholder="https://example.com/photo.jpg" 
+                              type="url"
+                              defaultValue={editTarget?.type === "artist" ? editTarget.data.photoUrl || "" : ""}
+                              data-testid="input-artist-photo-url" 
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Status</Label>
+                            <Select 
+                              name="status" 
+                              required
+                              defaultValue={editTarget?.type === "artist" ? editTarget.data.status || "active" : "active"}
+                            >
+                              <SelectTrigger data-testid="select-artist-status">
+                                <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="active">Active</SelectItem>
+                                <SelectItem value="out">Out</SelectItem>
+                                <SelectItem value="long_term_out">Long-Term Out</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                           <div className="space-y-2">
                             <Label>Group</Label>

@@ -1,4 +1,4 @@
-import { FileText, Plus, Settings, ChevronRight } from "lucide-react";
+import { FileText, Plus, Settings, ChevronRight, ClipboardCheck } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -15,6 +15,7 @@ export default function AppSidebar() {
 
   const items = [
     { title: "Reports", icon: FileText, path: "/" },
+    { title: "Attendance", icon: ClipboardCheck, path: "/attendance/dashboard" },
     { title: "Settings", icon: Settings, path: "/settings" },
   ];
 
@@ -26,7 +27,9 @@ export default function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => {
                 const Icon = item.icon;
-                const isActive = location === item.path || (item.path === "/settings" && location.startsWith("/settings"));
+                const isActive = location === item.path || 
+                  (item.path === "/settings" && location.startsWith("/settings")) ||
+                  (item.path === "/attendance/dashboard" && location.startsWith("/attendance"));
                 
                 return (
                   <SidebarMenuItem key={item.title}>

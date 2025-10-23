@@ -12,6 +12,9 @@ import ReportEditor from "@/pages/ReportEditor";
 import Settings from "@/pages/Settings";
 import Profile from "@/pages/Profile";
 import AuthPage from "@/pages/AuthPage";
+import ArtistSignIn from "@/pages/attendance/ArtistSignIn";
+import AttendanceDashboard from "@/pages/attendance/Dashboard";
+import TickSheetPage from "@/pages/attendance/TickSheet";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
@@ -54,6 +57,8 @@ function AuthenticatedApp() {
               <Route path="/" component={ReportsList} />
               <Route path="/new-report" component={ReportEditor} />
               <Route path="/report/:id" component={ReportEditor} />
+              <Route path="/attendance/dashboard" component={AttendanceDashboard} />
+              <Route path="/attendance/tick-sheet" component={TickSheetPage} />
               <Route path="/settings" component={Settings} />
               <Route path="/profile" component={Profile} />
             </Switch>
@@ -72,6 +77,7 @@ export default function App() {
         <TooltipProvider>
           <Switch>
             <Route path="/auth" component={AuthPage} />
+            <Route path="/attendance/sign-in" component={ArtistSignIn} />
             <Route component={AuthenticatedApp} />
           </Switch>
           <Toaster />
