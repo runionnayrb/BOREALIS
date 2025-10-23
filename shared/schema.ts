@@ -167,6 +167,7 @@ export const artists = pgTable("artists", {
   pinCode: text("pin_code"), // Set by artist on first sign-in
   status: text("status").notNull().default('active'), // active, out, long_term_out
   artistGroupId: varchar("artist_group_id").references(() => artistGroups.id),
+  sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
