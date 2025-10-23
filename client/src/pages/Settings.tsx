@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit, Settings as SettingsIcon, Shield } from "lucide-react";
+import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit, Settings as SettingsIcon, Shield, UserCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -2543,16 +2544,29 @@ export default function Settings() {
                           </div>
                           <div className="space-y-2">
                             <Label>Photo</Label>
-                            <div className="flex items-center gap-2">
-                              <PhotoUploader
-                                onUploadComplete={(url) => setUploadedPhotoUrl(url)}
-                                currentPhotoUrl={uploadedPhotoUrl || (editTarget?.type === "artist" ? editTarget.data.photoUrl : null)}
-                              />
+                            <div className="flex items-center gap-4">
                               {(uploadedPhotoUrl || (editTarget?.type === "artist" && editTarget.data.photoUrl)) && (
-                                <span className="text-xs text-muted-foreground">
-                                  Photo {uploadedPhotoUrl ? "uploaded" : "set"}
-                                </span>
+                                <Avatar className="w-16 h-16">
+                                  <AvatarImage 
+                                    src={uploadedPhotoUrl || (editTarget?.type === "artist" ? editTarget.data.photoUrl : undefined)} 
+                                    alt="Artist photo" 
+                                  />
+                                  <AvatarFallback>
+                                    <UserCircle2 className="w-8 h-8" />
+                                  </AvatarFallback>
+                                </Avatar>
                               )}
+                              <div className="flex flex-col gap-2">
+                                <PhotoUploader
+                                  onUploadComplete={(url) => setUploadedPhotoUrl(url)}
+                                  currentPhotoUrl={uploadedPhotoUrl || (editTarget?.type === "artist" ? editTarget.data.photoUrl : null)}
+                                />
+                                {(uploadedPhotoUrl || (editTarget?.type === "artist" && editTarget.data.photoUrl)) && (
+                                  <span className="text-xs text-muted-foreground">
+                                    Photo {uploadedPhotoUrl ? "uploaded" : "set"}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             <input type="hidden" name="photoUrl" value={uploadedPhotoUrl || (editTarget?.type === "artist" ? editTarget.data.photoUrl || "" : "")} />
                           </div>
