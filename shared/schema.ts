@@ -152,6 +152,10 @@ export const insertArtistGroupSchema = createInsertSchema(artistGroups).omit({
 export type InsertArtistGroup = z.infer<typeof insertArtistGroupSchema>;
 export type ArtistGroup = typeof artistGroups.$inferSelect;
 
+// Artist status types
+export const artistStatuses = ['active', 'out', 'long_term_out'] as const;
+export type ArtistStatus = typeof artistStatuses[number];
+
 // Artists
 export const artists = pgTable("artists", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -159,6 +163,9 @@ export const artists = pgTable("artists", {
   lastName: text("last_name").notNull(),
   stageName: text("stage_name"),
   role: text("role"),
+  photoUrl: text("photo_url"),
+  pinCode: text("pin_code"), // Set by artist on first sign-in
+  status: text("status").notNull().default('active'), // active, out, long_term_out
   artistGroupId: varchar("artist_group_id").references(() => artistGroups.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -419,3 +426,62 @@ export const insertTrainingArtistSchema = createInsertSchema(trainingArtists).om
 
 export type InsertTrainingArtist = z.infer<typeof insertTrainingArtistSchema>;
 export type TrainingArtist = typeof trainingArtists.$inferSelect;
+
+// Attendance Records
+export const attendanceRecords = pgTable("attendance_records", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  artistId: varchar("artist_id").notNull().references(() => artists.id),
+  date: text("date").notNull(), // YYYY-MM-DD format
+  signInTime: timestamp("sign_in_time"),
+  signOutTime: timestamp("sign_out_time"),
+  signedInBy: varchar("signed_in_by").references(() => users.id), // null if artist self-signed
+  signedOutBy: varchar("signed_out_by").references(() => users.id), // null if artist self-signed
+  signInLatitude: text("sign_in_latitude"), // Geolocation check
+  signInLongitude: text("sign_in_longitude"),
+  signOutLatitude: text("sign_out_latitude"),
+  signOutLongitude: text("sign_out_longitude"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertAttendanceRecordSchema = createInsertSchema(attendanceRecords).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertAttendanceRecord = z.infer<typeof insertAttendanceRecordSchema>;
+export type AttendanceRecord = typeof attendanceRecords.$inferSelect;
+
+// Tick Sheets (for meeting attendance)
+export const tickSheets = pgTable("tick_sheets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(), // e.g., "Morning Briefing"
+  isActive: integer("is_active").notNull().default(1), // 1 = current, 0 = archived
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  resetAt: timestamp("reset_at"), // Last time it was reset
+});
+
+export const insertTickSheetSchema = createInsertSchema(tickSheets).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertTickSheet = z.infer<typeof insertTickSheetSchema>;
+export type TickSheet = typeof tickSheets.$inferSelect;
+
+// Tick Sheet Marks (which artists are checked off)
+export const tickSheetMarks = pgTable("tick_sheet_marks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tickSheetId: varchar("tick_sheet_id").notNull().references(() => tickSheets.id, { onDelete: "cascade" }),
+  artistId: varchar("artist_id").notNull().references(() => artists.id),
+  markedBy: varchar("marked_by").references(() => users.id),
+  markedAt: timestamp("marked_at").notNull().defaultNow(),
+});
+
+export const insertTickSheetMarkSchema = createInsertSchema(tickSheetMarks).omit({
+  id: true,
+  markedAt: true,
+});
+
+export type InsertTickSheetMark = z.infer<typeof insertTickSheetMarkSchema>;
+export type TickSheetMark = typeof tickSheetMarks.$inferSelect;
