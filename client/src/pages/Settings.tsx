@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import ReportHeader from "@/components/ReportHeader";
+import { PhotoUploader } from "@/components/PhotoUploader";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -61,6 +62,7 @@ export default function Settings() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ type: string; id: string } | null>(null);
   const [editTarget, setEditTarget] = useState<{ type: string; id: string; data: any } | null>(null);
+  const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(null);
   
   // Admin password dialog for user deletion
   const [adminPasswordDialogOpen, setAdminPasswordDialogOpen] = useState(false);
@@ -2445,7 +2447,10 @@ export default function Settings() {
                       open={artistDialogOpen} 
                       onOpenChange={(open) => {
                         setArtistDialogOpen(open);
-                        if (!open) setEditTarget(null);
+                        if (!open) {
+                          setEditTarget(null);
+                          setUploadedPhotoUrl(null);
+                        }
                       }}
                     >
                       <DialogTrigger asChild>
@@ -2537,14 +2542,19 @@ export default function Settings() {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label>Photo URL</Label>
-                            <Input 
-                              name="photoUrl" 
-                              placeholder="https://example.com/photo.jpg" 
-                              type="url"
-                              defaultValue={editTarget?.type === "artist" ? editTarget.data.photoUrl || "" : ""}
-                              data-testid="input-artist-photo-url" 
-                            />
+                            <Label>Photo</Label>
+                            <div className="flex items-center gap-2">
+                              <PhotoUploader
+                                onUploadComplete={(url) => setUploadedPhotoUrl(url)}
+                                currentPhotoUrl={uploadedPhotoUrl || (editTarget?.type === "artist" ? editTarget.data.photoUrl : null)}
+                              />
+                              {(uploadedPhotoUrl || (editTarget?.type === "artist" && editTarget.data.photoUrl)) && (
+                                <span className="text-xs text-muted-foreground">
+                                  Photo {uploadedPhotoUrl ? "uploaded" : "set"}
+                                </span>
+                              )}
+                            </div>
+                            <input type="hidden" name="photoUrl" value={uploadedPhotoUrl || (editTarget?.type === "artist" ? editTarget.data.photoUrl || "" : "")} />
                           </div>
                           <div className="space-y-2">
                             <Label>Status</Label>

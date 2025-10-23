@@ -8,7 +8,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, UserCircle2, CheckCircle, XCircle, LogOut, Calendar } from "lucide-react";
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks } from "date-fns";
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, getWeek } from "date-fns";
 import type { Artist } from "@shared/schema";
 
 interface AttendanceRecord {
@@ -117,8 +117,10 @@ export default function AttendanceDashboard() {
     };
   }, []);
 
-  const signedInArtists = todayStatus.filter(s => s.isSignedIn);
-  const signedOutArtists = todayStatus.filter(s => !s.isSignedIn);
+  const signedInArtists = todayStatus.filter(s => s.isSignedIn && s.artist.status === "active");
+  const signedOutArtists = todayStatus.filter(s => !s.isSignedIn && s.artist.status === "active");
+  const outArtists = todayStatus.filter(s => s.artist.status === "out");
+  const longTermOutArtists = todayStatus.filter(s => s.artist.status === "long_term_out");
 
   const handlePreviousWeek = () => {
     setCurrentWeekStart(prev => subWeeks(prev, 1));
@@ -160,7 +162,7 @@ export default function AttendanceDashboard() {
         </TabsList>
 
         <TabsContent value="today" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Signed In</CardTitle>
@@ -180,6 +182,28 @@ export default function AttendanceDashboard() {
               <CardContent>
                 <div className="text-2xl font-bold" data-testid="text-signed-out-count">{signedOutArtists.length}</div>
                 <p className="text-xs text-muted-foreground">Not on site</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">OUT</CardTitle>
+                <XCircle className="w-4 h-4 text-orange-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold" data-testid="text-out-count">{outArtists.length}</div>
+                <p className="text-xs text-muted-foreground">Temporarily unavailable</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Long-Term OUT</CardTitle>
+                <XCircle className="w-4 h-4 text-red-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold" data-testid="text-long-term-out-count">{longTermOutArtists.length}</div>
+                <p className="text-xs text-muted-foreground">Extended absence</p>
               </CardContent>
             </Card>
           </div>
@@ -273,6 +297,74 @@ export default function AttendanceDashboard() {
               </CardContent>
             </Card>
           </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>OUT Artists</CardTitle>
+                <CardDescription>{outArtists.length} artists temporarily unavailable</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {outArtists.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No artists marked as OUT</p>
+                ) : (
+                  outArtists.map(status => (
+                    <div
+                      key={status.artist.id}
+                      data-testid={`row-out-${status.artist.id}`}
+                      className="flex items-center gap-3 p-3 rounded-md bg-orange-500/10 border border-orange-500/20"
+                    >
+                      <Avatar className="w-10 h-10">
+                        {status.artist.photoUrl ? (
+                          <AvatarImage src={status.artist.photoUrl} alt={getArtistDisplayName(status.artist)} />
+                        ) : null}
+                        <AvatarFallback>
+                          <UserCircle2 className="w-6 h-6" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium text-sm">{getArtistDisplayName(status.artist)}</p>
+                        <p className="text-xs text-muted-foreground">Temporarily unavailable</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Long-Term OUT Artists</CardTitle>
+                <CardDescription>{longTermOutArtists.length} artists on extended absence</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {longTermOutArtists.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No artists marked as Long-Term OUT</p>
+                ) : (
+                  longTermOutArtists.map(status => (
+                    <div
+                      key={status.artist.id}
+                      data-testid={`row-long-term-out-${status.artist.id}`}
+                      className="flex items-center gap-3 p-3 rounded-md bg-red-500/10 border border-red-500/20"
+                    >
+                      <Avatar className="w-10 h-10">
+                        {status.artist.photoUrl ? (
+                          <AvatarImage src={status.artist.photoUrl} alt={getArtistDisplayName(status.artist)} />
+                        ) : null}
+                        <AvatarFallback>
+                          <UserCircle2 className="w-6 h-6" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium text-sm">{getArtistDisplayName(status.artist)}</p>
+                        <p className="text-xs text-muted-foreground">Extended absence</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="week" className="space-y-6">
@@ -282,7 +374,7 @@ export default function AttendanceDashboard() {
                 <div>
                   <CardTitle>Weekly Attendance</CardTitle>
                   <CardDescription>
-                    {format(currentWeekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
+                    Week {getWeek(currentWeekStart)}: {format(currentWeekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">

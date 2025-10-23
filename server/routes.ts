@@ -10,6 +10,7 @@ import { setupWebSocket, broadcastAttendanceUpdate, broadcastArtistStatusUpdate,
 import { isWithinVenue, getDistanceFromVenue } from "./geofencing";
 import { insertAttendanceRecordSchema, insertTickSheetSchema, insertTickSheetMarkSchema } from "@shared/schema";
 import { requireRole } from "./middleware/roleAuth";
+import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import {
   insertSceneSchema,
   insertActSchema,
@@ -184,6 +185,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     await storage.deleteUser(req.params.id);
     res.sendStatus(204);
+  });
+
+  // Artist photo upload routes
+  app.post("/api/photos/upload", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error("Error getting upload URL:", error);
+      res.status(500).json({ error: "Failed to get upload URL" });
+    }
+  });
+
+  app.get("/objects/:objectPath(*)", async (req, res) => {
+    const objectStorageService = new ObjectStorageService();
+    try {
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error fetching object:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.sendStatus(404);
+      }
+      return res.sendStatus(500);
+    }
   });
 
   // Scenes routes
@@ -553,6 +582,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
     }
+    
+    // Normalize photo URL if it's a full GCS URL
+    if (validation.data.photoUrl) {
+      const objectStorageService = new ObjectStorageService();
+      validation.data.photoUrl = objectStorageService.normalizeObjectEntityPath(validation.data.photoUrl);
+    }
+    
     const artist = await storage.createArtist(validation.data);
     res.json(artist);
   });
@@ -563,6 +599,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
     }
+    
+    // Normalize photo URL if it's a full GCS URL
+    if (validation.data.photoUrl) {
+      const objectStorageService = new ObjectStorageService();
+      validation.data.photoUrl = objectStorageService.normalizeObjectEntityPath(validation.data.photoUrl);
+    }
+    
     const artist = await storage.updateArtist(req.params.id, validation.data);
     if (!artist) return res.sendStatus(404);
     res.json(artist);
