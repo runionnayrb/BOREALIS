@@ -146,7 +146,7 @@ export default function AttendanceDashboard() {
     <div className="container mx-auto p-4 md:p-8 max-w-7xl">
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Attendance Dashboard</h1>
-        <p className="text-muted-foreground">Monitor artist attendance in real-time</p>
+        <p className="text-muted-foreground">{format(new Date(), 'EEEE, MMMM d, yyyy')}</p>
       </div>
 
       <Tabs defaultValue="today" className="space-y-6">
