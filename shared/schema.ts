@@ -472,6 +472,26 @@ export const insertAttendanceRecordSchema = createInsertSchema(attendanceRecords
 export type InsertAttendanceRecord = z.infer<typeof insertAttendanceRecordSchema>;
 export type AttendanceRecord = typeof attendanceRecords.$inferSelect;
 
+// Geofence Sessions (for hysteresis logic)
+export const geofenceSessions = pgTable("geofence_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  artistId: varchar("artist_id").notNull().references(() => artists.id),
+  isInside: integer("is_inside").notNull().default(0), // 0 = outside, 1 = inside
+  lastCheckedAt: timestamp("last_checked_at").notNull().defaultNow(),
+  lastLatitude: text("last_latitude"),
+  lastLongitude: text("last_longitude"),
+  lastAccuracy: text("last_accuracy"), // in meters
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertGeofenceSessionSchema = createInsertSchema(geofenceSessions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertGeofenceSession = z.infer<typeof insertGeofenceSessionSchema>;
+export type GeofenceSession = typeof geofenceSessions.$inferSelect;
+
 // Tick Sheets (for meeting attendance)
 export const tickSheets = pgTable("tick_sheets", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
