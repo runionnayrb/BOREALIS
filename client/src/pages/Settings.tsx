@@ -2947,6 +2947,95 @@ export default function Settings() {
               <h2 className="text-lg font-semibold">User Management</h2>
               <div className="flex items-center gap-2">
                 <Dialog
+                  open={userGroupDialogOpen}
+                  onOpenChange={(open) => {
+                    setUserGroupDialogOpen(open);
+                    if (!open) setEditTarget(null);
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" data-testid="button-user-groups">
+                      User Groups
+                    </Button>
+                  </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Manage User Groups</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.currentTarget);
+                        const name = formData.get("name") as string;
+                        
+                        if (editTarget?.type === "user-group") {
+                          updateUserGroupMutation.mutate({
+                            id: editTarget.id,
+                            name,
+                            sortOrder: editTarget.data.sortOrder,
+                          });
+                        } else {
+                          createUserGroupMutation.mutate({
+                            name,
+                            sortOrder: userGroups.length,
+                          });
+                        }
+                        e.currentTarget.reset();
+                      }}
+                    >
+                      <div className="flex gap-2">
+                        <Input
+                          id="user-group-name"
+                          name="name"
+                          placeholder="Enter group name"
+                          defaultValue={editTarget?.type === "user-group" ? editTarget.data.name : ""}
+                          required
+                          data-testid="input-user-group-name"
+                        />
+                        <Button 
+                          type="submit"
+                          disabled={createUserGroupMutation.isPending || updateUserGroupMutation.isPending}
+                          data-testid="button-save-user-group"
+                        >
+                          {editTarget?.type === "user-group" ? "Update" : "Add"}
+                        </Button>
+                      </div>
+                    </form>
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                      {userGroups.map((group) => (
+                        <Card key={group.id} className="p-3 flex items-center justify-between" data-testid={`card-user-group-${group.id}`}>
+                          <p className="font-medium">{group.name}</p>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditTarget({ type: "user-group", id: group.id, data: group });
+                              }}
+                              data-testid={`button-edit-user-group-${group.id}`}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setDeleteTarget({ type: "user-group", id: group.id });
+                                setDeleteDialogOpen(true);
+                              }}
+                              data-testid={`button-delete-user-group-${group.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+                <Dialog
                   open={createUserDialogOpen}
                   onOpenChange={setCreateUserDialogOpen}
                 >
@@ -3048,95 +3137,6 @@ export default function Settings() {
                     </form>
                   </DialogContent>
                 </Dialog>
-                <Dialog
-                  open={userGroupDialogOpen}
-                  onOpenChange={(open) => {
-                    setUserGroupDialogOpen(open);
-                    if (!open) setEditTarget(null);
-                  }}
-                >
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" data-testid="button-user-groups">
-                      User Groups
-                    </Button>
-                  </DialogTrigger>
-                <DialogContent className="max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Manage User Groups</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        const formData = new FormData(e.currentTarget);
-                        const name = formData.get("name") as string;
-                        
-                        if (editTarget?.type === "user-group") {
-                          updateUserGroupMutation.mutate({
-                            id: editTarget.id,
-                            name,
-                            sortOrder: editTarget.data.sortOrder,
-                          });
-                        } else {
-                          createUserGroupMutation.mutate({
-                            name,
-                            sortOrder: userGroups.length,
-                          });
-                        }
-                        e.currentTarget.reset();
-                      }}
-                    >
-                      <div className="flex gap-2">
-                        <Input
-                          id="user-group-name"
-                          name="name"
-                          placeholder="Enter group name"
-                          defaultValue={editTarget?.type === "user-group" ? editTarget.data.name : ""}
-                          required
-                          data-testid="input-user-group-name"
-                        />
-                        <Button 
-                          type="submit"
-                          disabled={createUserGroupMutation.isPending || updateUserGroupMutation.isPending}
-                          data-testid="button-save-user-group"
-                        >
-                          {editTarget?.type === "user-group" ? "Update" : "Add"}
-                        </Button>
-                      </div>
-                    </form>
-                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                      {userGroups.map((group) => (
-                        <Card key={group.id} className="p-3 flex items-center justify-between" data-testid={`card-user-group-${group.id}`}>
-                          <p className="font-medium">{group.name}</p>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setEditTarget({ type: "user-group", id: group.id, data: group });
-                              }}
-                              data-testid={`button-edit-user-group-${group.id}`}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setDeleteTarget({ type: "user-group", id: group.id });
-                                setDeleteDialogOpen(true);
-                              }}
-                              data-testid={`button-delete-user-group-${group.id}`}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
               </div>
             </div>
             <div className="space-y-6">
