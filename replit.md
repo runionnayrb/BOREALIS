@@ -4,6 +4,10 @@
 A production-ready full-stack web application designed for theatrical production training management. It enables Stage Managers to create daily training reports with rich text notes, track trainings by various criteria (act, department, artist, location), assign technician leads, and export reports to PDF. The application also features a comprehensive Attendance System with real-time artist sign-in/sign-out using geofencing and PIN codes, meeting tick sheets with live updates, and role-based access control. The project's vision is to streamline and professionalize the administrative tasks associated with managing theatrical training schedules, attendance tracking, and reporting.
 
 ## Recent Changes
+- **2025-10-24**: Added Stage Manager controls for artist PINs and manual attendance:
+  - Added editable PIN field to Artist settings, allowing Stage Managers to view and reset artist 4-digit PINs. PIN field shows contextual placeholder text based on whether artist already has a PIN set.
+  - Added manual Sign In / Sign Out buttons to attendance dashboard for Stage Managers to sign artists in/out without requiring artist PIN. Buttons appear on signed-in and signed-out artist cards respectively.
+  - Manual sign-in/out bypasses geofencing validation (Stage Manager override) and records audit trail via `signedInBy`/`signedOutBy` fields.
 - **2025-10-24**: Fixed attendance dashboard tally display and sign-in page filtering:
   - The `/api/attendance/today` endpoint now returns all artists (including OUT and Long-Term OUT) instead of filtering to only active artists. This allows the dashboard to properly count and display OUT and Long-Term OUT artists in their respective tally cards.
   - The `/api/attendance/artists` endpoint now returns both 'active' and 'long_term_out' artists (but excludes 'out' artists). This allows Long-Term OUT artists to appear on the sign-in page for physio visits, etc., while keeping regular OUT artists hidden.
