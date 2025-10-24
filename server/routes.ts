@@ -885,7 +885,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       validation.data.endDate
     );
     
-    res.json(records);
+    // Get all artists to populate artist data in records
+    const artists = await storage.getAllArtists();
+    const artistMap = new Map(artists.map(a => [a.id, a]));
+    
+    // Generate array of dates in the range (7 days for a week)
+    const dateArray: string[] = [];
+    const start = new Date(validation.data.startDate);
+    const end = new Date(validation.data.endDate);
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      dateArray.push(d.toISOString().split('T')[0]);
+    }
+    
+    // Group records by artist and date
+    const artistRecordsMap = new Map<string, Map<string, typeof records[0]>>();
+    
+    records.forEach(record => {
+      if (!artistRecordsMap.has(record.artistId)) {
+        artistRecordsMap.set(record.artistId, new Map());
+      }
+      artistRecordsMap.get(record.artistId)!.set(record.date, record);
+    });
+    
+    // Build response with artist data, one record per day (null if absent)
+    const weekRecords = artists
+      .filter(artist => artist.status === 'active')
+      .map(artist => {
+        const artistRecords = artistRecordsMap.get(artist.id) || new Map();
+        const records = dateArray.map(date => artistRecords.get(date) || null);
+        
+        return {
+          artist,
+          records,
+        };
+      });
+    
+    res.json(weekRecords);
   });
 
   app.post("/api/attendance/manual-sign-out", requireRole('stage_management', 'admin'), async (req, res) => {
