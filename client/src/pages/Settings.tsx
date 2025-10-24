@@ -78,6 +78,7 @@ export default function Settings() {
   const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<SafeUser | null>(null);
   const [selectedUserGroupId, setSelectedUserGroupId] = useState<string | null>(null);
+  const [userGroupDialogOpen, setUserGroupDialogOpen] = useState(false);
   const [selectedLocationTypeId, setSelectedLocationTypeId] = useState<string | undefined>(undefined);
   const [selectedSceneId, setSelectedSceneId] = useState<string | undefined>(undefined);
   const [selectedDepartmentIds, setSelectedDepartmentIds] = useState<string[]>([]);
@@ -783,6 +784,40 @@ export default function Settings() {
     },
   });
 
+  // User Group mutations
+  const createUserGroupMutation = useMutation({
+    mutationFn: async (data: { name: string; sortOrder: number }) => {
+      return await apiRequest("POST", "/api/user-groups", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user-groups"] });
+      setUserGroupDialogOpen(false);
+      toast({ title: "User group created successfully" });
+    },
+  });
+
+  const updateUserGroupMutation = useMutation({
+    mutationFn: async (data: { id: string; name: string; sortOrder: number }) => {
+      return await apiRequest("PATCH", `/api/user-groups/${data.id}`, { name: data.name, sortOrder: data.sortOrder });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user-groups"] });
+      setUserGroupDialogOpen(false);
+      setEditTarget(null);
+      toast({ title: "User group updated successfully" });
+    },
+  });
+
+  const deleteUserGroupMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/user-groups/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user-groups"] });
+      toast({ title: "User group deleted successfully" });
+    },
+  });
+
   // Report Template mutation
   const saveTemplateMutation = useMutation({
     mutationFn: async () => {
@@ -818,6 +853,7 @@ export default function Settings() {
       "location-type": deleteLocationTypeMutation,
       location: deleteLocationMutation,
       group: deleteGroupMutation,
+      "user-group": deleteUserGroupMutation,
       artist: deleteArtistMutation,
       technician: deleteTechMutation,
     };
@@ -2893,6 +2929,95 @@ export default function Settings() {
           <TabsContent value="users" className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">User Management</h2>
+              <Dialog
+                open={userGroupDialogOpen}
+                onOpenChange={(open) => {
+                  setUserGroupDialogOpen(open);
+                  if (!open) setEditTarget(null);
+                }}
+              >
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" data-testid="button-user-groups">
+                    Groups
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Manage User Groups</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.currentTarget);
+                        const name = formData.get("name") as string;
+                        
+                        if (editTarget?.type === "user-group") {
+                          updateUserGroupMutation.mutate({
+                            id: editTarget.id,
+                            name,
+                            sortOrder: editTarget.data.sortOrder,
+                          });
+                        } else {
+                          createUserGroupMutation.mutate({
+                            name,
+                            sortOrder: userGroups.length,
+                          });
+                        }
+                        e.currentTarget.reset();
+                      }}
+                    >
+                      <div className="flex gap-2">
+                        <Input
+                          id="user-group-name"
+                          name="name"
+                          placeholder="Enter group name"
+                          defaultValue={editTarget?.type === "user-group" ? editTarget.data.name : ""}
+                          required
+                          data-testid="input-user-group-name"
+                        />
+                        <Button 
+                          type="submit"
+                          disabled={createUserGroupMutation.isPending || updateUserGroupMutation.isPending}
+                          data-testid="button-save-user-group"
+                        >
+                          {editTarget?.type === "user-group" ? "Update" : "Add"}
+                        </Button>
+                      </div>
+                    </form>
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                      {userGroups.map((group) => (
+                        <Card key={group.id} className="p-3 flex items-center justify-between" data-testid={`card-user-group-${group.id}`}>
+                          <p className="font-medium">{group.name}</p>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditTarget({ type: "user-group", id: group.id, data: group });
+                              }}
+                              data-testid={`button-edit-user-group-${group.id}`}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setDeleteTarget({ type: "user-group", id: group.id });
+                                setDeleteDialogOpen(true);
+                              }}
+                              data-testid={`button-delete-user-group-${group.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
             <div className="space-y-6">
               {(() => {
