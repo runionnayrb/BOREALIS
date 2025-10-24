@@ -2500,12 +2500,12 @@ export default function Settings() {
                     >
                       <DialogTrigger asChild>
                         <Button variant="outline" size="sm" data-testid="button-groups">
-                          Groups
+                          Artist Groups
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-md">
                         <DialogHeader>
-                          <DialogTitle>Manage Groups</DialogTitle>
+                          <DialogTitle>Manage Artist Groups</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                           <form
@@ -2941,7 +2941,7 @@ export default function Settings() {
               >
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm" data-testid="button-user-groups">
-                    Groups
+                    User Groups
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-md">
