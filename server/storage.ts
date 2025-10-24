@@ -26,7 +26,7 @@ import {
   type TickSheetMark, type InsertTickSheetMark, tickSheetMarks,
 } from "@shared/schema";
 import { db, pool } from "./db";
-import { eq, asc, desc, inArray, and, gte, lte, sql } from "drizzle-orm";
+import { eq, asc, desc, inArray, and, gte, lte } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import type { Store } from "express-session";
@@ -204,8 +204,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    // Case-insensitive email lookup
-    const result = await db.select().from(users).where(sql`LOWER(${users.email}) = LOWER(${email})`);
+    // Note: Expects email to be normalized (lowercased) before calling
+    const result = await db.select().from(users).where(eq(users.email, email));
     return result[0];
   }
 

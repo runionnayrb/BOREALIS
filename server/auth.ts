@@ -50,6 +50,12 @@ export function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      httpOnly: true,
+      secure: false, // Set to false for local development
+      sameSite: 'lax',
+    },
   };
 
   app.set("trust proxy", 1);
@@ -59,12 +65,22 @@ export function setupAuth(app: Express) {
 
   passport.use(
     new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
-      // Normalize email to lowercase for case-insensitive login
-      const user = await storage.getUserByEmail(email.toLowerCase());
-      if (!user || !(await comparePasswords(password, user.password))) {
-        return done(null, false);
-      } else {
-        return done(null, user);
+      try {
+        // Normalize email to lowercase for case-insensitive login
+        const normalizedEmail = email.toLowerCase();
+        console.log('[Auth] Attempting login for email:', normalizedEmail);
+        const user = await storage.getUserByEmail(normalizedEmail);
+        console.log('[Auth] User found:', user ? `${user.email} (${user.id})` : 'NO USER FOUND');
+        if (!user || !(await comparePasswords(password, user.password))) {
+          console.log('[Auth] Login failed: Invalid credentials');
+          return done(null, false);
+        } else {
+          console.log('[Auth] Login successful');
+          return done(null, user);
+        }
+      } catch (error) {
+        console.error('[Auth] Error during login:', error);
+        return done(error);
       }
     }),
   );

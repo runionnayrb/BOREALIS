@@ -59,11 +59,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const formattedData = {
       ...validation.data,
       email: validation.data.email ? validation.data.email.toLowerCase() : undefined,
-      name: toTitleCase(validation.data.name),
-      position: toTitleCase(validation.data.position),
+      name: validation.data.name ? toTitleCase(validation.data.name) : undefined,
+      position: validation.data.position ? toTitleCase(validation.data.position) : undefined,
     };
 
-    // Check if email is being changed and if it's already taken
+    // Check if email is being changed and if it's already taken (email already normalized)
     if (formattedData.email) {
       const existingUser = await storage.getUserByEmail(formattedData.email);
       if (existingUser && existingUser.id !== req.user!.id) {
