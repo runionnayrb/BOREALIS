@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UserCircle2, LogIn, LogOut, MapPin } from "lucide-react";
+import { Loader2, UserCircle2, LogIn, LogOut, MapPin, AlertCircle, CheckCircle2 } from "lucide-react";
 import type { PublicArtist, ArtistGroup } from "@shared/schema";
 import logoPath from "@assets/LaPerle-logo-basic_1760100706441.png";
+import { getBestGPSReading, formatAccuracy, getGeolocationErrorMessage, type GPSReading } from "@/lib/geolocation";
 
 interface AttendanceRecord {
   artistId: string;
@@ -29,7 +31,10 @@ export default function ArtistSignIn() {
   const [selectedArtist, setSelectedArtist] = useState<PublicArtist | null>(null);
   const [pin, setPin] = useState("");
   const [isGettingLocation, setIsGettingLocation] = useState(false);
-  const [geolocation, setGeolocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [geolocation, setGeolocation] = useState<GPSReading | null>(null);
+  const [locationProgress, setLocationProgress] = useState("");
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [showFallback, setShowFallback] = useState(false);
   const { toast } = useToast();
 
   const { data: artists = [], isLoading } = useQuery<PublicArtist[]>({
@@ -40,17 +45,17 @@ export default function ArtistSignIn() {
     queryKey: ["/api/attendance/artist-groups"],
   });
 
-  // Backend already filters to active and long_term_out artists
   const availableArtists = artists;
 
   const signInMutation = useMutation({
-    mutationFn: async ({ artistId, pinCode, latitude, longitude }: {
+    mutationFn: async ({ artistId, pinCode, latitude, longitude, accuracy }: {
       artistId: string;
       pinCode: string;
       latitude: number;
       longitude: number;
+      accuracy: number;
     }) => {
-      return apiRequest("POST", "/api/attendance/sign-in", { artistId, pinCode, latitude, longitude });
+      return apiRequest("POST", "/api/attendance/sign-in", { artistId, pinCode, latitude, longitude, accuracy });
     },
     onSuccess: () => {
       toast({
@@ -60,22 +65,29 @@ export default function ArtistSignIn() {
       handleClose();
     },
     onError: (error: any) => {
+      const errorMessage = error.message || "Invalid PIN or location.";
       toast({
         title: "Sign In Failed",
-        description: error.message || "Invalid PIN or location.",
+        description: errorMessage,
         variant: "destructive",
       });
+      
+      // If GPS accuracy is mentioned in the error, show fallback
+      if (errorMessage.includes("accuracy") || errorMessage.includes("signal")) {
+        setShowFallback(true);
+      }
     },
   });
 
   const signOutMutation = useMutation({
-    mutationFn: async ({ artistId, pinCode, latitude, longitude }: {
+    mutationFn: async ({ artistId, pinCode, latitude, longitude, accuracy }: {
       artistId: string;
       pinCode: string;
       latitude: number;
       longitude: number;
+      accuracy: number;
     }) => {
-      return apiRequest("POST", "/api/attendance/sign-out", { artistId, pinCode, latitude, longitude });
+      return apiRequest("POST", "/api/attendance/sign-out", { artistId, pinCode, latitude, longitude, accuracy });
     },
     onSuccess: () => {
       toast({
@@ -104,35 +116,48 @@ export default function ArtistSignIn() {
     setSelectedArtist(artist);
     setPin("");
     setIsGettingLocation(true);
+    setLocationError(null);
+    setShowFallback(false);
+    setLocationProgress("Requesting location access...");
 
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setGeolocation({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-          setIsGettingLocation(false);
-        },
-        (error) => {
-          console.error("Geolocation error:", error);
-          toast({
-            title: "Location Error",
-            description: "Unable to get your location. Please enable location services.",
-            variant: "destructive",
-          });
-          setIsGettingLocation(false);
-          setSelectedArtist(null);
+    if (!("geolocation" in navigator)) {
+      setLocationError("Your browser doesn't support geolocation.");
+      setIsGettingLocation(false);
+      setShowFallback(true);
+      return;
+    }
+
+    try {
+      // Take multiple GPS readings and select the best one
+      const reading = await getBestGPSReading(
+        3, // Take 3 readings
+        10000, // 10 second timeout
+        (reading, readingNumber, total) => {
+          setLocationProgress(`Getting location reading ${readingNumber} of ${total}... (accuracy: ${formatAccuracy(reading.accuracy)})`);
         }
       );
-    } else {
+
+      setGeolocation(reading);
+      setIsGettingLocation(false);
+      
+      // Show warning if accuracy is not great
+      if (reading.accuracy > 50) {
+        setLocationProgress(`Location acquired with ${formatAccuracy(reading.accuracy)} accuracy`);
+        setShowFallback(true);
+      } else {
+        setLocationProgress(`Location acquired with ${formatAccuracy(reading.accuracy)} accuracy`);
+      }
+    } catch (error: any) {
+      const errorMessage = getGeolocationErrorMessage(error);
+      setLocationError(errorMessage);
+      setIsGettingLocation(false);
+      setShowFallback(true);
+      
       toast({
-        title: "Location Not Supported",
-        description: "Your browser doesn't support geolocation.",
+        title: "Location Error",
+        description: errorMessage,
         variant: "destructive",
       });
-      setIsGettingLocation(false);
-      setSelectedArtist(null);
     }
   };
 
@@ -150,6 +175,9 @@ export default function ArtistSignIn() {
     setSelectedArtist(null);
     setPin("");
     setGeolocation(null);
+    setLocationError(null);
+    setLocationProgress("");
+    setShowFallback(false);
     queryClient.invalidateQueries({ queryKey: ["/api/attendance/status"] });
   };
 
@@ -162,6 +190,7 @@ export default function ArtistSignIn() {
         pinCode: pin,
         latitude: geolocation.latitude,
         longitude: geolocation.longitude,
+        accuracy: geolocation.accuracy,
       });
     } else {
       signInMutation.mutate({
@@ -169,6 +198,7 @@ export default function ArtistSignIn() {
         pinCode: pin,
         latitude: geolocation.latitude,
         longitude: geolocation.longitude,
+        accuracy: geolocation.accuracy,
       });
     }
   };
@@ -187,7 +217,6 @@ export default function ArtistSignIn() {
     );
   }
 
-  // Group artists by artist group
   const ungroupedArtists = availableArtists.filter(a => !a.artistGroupId);
   
   return (
@@ -209,7 +238,6 @@ export default function ArtistSignIn() {
           </Card>
         ) : (
           <div className="space-y-8">
-            {/* Ungrouped artists */}
             {ungroupedArtists.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-4">
@@ -239,7 +267,6 @@ export default function ArtistSignIn() {
               </div>
             )}
 
-            {/* Grouped artists */}
             {artistGroups.map((group) => {
               const groupArtists = availableArtists.filter(a => a.artistGroupId === group.id);
               if (groupArtists.length === 0) return null;
@@ -295,7 +322,17 @@ export default function ArtistSignIn() {
               {isGettingLocation ? (
                 <span className="flex items-center gap-2">
                   <MapPin className="w-4 h-4" />
-                  Getting your location...
+                  {locationProgress}
+                </span>
+              ) : locationError ? (
+                <span className="flex items-center gap-2 text-destructive">
+                  <AlertCircle className="w-4 h-4" />
+                  Location unavailable
+                </span>
+              ) : geolocation ? (
+                <span className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-600" />
+                  {locationProgress || `Location verified (${formatAccuracy(geolocation.accuracy)})`}
                 </span>
               ) : (
                 <>
@@ -316,11 +353,54 @@ export default function ArtistSignIn() {
           </DialogHeader>
 
           {isGettingLocation ? (
-            <div className="flex items-center justify-center py-8">
+            <div className="flex flex-col items-center justify-center py-8 gap-4">
               <Loader2 className="h-8 w-8 animate-spin text-border" />
+              <p className="text-sm text-muted-foreground text-center">{locationProgress}</p>
+            </div>
+          ) : locationError ? (
+            <div className="space-y-4">
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{locationError}</AlertDescription>
+              </Alert>
+              {showFallback && (
+                <Alert>
+                  <AlertDescription className="text-sm">
+                    <strong>Troubleshooting tips:</strong>
+                    <ul className="list-disc ml-4 mt-2 space-y-1">
+                      <li>Move near a window for better GPS signal</li>
+                      <li>Check that location services are enabled</li>
+                      <li>Try refreshing the page</li>
+                      <li>Contact a stage manager if issues persist</li>
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => {
+                  if (selectedArtist) {
+                    handleArtistSelect(selectedArtist);
+                  }
+                }}
+                data-testid="button-retry-location"
+              >
+                Try Again
+              </Button>
             </div>
           ) : (
             <>
+              {showFallback && geolocation && geolocation.accuracy > 50 && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="text-sm">
+                    GPS accuracy is lower than ideal ({formatAccuracy(geolocation.accuracy)}). 
+                    For best results, move near a window or closer to the center of the venue.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <div className="flex justify-center gap-3 mb-6">
                 {[0, 1, 2, 3].map((i) => (
                   <div
@@ -341,7 +421,7 @@ export default function ArtistSignIn() {
                     size="lg"
                     className="h-16 text-2xl"
                     onClick={() => handlePinInput(digit.toString())}
-                    disabled={signInMutation.isPending || signOutMutation.isPending || pin.length >= 4}
+                    disabled={signInMutation.isPending || signOutMutation.isPending || pin.length >= 4 || !geolocation}
                     data-testid={`button-pin-${digit}`}
                   >
                     {digit}
@@ -362,7 +442,7 @@ export default function ArtistSignIn() {
                   size="lg"
                   className="h-16 text-2xl"
                   onClick={() => handlePinInput("0")}
-                  disabled={signInMutation.isPending || signOutMutation.isPending || pin.length >= 4}
+                  disabled={signInMutation.isPending || signOutMutation.isPending || pin.length >= 4 || !geolocation}
                   data-testid="button-pin-0"
                 >
                   0
