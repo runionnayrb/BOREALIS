@@ -23,6 +23,7 @@ import {
   type DepartmentAssignment, type InsertDepartmentAssignment, departmentAssignments,
   type TrainingArtist, type InsertTrainingArtist, trainingArtists,
   type AttendanceRecord, type InsertAttendanceRecord, attendanceRecords,
+  type GeofenceSession, type InsertGeofenceSession, geofenceSessions,
   type TickSheet, type InsertTickSheet, tickSheets,
   type TickSheetMark, type InsertTickSheetMark, tickSheetMarks,
 } from "@shared/schema";
@@ -177,6 +178,10 @@ export interface IStorage {
   getAttendanceRecordsByArtist(artistId: string, startDate?: string, endDate?: string): Promise<AttendanceRecord[]>;
   createAttendanceRecord(record: InsertAttendanceRecord): Promise<AttendanceRecord>;
   updateAttendanceRecord(id: string, updates: Partial<InsertAttendanceRecord>): Promise<AttendanceRecord | undefined>;
+  
+  // Geofence Sessions
+  getGeofenceSession(artistId: string): Promise<GeofenceSession | undefined>;
+  upsertGeofenceSession(session: InsertGeofenceSession): Promise<GeofenceSession>;
   
   // Tick Sheets
   getAllTickSheets(): Promise<TickSheet[]>;
@@ -809,6 +814,42 @@ export class DatabaseStorage implements IStorage {
       .where(eq(attendanceRecords.id, id))
       .returning();
     return result[0];
+  }
+
+  // Geofence Sessions
+  async getGeofenceSession(artistId: string): Promise<GeofenceSession | undefined> {
+    const result = await db
+      .select()
+      .from(geofenceSessions)
+      .where(eq(geofenceSessions.artistId, artistId))
+      .orderBy(desc(geofenceSessions.lastCheckedAt))
+      .limit(1);
+    return result[0];
+  }
+
+  async upsertGeofenceSession(session: InsertGeofenceSession): Promise<GeofenceSession> {
+    // Check if session exists for this artist
+    const existing = await this.getGeofenceSession(session.artistId);
+    
+    if (existing) {
+      // Update existing session
+      const result = await db
+        .update(geofenceSessions)
+        .set({
+          isInside: session.isInside,
+          lastCheckedAt: new Date(),
+          lastLatitude: session.lastLatitude,
+          lastLongitude: session.lastLongitude,
+          lastAccuracy: session.lastAccuracy,
+        })
+        .where(eq(geofenceSessions.id, existing.id))
+        .returning();
+      return result[0];
+    } else {
+      // Create new session
+      const result = await db.insert(geofenceSessions).values(session).returning();
+      return result[0];
+    }
   }
 
   // Tick Sheets
