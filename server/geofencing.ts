@@ -22,6 +22,18 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 export function isWithinVenue(latitude: number, longitude: number): boolean {
+  // In development mode, bypass geofencing for testing purposes
+  if (process.env.NODE_ENV === 'development') {
+    const distance = haversineDistance(
+      latitude,
+      longitude,
+      LA_PERLE_LATITUDE,
+      LA_PERLE_LONGITUDE
+    );
+    console.log(`[DEV MODE] Geofencing bypassed. Distance from venue: ${Math.round(distance)}m`);
+    return true;
+  }
+
   const distance = haversineDistance(
     latitude,
     longitude,

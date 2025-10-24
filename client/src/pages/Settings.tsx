@@ -1811,7 +1811,7 @@ export default function Settings() {
                                             if (checked) {
                                               setSelectedSceneArtistGroupIds([...selectedSceneArtistGroupIds, group.id]);
                                               const groupArtistIds = groupArtists.map(a => a.id);
-                                              setSelectedSceneArtistIds([...new Set([...selectedSceneArtistIds, ...groupArtistIds])]);
+                                              setSelectedSceneArtistIds(Array.from(new Set([...selectedSceneArtistIds, ...groupArtistIds])));
                                             } else {
                                               setSelectedSceneArtistGroupIds(selectedSceneArtistGroupIds.filter(id => id !== group.id));
                                               const groupArtistIds = groupArtists.map(a => a.id);
@@ -2123,7 +2123,7 @@ export default function Settings() {
                                             // Add artist group and all its artists
                                             setSelectedArtistGroupIds([...selectedArtistGroupIds, group.id]);
                                             const groupArtistIds = groupArtists.map(a => a.id);
-                                            setSelectedArtistIds([...new Set([...selectedArtistIds, ...groupArtistIds])]);
+                                            setSelectedArtistIds(Array.from(new Set([...selectedArtistIds, ...groupArtistIds])));
                                           } else {
                                             // Remove artist group and all its artists
                                             setSelectedArtistGroupIds(selectedArtistGroupIds.filter(id => id !== group.id));
