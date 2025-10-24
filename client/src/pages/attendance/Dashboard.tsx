@@ -138,10 +138,21 @@ export default function AttendanceDashboard() {
     };
   }, []);
 
-  const signedInArtists = todayStatus.filter(s => s.isSignedIn && s.artist.status === "active");
-  const signedOutArtists = todayStatus.filter(s => !s.isSignedIn && s.artist.status === "active");
-  const outArtists = todayStatus.filter(s => s.artist.status === "out");
-  const longTermOutArtists = todayStatus.filter(s => s.artist.status === "long_term_out");
+  const signedInArtists = todayStatus
+    .filter(s => s.isSignedIn && s.artist.status === "active")
+    .sort((a, b) => getArtistDisplayName(a.artist).localeCompare(getArtistDisplayName(b.artist)));
+  
+  const signedOutArtists = todayStatus
+    .filter(s => !s.isSignedIn && s.artist.status === "active")
+    .sort((a, b) => getArtistDisplayName(a.artist).localeCompare(getArtistDisplayName(b.artist)));
+  
+  const outArtists = todayStatus
+    .filter(s => s.artist.status === "out")
+    .sort((a, b) => getArtistDisplayName(a.artist).localeCompare(getArtistDisplayName(b.artist)));
+  
+  const longTermOutArtists = todayStatus
+    .filter(s => s.artist.status === "long_term_out")
+    .sort((a, b) => getArtistDisplayName(a.artist).localeCompare(getArtistDisplayName(b.artist)));
 
   const handlePreviousWeek = () => {
     setCurrentWeekStart(prev => subWeeks(prev, 1));
@@ -445,6 +456,7 @@ export default function AttendanceDashboard() {
                     <tbody>
                       {weekRecords
                         .filter(weekRecord => weekRecord?.artist?.id)
+                        .sort((a, b) => getArtistDisplayName(a.artist).localeCompare(getArtistDisplayName(b.artist)))
                         .map(weekRecord => (
                         <tr key={weekRecord.artist.id} className="border-b" data-testid={`row-week-${weekRecord.artist.id}`}>
                           <td className="p-2">
