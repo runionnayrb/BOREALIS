@@ -42,6 +42,7 @@ import { PhotoUploader } from "@/components/PhotoUploader";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import type { 
   Scene, Act, Department, LocationType, Location, ArtistGroup, Artist, Technician, ReportTemplate, SafeUser, UserGroup
 } from "@shared/schema";
@@ -98,6 +99,10 @@ export default function Settings() {
   const [orderedArtists, setOrderedArtists] = useState<Artist[]>([]);
 
   const { toast} = useToast();
+  const { user } = useAuth();
+  
+  // Check if user is a stage manager or admin
+  const isStageManager = user?.role === 'stage_management' || user?.role === 'admin';
 
   // Fetch all settings data
   const { data: scenes = [] } = useQuery<Scene[]>({ queryKey: ["/api/scenes"] });
@@ -2946,7 +2951,7 @@ export default function Settings() {
           <TabsContent value="users" className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">User Management</h2>
-              <div className="flex items-center gap-2">
+              {isStageManager && <div className="flex items-center gap-2">
                 <Dialog
                   open={userGroupDialogOpen}
                   onOpenChange={(open) => {
@@ -3138,7 +3143,7 @@ export default function Settings() {
                     </form>
                   </DialogContent>
                 </Dialog>
-              </div>
+              </div>}
             </div>
             <div className="space-y-6">
               {(() => {
@@ -3194,6 +3199,7 @@ export default function Settings() {
                               <span className={`px-3 py-1 rounded-full text-sm ${user.active === 1 ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
                                 {user.active === 1 ? 'Active' : 'Inactive'}
                               </span>
+                              {isStageManager && <>
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -3232,6 +3238,7 @@ export default function Settings() {
                               >
                                 <Trash2 className="w-4 h-4 text-destructive" />
                               </Button>
+                              </>}
                             </div>
                           </div>
                         </Card>

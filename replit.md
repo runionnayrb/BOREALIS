@@ -45,13 +45,14 @@ A production-ready full-stack web application for theatrical production training
 - **Profile Management**: Update user details and password.
 - **Settings Management**: Full CRUD operations for all entities (scenes, acts, departments, locations, artists, technicians, report template).
     - **Artist Ordering**: Drag-and-drop reordering for artists using `@dnd-kit` with persistent `sortOrder`.
-- **User Management**: (Stage managers and admins only)
-    - **Create Users**: Stage managers can create new user accounts with name, email, position, password, and optional user group assignment. All fields automatically formatted (title case for names/positions, lowercase for emails).
-    - **Edit Users**: Stage managers can update user profiles including name, email, position, and user group (previously read-only fields now editable).
-    - **User Status Control**: Manage active/inactive status of users.
-    - **User Groups**: Organize users into groups with full CRUD. Users displayed grouped alphabetically by their user group.
-    - **User Deletion**: Requires admin password confirmation (username: "admin", password: "laperleSM2025!"), prevents self-deletion and deletion of users who have created/modified reports.
-    - **Role-Based Access Control**: All user management endpoints protected with requireRole(['stage_management', 'admin']) middleware.
+- **User Management**:
+    - **View Users**: All authenticated users can view the user list and user groups.
+    - **Create Users**: (Stage managers and admins only) Create new user accounts with name, email, position, password, and optional user group assignment. All fields automatically formatted (title case for names/positions, lowercase for emails).
+    - **Edit Users**: (Stage managers and admins only) Update user profiles including name, email, position, and user group (previously read-only fields now editable).
+    - **User Status Control**: (Stage managers and admins only) Manage active/inactive status of users.
+    - **User Groups**: (Stage managers and admins only) Create, edit, and delete user groups. All users can view groups. Users displayed grouped alphabetically by their user group.
+    - **User Deletion**: (Stage managers and admins only) Requires admin password confirmation (username: "admin", password: "laperleSM2025!"), prevents self-deletion and deletion of users who have created/modified reports.
+    - **Role-Based Access Control**: Create, edit, and delete operations require 'stage_management' or 'admin' role. View operations available to all authenticated users.
 - **Hierarchical Organization**: Consistent parent-child structures for Scenes → Acts, Location Types → Locations, and Artist Groups → Artists.
 - **Reports & Trainings**:
     - CRUD for reports and trainings with audit trails.
