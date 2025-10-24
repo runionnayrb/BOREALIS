@@ -684,9 +684,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Attendance routes
   app.get("/api/attendance/artists", async (req, res) => {
     const artists = await storage.getAllArtists();
-    const activeArtists = artists.filter(a => a.status === 'active');
+    // Include active and long_term_out artists (long_term_out can sign in for physio, etc.)
+    const availableArtists = artists.filter(a => a.status === 'active' || a.status === 'long_term_out');
     // Return only public fields, excluding sensitive data like pinCode
-    const publicArtists = activeArtists.map(({ pinCode, role, createdAt, ...publicFields }) => publicFields);
+    const publicArtists = availableArtists.map(({ pinCode, role, createdAt, ...publicFields }) => publicFields);
     res.json(publicArtists);
   });
 

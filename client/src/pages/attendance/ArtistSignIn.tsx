@@ -40,7 +40,8 @@ export default function ArtistSignIn() {
     queryKey: ["/api/attendance/artist-groups"],
   });
 
-  const activeArtists = artists.filter(a => a.status === 'active');
+  // Backend already filters to active and long_term_out artists
+  const availableArtists = artists;
 
   const signInMutation = useMutation({
     mutationFn: async ({ artistId, pinCode, latitude, longitude }: {
@@ -187,7 +188,7 @@ export default function ArtistSignIn() {
   }
 
   // Group artists by artist group
-  const ungroupedArtists = activeArtists.filter(a => !a.artistGroupId);
+  const ungroupedArtists = availableArtists.filter(a => !a.artistGroupId);
   
   return (
     <div className="min-h-screen bg-white p-4 md:p-8">
@@ -201,10 +202,10 @@ export default function ArtistSignIn() {
           <p className="text-gray-600">Tap your photo to sign in or out</p>
         </div>
 
-        {activeArtists.length === 0 ? (
+        {availableArtists.length === 0 ? (
           <Card className="p-12 text-center">
             <UserCircle2 className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">No active artists available</p>
+            <p className="text-muted-foreground">No artists available for sign-in</p>
           </Card>
         ) : (
           <div className="space-y-8">
@@ -240,7 +241,7 @@ export default function ArtistSignIn() {
 
             {/* Grouped artists */}
             {artistGroups.map((group) => {
-              const groupArtists = activeArtists.filter(a => a.artistGroupId === group.id);
+              const groupArtists = availableArtists.filter(a => a.artistGroupId === group.id);
               if (groupArtists.length === 0) return null;
 
               return (
