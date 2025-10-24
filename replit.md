@@ -4,6 +4,11 @@
 A production-ready full-stack web application designed for theatrical production training management. It enables Stage Managers to create daily training reports with rich text notes, track trainings by various criteria (act, department, artist, location), assign technician leads, and export reports to PDF. The application also features a comprehensive Attendance System with real-time artist sign-in/sign-out using geofencing and PIN codes, meeting tick sheets with live updates, and role-based access control. The project's vision is to streamline and professionalize the administrative tasks associated with managing theatrical training schedules, attendance tracking, and reporting.
 
 ## Recent Changes
+- **2025-10-24**: Implemented user groups functionality for organizing users:
+  - Added `user_groups` table with full CRUD operations for creating, updating, and deleting user groups.
+  - Added `userGroupId` field to `users` table to support user group assignment.
+  - Created edit user modal in Settings page with dropdown for selecting user group assignment.
+  - Modified user management UI to display users grouped alphabetically by their user group, with unassigned users shown in a "No Group" section at the end.
 - **2025-10-24**: Added Stage Manager controls for artist PINs and manual attendance:
   - Added editable PIN field to Artist settings, allowing Stage Managers to view and reset artist 4-digit PINs. PIN field shows contextual placeholder text based on whether artist already has a PIN set.
   - Added manual Sign In / Sign Out buttons to attendance dashboard for Stage Managers to sign artists in/out without requiring artist PIN. Buttons appear on signed-in and signed-out artist cards respectively.
@@ -61,6 +66,7 @@ The application is a full-stack web application with a clear separation between 
     - **Artist Ordering**: Drag-and-drop reordering for artists in Settings using @dnd-kit. Artists maintain their custom order persistently via sortOrder field, preventing order changes during updates. Optimistic UI updates ensure smooth drag experience.
 - **User Management**: 
     - Control active/inactive status of users
+    - **User Groups**: Organize users into groups for better management. Full CRUD operations for user groups with edit modal for assigning users to groups. User list displays users grouped alphabetically by their user group, with unassigned users in a "No Group" section.
     - **User Deletion with Admin Authentication**: Delete users with admin password confirmation dialog. Requires admin credentials (username: "admin", password: "laperleSM2025!"). Prevents self-deletion and deletion of users who have created or modified reports.
 - **Hierarchical Organization**: Consistent parent-child structures for Scenes → Acts, Location Types → Locations, and Artist Groups → Artists.
 - **Reports & Trainings**:
