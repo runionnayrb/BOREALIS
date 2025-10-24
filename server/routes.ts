@@ -131,9 +131,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(sanitizedUsers);
   });
 
+  const createUserSchema = z.object({
+    name: z.string().min(1),
+    email: z.string().email(),
+    position: z.string().min(1),
+    password: z.string().min(6),
+    userGroupId: z.string().nullable().optional(),
+  });
+
+  app.post("/api/users/create", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const validation = createUserSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: "Validation failed",
+        details: validation.error.issues,
+      });
+    }
+
+    // Normalize formatting: lowercase email, title case for names/positions
+    const formattedData = {
+      email: validation.data.email.toLowerCase(),
+      name: toTitleCase(validation.data.name),
+      position: toTitleCase(validation.data.position),
+      password: validation.data.password,
+      userGroupId: validation.data.userGroupId,
+    };
+
+    // Check if email already exists
+    const existingUser = await storage.getUserByEmail(formattedData.email);
+    if (existingUser) {
+      return res.status(400).send("Email already in use");
+    }
+
+    // Hash password
+    const hashedPassword = await hashPassword(formattedData.password);
+
+    // Create user with default values (using type assertion for additional fields not in InsertUser)
+    const newUser = await storage.createUser({
+      email: formattedData.email,
+      name: formattedData.name,
+      position: formattedData.position,
+      password: hashedPassword,
+      role: "stage_management",
+    } as any);
+
+    // Update user with additional fields that aren't in InsertUser schema
+    const updatedUser = await storage.updateUser(newUser.id, {
+      userGroupId: formattedData.userGroupId || null,
+    });
+
+    res.status(201).json(sanitizeUser(updatedUser!));
+  });
+
   const updateUserSchema = z.object({
     active: z.number().min(0).max(1).optional(),
     userGroupId: z.string().nullable().optional(),
+    name: z.string().optional(),
+    email: z.string().email().optional(),
+    position: z.string().optional(),
   });
 
   app.patch("/api/users/:id", async (req, res) => {
@@ -147,7 +204,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
 
-    const updated = await storage.updateUser(req.params.id, validation.data);
+    // Normalize formatting: lowercase email, title case for names/positions
+    const formattedData = {
+      ...validation.data,
+      email: validation.data.email ? validation.data.email.toLowerCase() : undefined,
+      name: validation.data.name ? toTitleCase(validation.data.name) : undefined,
+      position: validation.data.position ? toTitleCase(validation.data.position) : undefined,
+    };
+
+    // Check if email is being changed and if it's already taken
+    if (formattedData.email) {
+      const existingUser = await storage.getUserByEmail(formattedData.email);
+      if (existingUser && existingUser.id !== req.params.id) {
+        return res.status(400).send("Email already in use");
+      }
+    }
+
+    const updated = await storage.updateUser(req.params.id, formattedData);
     if (!updated) {
       return res.status(404).send("User not found");
     }

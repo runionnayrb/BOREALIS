@@ -79,6 +79,7 @@ export default function Settings() {
   const [userToEdit, setUserToEdit] = useState<SafeUser | null>(null);
   const [selectedUserGroupId, setSelectedUserGroupId] = useState<string | null>(null);
   const [userGroupDialogOpen, setUserGroupDialogOpen] = useState(false);
+  const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
   const [selectedLocationTypeId, setSelectedLocationTypeId] = useState<string | undefined>(undefined);
   const [selectedSceneId, setSelectedSceneId] = useState<string | undefined>(undefined);
   const [selectedDepartmentIds, setSelectedDepartmentIds] = useState<string[]>([]);
@@ -734,9 +735,21 @@ export default function Settings() {
     },
   });
 
+  // User create mutation
+  const createUserMutation = useMutation({
+    mutationFn: async (data: { name: string; email: string; position: string; password: string; userGroupId?: string | null }) => {
+      return await apiRequest("POST", "/api/users/create", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({ title: "User created successfully" });
+      setCreateUserDialogOpen(false);
+    },
+  });
+
   // User update mutation
   const updateUserMutation = useMutation({
-    mutationFn: async (data: { id: string; active?: number; userGroupId?: string | null }) => {
+    mutationFn: async (data: { id: string; active?: number; userGroupId?: string | null; name?: string; email?: string; position?: string }) => {
       return await apiRequest("PATCH", `/api/users/${data.id}`, data);
     },
     onSuccess: () => {
@@ -2932,18 +2945,121 @@ export default function Settings() {
           <TabsContent value="users" className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">User Management</h2>
-              <Dialog
-                open={userGroupDialogOpen}
-                onOpenChange={(open) => {
-                  setUserGroupDialogOpen(open);
-                  if (!open) setEditTarget(null);
-                }}
-              >
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" data-testid="button-user-groups">
-                    User Groups
-                  </Button>
-                </DialogTrigger>
+              <div className="flex items-center gap-2">
+                <Dialog
+                  open={createUserDialogOpen}
+                  onOpenChange={setCreateUserDialogOpen}
+                >
+                  <DialogTrigger asChild>
+                    <Button data-testid="button-create-user">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create User
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.currentTarget);
+                        const name = formData.get("name") as string;
+                        const email = formData.get("email") as string;
+                        const position = formData.get("position") as string;
+                        const password = formData.get("password") as string;
+                        const userGroupId = formData.get("userGroupId") as string;
+
+                        createUserMutation.mutate({
+                          name,
+                          email,
+                          position,
+                          password,
+                          userGroupId: userGroupId || null,
+                        });
+                      }}
+                    >
+                      <DialogHeader>
+                        <DialogTitle>Create New User</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label>Name</Label>
+                          <Input 
+                            name="name" 
+                            placeholder="Full name" 
+                            required
+                            data-testid="input-create-user-name" 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Email</Label>
+                          <Input 
+                            name="email" 
+                            type="email"
+                            placeholder="email@example.com" 
+                            required
+                            data-testid="input-create-user-email" 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Position</Label>
+                          <Input 
+                            name="position" 
+                            placeholder="Position/Role" 
+                            required
+                            data-testid="input-create-user-position" 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Password</Label>
+                          <Input 
+                            name="password" 
+                            type="password"
+                            placeholder="Minimum 6 characters" 
+                            required
+                            minLength={6}
+                            data-testid="input-create-user-password" 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>User Group (Optional)</Label>
+                          <Select name="userGroupId">
+                            <SelectTrigger data-testid="select-create-user-group">
+                              <SelectValue placeholder="No group" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">No Group</SelectItem>
+                              {userGroups.map((group) => (
+                                <SelectItem key={group.id} value={group.id}>
+                                  {group.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button 
+                          type="submit" 
+                          disabled={createUserMutation.isPending}
+                          data-testid="button-save-create-user"
+                        >
+                          {createUserMutation.isPending ? "Creating..." : "Create User"}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+                <Dialog
+                  open={userGroupDialogOpen}
+                  onOpenChange={(open) => {
+                    setUserGroupDialogOpen(open);
+                    if (!open) setEditTarget(null);
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" data-testid="button-user-groups">
+                      User Groups
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle>Manage User Groups</DialogTitle>
@@ -3021,6 +3137,7 @@ export default function Settings() {
                   </div>
                 </DialogContent>
               </Dialog>
+              </div>
             </div>
             <div className="space-y-6">
               {(() => {
@@ -3213,67 +3330,103 @@ export default function Settings() {
 
       <Dialog open={editUserDialogOpen} onOpenChange={setEditUserDialogOpen}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Name</Label>
-              <p className="text-sm" data-testid="text-edit-user-name">{userToEdit?.name || "Unnamed User"}</p>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!userToEdit) return;
+
+              const formData = new FormData(e.currentTarget);
+              const name = formData.get("name") as string;
+              const email = formData.get("email") as string;
+              const position = formData.get("position") as string;
+
+              updateUserMutation.mutate({
+                id: userToEdit.id,
+                name,
+                email,
+                position,
+                userGroupId: selectedUserGroupId,
+              });
+            }}
+          >
+            <DialogHeader>
+              <DialogTitle>Edit User</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <Input 
+                  name="name" 
+                  placeholder="Full name" 
+                  required
+                  defaultValue={userToEdit?.name || ""}
+                  data-testid="input-edit-user-name" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input 
+                  name="email" 
+                  type="email"
+                  placeholder="email@example.com" 
+                  required
+                  defaultValue={userToEdit?.email || ""}
+                  data-testid="input-edit-user-email" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Position</Label>
+                <Input 
+                  name="position" 
+                  placeholder="Position/Role" 
+                  required
+                  defaultValue={userToEdit?.position || ""}
+                  data-testid="input-edit-user-position" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="user-group-select">User Group</Label>
+                <Select
+                  value={selectedUserGroupId || "none"}
+                  onValueChange={(value) => setSelectedUserGroupId(value === "none" ? null : value)}
+                >
+                  <SelectTrigger id="user-group-select" data-testid="select-user-group">
+                    <SelectValue placeholder="Select user group" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Group</SelectItem>
+                    {userGroups
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((group) => (
+                        <SelectItem key={group.id} value={group.id}>
+                          {group.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <p className="text-sm text-muted-foreground" data-testid="text-edit-user-email">{userToEdit?.email}</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="user-group-select">User Group</Label>
-              <Select
-                value={selectedUserGroupId || "none"}
-                onValueChange={(value) => setSelectedUserGroupId(value === "none" ? null : value)}
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setEditUserDialogOpen(false);
+                  setUserToEdit(null);
+                  setSelectedUserGroupId(null);
+                }}
+                data-testid="button-cancel-edit-user"
               >
-                <SelectTrigger id="user-group-select" data-testid="select-user-group">
-                  <SelectValue placeholder="Select user group" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No Group</SelectItem>
-                  {userGroups
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((group) => (
-                      <SelectItem key={group.id} value={group.id}>
-                        {group.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setEditUserDialogOpen(false);
-                setUserToEdit(null);
-                setSelectedUserGroupId(null);
-              }}
-              data-testid="button-cancel-edit-user"
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={() => {
-                if (userToEdit) {
-                  updateUserMutation.mutate({
-                    id: userToEdit.id,
-                    userGroupId: selectedUserGroupId,
-                  });
-                }
-              }}
-              disabled={updateUserMutation.isPending}
-              data-testid="button-save-edit-user"
-            >
-              {updateUserMutation.isPending ? "Saving..." : "Save"}
-            </Button>
-          </DialogFooter>
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                disabled={updateUserMutation.isPending}
+                data-testid="button-save-edit-user"
+              >
+                {updateUserMutation.isPending ? "Saving..." : "Save"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
