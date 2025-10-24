@@ -3062,7 +3062,7 @@ export default function Settings() {
                           email,
                           position,
                           password,
-                          userGroupId: userGroupId || null,
+                          userGroupId: userGroupId === "none" ? null : userGroupId,
                         });
                       }}
                     >
@@ -3111,12 +3111,12 @@ export default function Settings() {
                         </div>
                         <div className="space-y-2">
                           <Label>User Group (Optional)</Label>
-                          <Select name="userGroupId">
+                          <Select name="userGroupId" defaultValue="none">
                             <SelectTrigger data-testid="select-create-user-group">
                               <SelectValue placeholder="No group" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">No Group</SelectItem>
+                              <SelectItem value="none">No Group</SelectItem>
                               {userGroups.map((group) => (
                                 <SelectItem key={group.id} value={group.id}>
                                   {group.name}
