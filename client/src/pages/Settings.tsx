@@ -791,6 +791,7 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user-groups"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       setUserGroupDialogOpen(false);
       toast({ title: "User group created successfully" });
     },
@@ -802,6 +803,7 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user-groups"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       setUserGroupDialogOpen(false);
       setEditTarget(null);
       toast({ title: "User group updated successfully" });
@@ -814,6 +816,7 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user-groups"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       toast({ title: "User group deleted successfully" });
     },
   });
