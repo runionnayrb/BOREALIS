@@ -7,6 +7,10 @@ A production-ready full-stack web application designed for theatrical production
 - **2025-10-24**: Fixed attendance dashboard tally display and sign-in page filtering:
   - The `/api/attendance/today` endpoint now returns all artists (including OUT and Long-Term OUT) instead of filtering to only active artists. This allows the dashboard to properly count and display OUT and Long-Term OUT artists in their respective tally cards.
   - The `/api/attendance/artists` endpoint now returns both 'active' and 'long_term_out' artists (but excludes 'out' artists). This allows Long-Term OUT artists to appear on the sign-in page for physio visits, etc., while keeping regular OUT artists hidden.
+- **2025-10-24**: Implemented automatic data formatting for user registration and profile updates:
+  - Names and positions are automatically converted to title case (e.g., "bryan runion" → "Bryan Runion").
+  - Email addresses are automatically converted to lowercase (e.g., "Bryan.Runion@LaPerle.com" → "bryan.runion@laperle.com").
+  - Email lookups are case-insensitive using SQL LOWER() function, preserving authentication for existing users with mixed-case emails.
 
 ## User Preferences
 - All Stage Managers see the same interface (no user-based filtering).
