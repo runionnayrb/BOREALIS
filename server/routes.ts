@@ -851,13 +851,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     const attendanceMap = new Map(records.map(r => [r.artistId, r]));
     
-    const statusList = artists
-      .filter(a => a.status === 'active')
-      .map(artist => ({
-        artist,
-        record: attendanceMap.get(artist.id) || null,
-        isSignedIn: attendanceMap.get(artist.id)?.signInTime && !attendanceMap.get(artist.id)?.signOutTime,
-      }));
+    const statusList = artists.map(artist => ({
+      artist,
+      record: attendanceMap.get(artist.id) || null,
+      isSignedIn: attendanceMap.get(artist.id)?.signInTime && !attendanceMap.get(artist.id)?.signOutTime,
+    }));
     
     res.json(statusList);
   });
