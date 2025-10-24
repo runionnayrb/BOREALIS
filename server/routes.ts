@@ -930,6 +930,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ success: true, record: updatedRecord });
   });
 
+  app.post("/api/attendance/manual-sign-in", requireRole('stage_management', 'admin'), async (req, res) => {
+    
+    const validation = z.object({
+      artistId: z.string(),
+    }).safeParse(req.body);
+    
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+
+    const artist = await storage.getArtist(validation.data.artistId);
+    if (!artist) {
+      return res.status(404).json({ error: "Artist not found" });
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const existingRecord = await storage.getAttendanceRecord(validation.data.artistId, today);
+
+    if (existingRecord?.signInTime && !existingRecord.signOutTime) {
+      return res.status(400).json({ error: "Artist is already signed in" });
+    }
+
+    let record;
+    if (existingRecord && existingRecord.signOutTime) {
+      // Re-sign in after being signed out
+      record = await storage.updateAttendanceRecord(existingRecord.id, {
+        signInTime: new Date(),
+        signedInBy: req.user!.id,
+        signOutTime: null,
+        signedOutBy: null,
+      });
+    } else {
+      // First sign-in of the day
+      record = await storage.createAttendanceRecord({
+        artistId: validation.data.artistId,
+        date: today,
+        signInTime: new Date(),
+        signedInBy: req.user!.id,
+      });
+    }
+
+    if (record) {
+      broadcastAttendanceUpdate({
+        record,
+        artist,
+        action: "sign_in",
+      });
+    }
+
+    res.json({ success: true, record });
+  });
+
   app.patch("/api/artists/:id/status", requireRole('stage_management', 'admin'), async (req, res) => {
     
     const validation = z.object({

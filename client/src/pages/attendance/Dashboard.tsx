@@ -82,6 +82,27 @@ export default function AttendanceDashboard() {
     },
   });
 
+  const manualSignInMutation = useMutation({
+    mutationFn: async (artistId: string) => {
+      return apiRequest("POST", "/api/attendance/manual-sign-in", { artistId });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Signed In",
+        description: "Artist has been manually signed in.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/attendance/today"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/attendance/week"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to sign in artist.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // WebSocket connection for real-time updates
   useEffect(() => {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -271,26 +292,38 @@ export default function AttendanceDashboard() {
                     <div
                       key={status.artist.id}
                       data-testid={`row-signed-out-${status.artist.id}`}
-                      className="flex items-center gap-3 p-3 rounded-md bg-muted/50"
+                      className="flex items-center justify-between p-3 rounded-md bg-muted/50"
                     >
-                      <Avatar className="w-10 h-10">
-                        {status.artist.photoUrl ? (
-                          <AvatarImage src={status.artist.photoUrl} alt={getArtistDisplayName(status.artist)} />
-                        ) : null}
-                        <AvatarFallback>
-                          <UserCircle2 className="w-6 h-6" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium text-sm">{getArtistDisplayName(status.artist)}</p>
-                        {status.record?.signOutTime ? (
-                          <p className="text-xs text-muted-foreground">
-                            Signed out at {new Date(status.record.signOutTime).toLocaleTimeString()}
-                          </p>
-                        ) : (
-                          <p className="text-xs text-muted-foreground">Not signed in today</p>
-                        )}
+                      <div className="flex items-center gap-3">
+                        <Avatar className="w-10 h-10">
+                          {status.artist.photoUrl ? (
+                            <AvatarImage src={status.artist.photoUrl} alt={getArtistDisplayName(status.artist)} />
+                          ) : null}
+                          <AvatarFallback>
+                            <UserCircle2 className="w-6 h-6" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-sm">{getArtistDisplayName(status.artist)}</p>
+                          {status.record?.signOutTime ? (
+                            <p className="text-xs text-muted-foreground">
+                              Signed out at {new Date(status.record.signOutTime).toLocaleTimeString()}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">Not signed in today</p>
+                          )}
+                        </div>
                       </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => manualSignInMutation.mutate(status.artist.id)}
+                        disabled={manualSignInMutation.isPending}
+                        data-testid={`button-sign-in-${status.artist.id}`}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Sign In
+                      </Button>
                     </div>
                   ))
                 )}

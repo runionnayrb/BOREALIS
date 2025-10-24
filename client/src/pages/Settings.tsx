@@ -457,7 +457,7 @@ export default function Settings() {
   });
 
   const createArtistMutation = useMutation({
-    mutationFn: async (data: { firstName: string; lastName: string; stageName?: string; role?: string; photoUrl?: string; status?: string; artistGroupId?: string }) => {
+    mutationFn: async (data: { firstName: string; lastName: string; stageName?: string; role?: string; photoUrl?: string; status?: string; artistGroupId?: string; pinCode?: string }) => {
       return await apiRequest("POST", "/api/artists", data);
     },
     onSuccess: () => {
@@ -585,7 +585,7 @@ export default function Settings() {
   });
 
   const updateArtistMutation = useMutation({
-    mutationFn: async (data: { id: string; firstName: string; lastName: string; stageName?: string; role?: string; photoUrl?: string; status?: string; artistGroupId?: string }) => {
+    mutationFn: async (data: { id: string; firstName: string; lastName: string; stageName?: string; role?: string; photoUrl?: string; status?: string; artistGroupId?: string; pinCode?: string }) => {
       return await apiRequest("PATCH", `/api/artists/${data.id}`, {
         firstName: data.firstName,
         lastName: data.lastName,
@@ -594,6 +594,7 @@ export default function Settings() {
         photoUrl: data.photoUrl,
         status: data.status,
         artistGroupId: data.artistGroupId,
+        pinCode: data.pinCode,
       });
     },
     onSuccess: () => {
@@ -2559,6 +2560,7 @@ export default function Settings() {
                           const photoUrl = (formData.get("photoUrl") as string) || undefined;
                           const status = (formData.get("status") as string) || "active";
                           const artistGroupId = formData.get("groupId") as string;
+                          const pinCode = (formData.get("pinCode") as string) || undefined;
 
                           if (editTarget?.type === "artist") {
                             updateArtistMutation.mutate({
@@ -2570,6 +2572,7 @@ export default function Settings() {
                               photoUrl,
                               status,
                               artistGroupId,
+                              pinCode,
                             });
                           } else {
                             createArtistMutation.mutate({
@@ -2580,6 +2583,7 @@ export default function Settings() {
                               photoUrl,
                               status,
                               artistGroupId,
+                              pinCode,
                             });
                           }
                         }}
@@ -2692,6 +2696,22 @@ export default function Settings() {
                                 ))}
                               </SelectContent>
                             </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>PIN Code (4 digits)</Label>
+                            <Input 
+                              name="pinCode" 
+                              placeholder="Enter 4-digit PIN" 
+                              pattern="[0-9]{4}"
+                              maxLength={4}
+                              defaultValue={editTarget?.type === "artist" ? editTarget.data.pinCode || "" : ""}
+                              data-testid="input-artist-pin" 
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              {editTarget?.type === "artist" && editTarget.data.pinCode 
+                                ? "Leave blank to keep current PIN" 
+                                : "Artist will set their own PIN on first sign-in if left blank"}
+                            </p>
                           </div>
                         </div>
                         <DialogFooter>
