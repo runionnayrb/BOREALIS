@@ -139,7 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     userGroupId: z.string().nullable().optional(),
   });
 
-  app.post("/api/users/create", requireRole(['stage_management', 'admin']), async (req, res) => {
+  app.post("/api/users/create", requireRole('stage_management', 'admin'), async (req, res) => {
 
     const validation = createUserSchema.safeParse(req.body);
     if (!validation.success) {
@@ -192,7 +192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     position: z.string().optional(),
   });
 
-  app.patch("/api/users/:id", requireRole(['stage_management', 'admin']), async (req, res) => {
+  app.patch("/api/users/:id", requireRole('stage_management', 'admin'), async (req, res) => {
 
     const validation = updateUserSchema.safeParse(req.body);
     if (!validation.success) {
@@ -231,7 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     adminPassword: z.string(),
   });
 
-  app.delete("/api/users/:id", requireRole(['stage_management', 'admin']), async (req, res) => {
+  app.delete("/api/users/:id", requireRole('stage_management', 'admin'), async (req, res) => {
 
     const validation = deleteUserSchema.safeParse(req.body);
     if (!validation.success) {
@@ -622,7 +622,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(groups);
   });
 
-  app.post("/api/user-groups", requireRole(['stage_management', 'admin']), async (req, res) => {
+  app.post("/api/user-groups", requireRole('stage_management', 'admin'), async (req, res) => {
     const validation = insertUserGroupSchema.safeParse(req.body);
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
@@ -631,7 +631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(group);
   });
 
-  app.patch("/api/user-groups/:id", requireRole(['stage_management', 'admin']), async (req, res) => {
+  app.patch("/api/user-groups/:id", requireRole('stage_management', 'admin'), async (req, res) => {
     const validation = insertUserGroupSchema.partial().safeParse(req.body);
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
@@ -641,7 +641,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(group);
   });
 
-  app.delete("/api/user-groups/:id", requireRole(['stage_management', 'admin']), async (req, res) => {
+  app.delete("/api/user-groups/:id", requireRole('stage_management', 'admin'), async (req, res) => {
     await storage.deleteUserGroup(req.params.id);
     res.sendStatus(204);
   });
