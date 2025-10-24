@@ -7,7 +7,7 @@ import { db } from "./db";
 import { trainings, actDepartments, departmentAssignments, technicians, technicianDepartments } from "@shared/schema";
 import { asc, eq } from "drizzle-orm";
 import { setupWebSocket, broadcastAttendanceUpdate, broadcastArtistStatusUpdate, broadcastTickSheetUpdate } from "./websocket";
-import { isWithinVenue, getDistanceFromVenue } from "./geofencing";
+import { isWithinVenue, getDistanceFromVenue, validateGeofence } from "./geofencing";
 import { insertAttendanceRecordSchema, insertTickSheetSchema, insertTickSheetMarkSchema } from "@shared/schema";
 import { requireRole } from "./middleware/roleAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
@@ -839,6 +839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       pinCode: z.string().length(4),
       latitude: z.number(),
       longitude: z.number(),
+      accuracy: z.number().optional().default(100), // GPS accuracy in meters
     }).safeParse(req.body);
     
     if (!validation.success) {
@@ -854,14 +855,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ error: "Invalid PIN" });
     }
 
-    if (!isWithinVenue(validation.data.latitude, validation.data.longitude)) {
-      const distance = Math.round(getDistanceFromVenue(validation.data.latitude, validation.data.longitude));
+    // Get existing geofence session for hysteresis
+    const session = await storage.getGeofenceSession(validation.data.artistId);
+
+    // Validate geofence with accuracy and hysteresis
+    const geofenceResult = validateGeofence(
+      validation.data.latitude,
+      validation.data.longitude,
+      validation.data.accuracy,
+      session
+    );
+
+    if (!geofenceResult.isInside) {
       return res.status(403).json({ 
         error: "Not at venue", 
-        message: `You must be at La Perle to sign in. You are ${distance}m away.`,
-        distance 
+        message: geofenceResult.message,
+        distance: geofenceResult.distanceToEdge,
+        accuracy: Math.round(validation.data.accuracy),
       });
     }
+
+    // Update geofence session
+    await storage.upsertGeofenceSession({
+      artistId: validation.data.artistId,
+      isInside: 1,
+      lastCheckedAt: new Date(),
+      lastLatitude: validation.data.latitude.toString(),
+      lastLongitude: validation.data.longitude.toString(),
+      lastAccuracy: validation.data.accuracy.toString(),
+    });
 
     const today = new Date().toISOString().split('T')[0];
     const existingRecord = await storage.getAttendanceRecord(validation.data.artistId, today);
