@@ -110,7 +110,8 @@ export default function Settings() {
   const artists = artistsQuery.data || [];
   const { data: technicians = [] } = useQuery<Technician[]>({ queryKey: ["/api/technicians"] });
   const { data: reportTemplate } = useQuery<ReportTemplate | null>({ queryKey: ["/api/report-template"] });
-  const { data: users = [] } = useQuery<SafeUser[]>({ queryKey: ["/api/users"] });
+  const usersQuery = useQuery<SafeUser[]>({ queryKey: ["/api/users"] });
+  const users = usersQuery.data || [];
   const { data: userGroups = [] } = useQuery<UserGroup[]>({ queryKey: ["/api/user-groups"] });
   
   // Fetch all technician-department assignments for grouping
@@ -3239,9 +3240,24 @@ export default function Settings() {
                   );
                 });
               })()}
-              {users.length === 0 && (
+              {usersQuery.isLoading && (
                 <Card className="p-8 text-center">
-                  <p className="text-muted-foreground">No users found</p>
+                  <p className="text-muted-foreground">Loading users...</p>
+                </Card>
+              )}
+              {usersQuery.isError && (
+                <Card className="p-8 text-center bg-destructive/10">
+                  <p className="text-destructive font-medium mb-2">Unable to load users</p>
+                  <p className="text-sm text-muted-foreground">
+                    {usersQuery.error instanceof Error && usersQuery.error.message.includes('403') 
+                      ? 'You do not have permission to view users. Please log in as a stage manager or admin.'
+                      : 'An error occurred while loading users. Please try refreshing the page.'}
+                  </p>
+                </Card>
+              )}
+              {!usersQuery.isLoading && !usersQuery.isError && users.length === 0 && (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">No users found. Click "Create User" to add one.</p>
                 </Card>
               )}
             </div>
