@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, sanitizeUser, hashPassword } from "./auth";
+import { setupAuth, sanitizeUser, hashPassword, toTitleCase } from "./auth";
 import { z } from "zod";
 import { db } from "./db";
 import { trainings, actDepartments, departmentAssignments, technicians, technicianDepartments } from "@shared/schema";
@@ -55,15 +55,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
 
+    // Normalize formatting: lowercase email, title case for names
+    const formattedData = {
+      ...validation.data,
+      email: validation.data.email ? validation.data.email.toLowerCase() : undefined,
+      name: toTitleCase(validation.data.name),
+      position: toTitleCase(validation.data.position),
+    };
+
     // Check if email is being changed and if it's already taken
-    if (validation.data.email) {
-      const existingUser = await storage.getUserByEmail(validation.data.email);
+    if (formattedData.email) {
+      const existingUser = await storage.getUserByEmail(formattedData.email);
       if (existingUser && existingUser.id !== req.user!.id) {
         return res.status(400).send("Email already in use");
       }
     }
 
-    const updated = await storage.updateUser(req.user!.id, validation.data);
+    const updated = await storage.updateUser(req.user!.id, formattedData);
     if (!updated) {
       return res.status(404).send("User not found");
     }

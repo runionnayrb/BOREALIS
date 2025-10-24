@@ -15,6 +15,16 @@ declare global {
 
 const scryptAsync = promisify(scrypt);
 
+// Format name to title case (e.g., "bryan runion" -> "Bryan Runion")
+export function toTitleCase(str: string | null | undefined): string | undefined {
+  if (!str) return undefined;
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
 // Safe serializer to remove sensitive fields before sending to client
 export function sanitizeUser(user: SelectUser) {
   const { password, resetToken, resetTokenExpiry, ...safeUser } = user;
@@ -49,7 +59,8 @@ export function setupAuth(app: Express) {
 
   passport.use(
     new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
-      const user = await storage.getUserByEmail(email);
+      // Normalize email to lowercase for case-insensitive login
+      const user = await storage.getUserByEmail(email.toLowerCase());
       if (!user || !(await comparePasswords(password, user.password))) {
         return done(null, false);
       } else {
@@ -74,13 +85,21 @@ export function setupAuth(app: Express) {
       });
     }
 
-    const existingEmail = await storage.getUserByEmail(validation.data.email);
+    // Normalize formatting: lowercase email, title case for names
+    const formattedData = {
+      ...validation.data,
+      email: validation.data.email.toLowerCase(),
+      name: toTitleCase(validation.data.name),
+      position: toTitleCase(validation.data.position),
+    };
+
+    const existingEmail = await storage.getUserByEmail(formattedData.email);
     if (existingEmail) {
       return res.status(400).send("Email already exists");
     }
 
     const user = await storage.createUser({
-      ...validation.data,
+      ...formattedData,
       password: await hashPassword(validation.data.password),
     });
 
