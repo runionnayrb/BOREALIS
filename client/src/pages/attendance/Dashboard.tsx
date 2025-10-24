@@ -443,7 +443,9 @@ export default function AttendanceDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {weekRecords.map(weekRecord => (
+                      {weekRecords
+                        .filter(weekRecord => weekRecord?.artist?.id)
+                        .map(weekRecord => (
                         <tr key={weekRecord.artist.id} className="border-b" data-testid={`row-week-${weekRecord.artist.id}`}>
                           <td className="p-2">
                             <div className="flex items-center gap-2">
