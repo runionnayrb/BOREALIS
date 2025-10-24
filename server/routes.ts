@@ -124,8 +124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User management routes
-  app.get("/api/users", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/users", requireRole(['stage_management', 'admin']), async (req, res) => {
     const allUsers = await storage.getAllUsers();
     const sanitizedUsers = allUsers.map(sanitizeUser);
     res.json(sanitizedUsers);
@@ -139,8 +138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     userGroupId: z.string().nullable().optional(),
   });
 
-  app.post("/api/users/create", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.post("/api/users/create", requireRole(['stage_management', 'admin']), async (req, res) => {
 
     const validation = createUserSchema.safeParse(req.body);
     if (!validation.success) {
@@ -193,8 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     position: z.string().optional(),
   });
 
-  app.patch("/api/users/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.patch("/api/users/:id", requireRole(['stage_management', 'admin']), async (req, res) => {
 
     const validation = updateUserSchema.safeParse(req.body);
     if (!validation.success) {
@@ -233,8 +230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     adminPassword: z.string(),
   });
 
-  app.delete("/api/users/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.delete("/api/users/:id", requireRole(['stage_management', 'admin']), async (req, res) => {
 
     const validation = deleteUserSchema.safeParse(req.body);
     if (!validation.success) {
