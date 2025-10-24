@@ -17,6 +17,7 @@ import {
   insertDepartmentSchema,
   insertLocationTypeSchema,
   insertLocationSchema,
+  insertUserGroupSchema,
   insertArtistGroupSchema,
   insertArtistSchema,
   insertTechnicianSchema,
@@ -131,7 +132,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const updateUserSchema = z.object({
-    active: z.number().min(0).max(1),
+    active: z.number().min(0).max(1).optional(),
+    userGroupId: z.string().nullable().optional(),
   });
 
   app.patch("/api/users/:id", async (req, res) => {
@@ -540,6 +542,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/locations/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     await storage.deleteLocation(req.params.id);
+    res.sendStatus(204);
+  });
+
+  // User Groups routes
+  app.get("/api/user-groups", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const groups = await storage.getAllUserGroups();
+    res.json(groups);
+  });
+
+  app.post("/api/user-groups", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const validation = insertUserGroupSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const group = await storage.createUserGroup(validation.data);
+    res.json(group);
+  });
+
+  app.patch("/api/user-groups/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const validation = insertUserGroupSchema.partial().safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const group = await storage.updateUserGroup(req.params.id, validation.data);
+    if (!group) return res.sendStatus(404);
+    res.json(group);
+  });
+
+  app.delete("/api/user-groups/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    await storage.deleteUserGroup(req.params.id);
     res.sendStatus(204);
   });
 

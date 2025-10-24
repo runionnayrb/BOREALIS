@@ -43,7 +43,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { 
-  Scene, Act, Department, LocationType, Location, ArtistGroup, Artist, Technician, ReportTemplate, SafeUser 
+  Scene, Act, Department, LocationType, Location, ArtistGroup, Artist, Technician, ReportTemplate, SafeUser, UserGroup
 } from "@shared/schema";
 
 type SimpleItem = {
@@ -73,6 +73,11 @@ export default function Settings() {
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [adminUsername, setAdminUsername] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
+  
+  // Edit user dialog
+  const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<SafeUser | null>(null);
+  const [selectedUserGroupId, setSelectedUserGroupId] = useState<string | null>(null);
   const [selectedLocationTypeId, setSelectedLocationTypeId] = useState<string | undefined>(undefined);
   const [selectedSceneId, setSelectedSceneId] = useState<string | undefined>(undefined);
   const [selectedDepartmentIds, setSelectedDepartmentIds] = useState<string[]>([]);
@@ -104,6 +109,7 @@ export default function Settings() {
   const { data: technicians = [] } = useQuery<Technician[]>({ queryKey: ["/api/technicians"] });
   const { data: reportTemplate } = useQuery<ReportTemplate | null>({ queryKey: ["/api/report-template"] });
   const { data: users = [] } = useQuery<SafeUser[]>({ queryKey: ["/api/users"] });
+  const { data: userGroups = [] } = useQuery<UserGroup[]>({ queryKey: ["/api/user-groups"] });
   
   // Fetch all technician-department assignments for grouping
   const { data: allTechnicianDepartments = [] } = useQuery<Array<{ technicianId: string; departmentId: string }>>({
@@ -729,12 +735,15 @@ export default function Settings() {
 
   // User update mutation
   const updateUserMutation = useMutation({
-    mutationFn: async (data: { id: string; active: number }) => {
-      return await apiRequest("PATCH", `/api/users/${data.id}`, { active: data.active });
+    mutationFn: async (data: { id: string; active?: number; userGroupId?: string | null }) => {
+      return await apiRequest("PATCH", `/api/users/${data.id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      toast({ title: "User status updated successfully" });
+      toast({ title: "User updated successfully" });
+      setEditUserDialogOpen(false);
+      setUserToEdit(null);
+      setSelectedUserGroupId(null);
     },
   });
 
@@ -2885,56 +2894,106 @@ export default function Settings() {
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">User Management</h2>
             </div>
-            <div className="space-y-2">
-              {users.map((user) => (
-                <Card key={user.id} className="p-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <p className="font-medium" data-testid={`text-user-name-${user.id}`}>
-                        {user.name || "Unnamed User"}
-                      </p>
-                      <p className="text-sm text-muted-foreground" data-testid={`text-user-email-${user.id}`}>
-                        {user.email}
-                      </p>
-                      {user.position && (
-                        <p className="text-sm text-muted-foreground" data-testid={`text-user-position-${user.id}`}>
-                          {user.position}
-                        </p>
-                      )}
+            <div className="space-y-6">
+              {(() => {
+                // Group users by userGroupId
+                const usersByGroup = users.reduce((acc, user) => {
+                  const groupId = user.userGroupId || "no-group";
+                  if (!acc[groupId]) {
+                    acc[groupId] = [];
+                  }
+                  acc[groupId].push(user);
+                  return acc;
+                }, {} as Record<string, typeof users>);
+
+                // Sort groups alphabetically by name
+                const sortedGroupIds = Object.keys(usersByGroup).sort((a, b) => {
+                  if (a === "no-group") return 1; // Put "no-group" at the end
+                  if (b === "no-group") return -1;
+                  
+                  const groupA = userGroups.find(g => g.id === a);
+                  const groupB = userGroups.find(g => g.id === b);
+                  const nameA = groupA?.name || "";
+                  const nameB = groupB?.name || "";
+                  return nameA.localeCompare(nameB);
+                });
+
+                return sortedGroupIds.map((groupId) => {
+                  const groupUsers = usersByGroup[groupId];
+                  const group = userGroups.find(g => g.id === groupId);
+                  const groupName = groupId === "no-group" ? "No Group" : (group?.name || "Unknown Group");
+
+                  return (
+                    <div key={groupId} className="space-y-2">
+                      <h3 className="text-sm font-semibold text-muted-foreground" data-testid={`text-group-${groupId}`}>
+                        {groupName}
+                      </h3>
+                      {groupUsers.map((user) => (
+                        <Card key={user.id} className="p-4">
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex-1">
+                              <p className="font-medium" data-testid={`text-user-name-${user.id}`}>
+                                {user.name || "Unnamed User"}
+                              </p>
+                              <p className="text-sm text-muted-foreground" data-testid={`text-user-email-${user.id}`}>
+                                {user.email}
+                              </p>
+                              {user.position && (
+                                <p className="text-sm text-muted-foreground" data-testid={`text-user-position-${user.id}`}>
+                                  {user.position}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`px-3 py-1 rounded-full text-sm ${user.active === 1 ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                                {user.active === 1 ? 'Active' : 'Inactive'}
+                              </span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setUserToEdit(user);
+                                  setSelectedUserGroupId(user.userGroupId || null);
+                                  setEditUserDialogOpen(true);
+                                }}
+                                data-testid={`button-edit-user-${user.id}`}
+                              >
+                                <Edit className="w-4 h-4 mr-1" />
+                                Edit
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  updateUserMutation.mutate({
+                                    id: user.id,
+                                    active: user.active === 1 ? 0 : 1,
+                                  });
+                                }}
+                                disabled={updateUserMutation.isPending}
+                                data-testid={`button-toggle-user-${user.id}`}
+                              >
+                                {user.active === 1 ? 'Deactivate' : 'Activate'}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setUserToDelete(user.id);
+                                  setAdminPasswordDialogOpen(true);
+                                }}
+                                data-testid={`button-delete-user-${user.id}`}
+                              >
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`px-3 py-1 rounded-full text-sm ${user.active === 1 ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                        {user.active === 1 ? 'Active' : 'Inactive'}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          updateUserMutation.mutate({
-                            id: user.id,
-                            active: user.active === 1 ? 0 : 1,
-                          });
-                        }}
-                        disabled={updateUserMutation.isPending}
-                        data-testid={`button-toggle-user-${user.id}`}
-                      >
-                        {user.active === 1 ? 'Deactivate' : 'Activate'}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setUserToDelete(user.id);
-                          setAdminPasswordDialogOpen(true);
-                        }}
-                        data-testid={`button-delete-user-${user.id}`}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
+                  );
+                });
+              })()}
               {users.length === 0 && (
                 <Card className="p-8 text-center">
                   <p className="text-muted-foreground">No users found</p>
@@ -3019,6 +3078,72 @@ export default function Settings() {
               data-testid="button-confirm-delete-user"
             >
               {deleteUserMutation.isPending ? "Deleting..." : "Delete User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editUserDialogOpen} onOpenChange={setEditUserDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <p className="text-sm" data-testid="text-edit-user-name">{userToEdit?.name || "Unnamed User"}</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <p className="text-sm text-muted-foreground" data-testid="text-edit-user-email">{userToEdit?.email}</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="user-group-select">User Group</Label>
+              <Select
+                value={selectedUserGroupId || "none"}
+                onValueChange={(value) => setSelectedUserGroupId(value === "none" ? null : value)}
+              >
+                <SelectTrigger id="user-group-select" data-testid="select-user-group">
+                  <SelectValue placeholder="Select user group" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Group</SelectItem>
+                  {userGroups
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((group) => (
+                      <SelectItem key={group.id} value={group.id}>
+                        {group.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setEditUserDialogOpen(false);
+                setUserToEdit(null);
+                setSelectedUserGroupId(null);
+              }}
+              data-testid="button-cancel-edit-user"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                if (userToEdit) {
+                  updateUserMutation.mutate({
+                    id: userToEdit.id,
+                    userGroupId: selectedUserGroupId,
+                  });
+                }
+              }}
+              disabled={updateUserMutation.isPending}
+              data-testid="button-save-edit-user"
+            >
+              {updateUserMutation.isPending ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -7,6 +7,22 @@ import { z } from "zod";
 export const userRoles = ['admin', 'stage_management', 'coaching', 'performance_wellness', 'read_only'] as const;
 export type UserRole = typeof userRoles[number];
 
+// User Groups
+export const userGroups = pgTable("user_groups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertUserGroupSchema = createInsertSchema(userGroups).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertUserGroup = z.infer<typeof insertUserGroupSchema>;
+export type UserGroup = typeof userGroups.$inferSelect;
+
 // Users/Stage Managers
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -17,6 +33,7 @@ export const users = pgTable("users", {
   pronouns: text("pronouns"),
   role: text("role").notNull().default('stage_management'), // admin, stage_management, coaching, performance_wellness, read_only
   active: integer("active").notNull().default(1), // 1 = active, 0 = inactive
+  userGroupId: varchar("user_group_id").references(() => userGroups.id),
   outlookConnected: integer("outlook_connected").notNull().default(0), // 0 = not connected, 1 = connected
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),

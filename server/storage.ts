@@ -1,5 +1,6 @@
 import { 
   type User, type InsertUser, users,
+  type UserGroup, type InsertUserGroup, userGroups,
   type Scene, type InsertScene, scenes,
   type Act, type InsertAct, acts,
   type Department, type InsertDepartment, departments,
@@ -34,6 +35,13 @@ import type { Store } from "express-session";
 const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
+  // User Groups
+  getAllUserGroups(): Promise<UserGroup[]>;
+  getUserGroup(id: string): Promise<UserGroup | undefined>;
+  createUserGroup(group: InsertUserGroup): Promise<UserGroup>;
+  updateUserGroup(id: string, updates: Partial<InsertUserGroup>): Promise<UserGroup | undefined>;
+  deleteUserGroup(id: string): Promise<void>;
+  
   // User management
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
@@ -198,6 +206,31 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  // User Groups
+  async getAllUserGroups(): Promise<UserGroup[]> {
+    return await db.select().from(userGroups).orderBy(asc(userGroups.sortOrder));
+  }
+
+  async getUserGroup(id: string): Promise<UserGroup | undefined> {
+    const result = await db.select().from(userGroups).where(eq(userGroups.id, id));
+    return result[0];
+  }
+
+  async createUserGroup(group: InsertUserGroup): Promise<UserGroup> {
+    const result = await db.insert(userGroups).values(group).returning();
+    return result[0];
+  }
+
+  async updateUserGroup(id: string, updates: Partial<InsertUserGroup>): Promise<UserGroup | undefined> {
+    const result = await db.update(userGroups).set(updates).where(eq(userGroups.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteUserGroup(id: string): Promise<void> {
+    await db.delete(userGroups).where(eq(userGroups.id, id));
+  }
+
+  // Users
   async getUser(id: string): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.id, id));
     return result[0];
