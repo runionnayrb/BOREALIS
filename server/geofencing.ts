@@ -133,18 +133,7 @@ export function validateGeofence(
     };
   }
 
-  // Inside polygon - check if distance to edge is sufficient given accuracy
-  const requiredDistance = accuracy + ACCURACY_BUFFER_METERS;
-  
-  if (distanceToEdge < requiredDistance) {
-    return {
-      isInside: false,
-      distanceToEdge: Math.round(distanceToEdge),
-      message: `GPS accuracy too low (${Math.round(accuracy)}m). Please move closer to the center of the venue or near a window for better signal.`,
-    };
-  }
-
-  // All checks passed
+  // Inside polygon - approved!
   return {
     isInside: true,
     distanceToEdge: Math.round(distanceToEdge),
