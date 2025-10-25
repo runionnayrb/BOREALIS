@@ -706,27 +706,31 @@ export default function ReportEditor() {
 
   return (
     <div className="flex flex-col h-screen bg-background">
-      <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b bg-card px-6 py-4">
-        <div className="flex items-center gap-4 flex-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setLocation("/")}
-            data-testid="button-back"
-          >
-            <ArrowLeft className="h-5 w-5 text-foreground" />
-          </Button>
-          <div className="flex items-center gap-3 flex-1">
-            <Calendar className="h-5 w-5 text-muted-foreground" />
-            <Input
-              type="date"
-              value={reportDate}
-              onChange={(e) => setReportDate(e.target.value)}
-              className="max-w-[200px]"
-              disabled={!!reportId}
-              data-testid="input-report-date"
-            />
-            <div className="flex items-center gap-2 flex-1">
+      <header className="sticky top-0 z-10 border-b bg-card px-3 md:px-6 py-3 md:py-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          {/* Top row: Back button + Date + SM selector */}
+          <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setLocation("/")}
+              data-testid="button-back"
+              className="shrink-0"
+            >
+              <ArrowLeft className="h-5 w-5 text-foreground" />
+            </Button>
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Calendar className="h-5 w-5 text-muted-foreground shrink-0 hidden sm:block" />
+              <Input
+                type="date"
+                value={reportDate}
+                onChange={(e) => setReportDate(e.target.value)}
+                className="w-full sm:w-auto sm:max-w-[200px]"
+                disabled={!!reportId}
+                data-testid="input-report-date"
+              />
+            </div>
+            <div className="hidden lg:flex items-center gap-2 flex-1 min-w-0">
               <Label className="text-sm text-muted-foreground whitespace-nowrap">SM on Duty:</Label>
               <Select
                 value={stageManagerOnDuty}
@@ -750,48 +754,80 @@ export default function ReportEditor() {
               </Select>
             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={handleSaveReport}
-            disabled={createReportMutation.isPending || updateReportMutation.isPending}
-            data-testid="button-save-report"
-          >
-            {(createReportMutation.isPending || updateReportMutation.isPending) ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2 text-primary-foreground" />
-            ) : (
-              <Save className="h-4 w-4 mr-2 text-primary-foreground" />
+          
+          {/* Second row on mobile: SM selector (visible on smaller screens) */}
+          <div className="flex lg:hidden items-center gap-2 w-full">
+            <Label className="text-sm text-muted-foreground whitespace-nowrap">SM on Duty:</Label>
+            <Select
+              value={stageManagerOnDuty}
+              onValueChange={setStageManagerOnDuty}
+            >
+              <SelectTrigger className="flex-1" data-testid="select-sm-on-duty-mobile">
+                <SelectValue placeholder="Select stage manager" />
+              </SelectTrigger>
+              <SelectContent>
+                {activeUsers.map((user) => (
+                  <SelectItem key={user.id} value={user.name || user.email}>
+                    {user.name || user.email}
+                  </SelectItem>
+                ))}
+                {activeUsers.length === 0 && (
+                  <SelectItem value="no-users" disabled>
+                    No active users available
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Action buttons row */}
+          <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
+            <Button
+              onClick={handleSaveReport}
+              disabled={createReportMutation.isPending || updateReportMutation.isPending}
+              data-testid="button-save-report"
+              className="flex-1 sm:flex-none"
+            >
+              {(createReportMutation.isPending || updateReportMutation.isPending) ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2 text-primary-foreground" />
+              ) : (
+                <Save className="h-4 w-4 mr-2 text-primary-foreground" />
+              )}
+              {reportId ? "Save" : "Create Report"}
+            </Button>
+            {reportId && user?.outlookConnected && (
+              <Button 
+                variant="outline" 
+                onClick={handleOpenEmailPreview}
+                disabled={isLoadingEmailPreview}
+                data-testid="button-send-email"
+                className="flex-1 sm:flex-none"
+              >
+                {isLoadingEmailPreview ? (
+                  <Loader2 className="h-4 w-4 mr-2 text-foreground animate-spin" />
+                ) : (
+                  <Mail className="h-4 w-4 mr-2 text-foreground" />
+                )}
+                <span className="hidden sm:inline">Send Report</span>
+                <span className="sm:hidden">Send</span>
+              </Button>
             )}
-            {reportId ? "Save" : "Create Report"}
-          </Button>
-          {reportId && user?.outlookConnected && (
             <Button 
               variant="outline" 
-              onClick={handleOpenEmailPreview}
-              disabled={isLoadingEmailPreview}
-              data-testid="button-send-email"
+              onClick={handleExportPdf}
+              disabled={isExportingPdf}
+              data-testid="button-export-pdf"
+              className="flex-1 sm:flex-none"
             >
-              {isLoadingEmailPreview ? (
+              {isExportingPdf ? (
                 <Loader2 className="h-4 w-4 mr-2 text-foreground animate-spin" />
               ) : (
-                <Mail className="h-4 w-4 mr-2 text-foreground" />
+                <Download className="h-4 w-4 mr-2 text-foreground" />
               )}
-              Send Report
+              <span className="hidden sm:inline">Export PDF</span>
+              <span className="sm:hidden">Export</span>
             </Button>
-          )}
-          <Button 
-            variant="outline" 
-            onClick={handleExportPdf}
-            disabled={isExportingPdf}
-            data-testid="button-export-pdf"
-          >
-            {isExportingPdf ? (
-              <Loader2 className="h-4 w-4 mr-2 text-foreground animate-spin" />
-            ) : (
-              <Download className="h-4 w-4 mr-2 text-foreground" />
-            )}
-            Export PDF
-          </Button>
+          </div>
         </div>
       </header>
 
