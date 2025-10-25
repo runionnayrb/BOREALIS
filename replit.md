@@ -13,6 +13,7 @@ A production-ready full-stack web application for theatrical production training
 - I want toast notifications for all user actions (create, update, delete).
 - I prefer that all queries use TanStack Query for data fetching with automatic caching and all mutations invalidate relevant query caches for real-time updates.
 - I want artist order to be manually controllable and not change when artists are updated.
+- I prefer professional date formatting: Report dates display as "Wednesday, October 25, 2025" instead of raw YYYY-MM-DD format.
 
 ## System Architecture
 
@@ -44,6 +45,7 @@ A production-ready full-stack web application for theatrical production training
 - **Real-time Updates**: WebSocket server for live attendance and tick sheet updates.
 - **Geofencing**: Server-side geolocation validation using Haversine formula (100-meter radius from La Perle venue: 25.1872° N, 55.2674° E).
 - **Role-Based Access Control**: Middleware-based authorization for 'stage_management' or 'admin' roles.
+- **Date Formatting**: Timezone-safe date parsing using split-and-construct approach to prevent off-by-one day errors in non-UTC timezones. Report dates stored as YYYY-MM-DD are parsed by splitting into components and constructing with local timezone.
 
 ### Feature Specifications
 - **Secure Authentication**: Login/signup with hashed passwords and session management.

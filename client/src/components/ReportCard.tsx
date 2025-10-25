@@ -1,4 +1,4 @@
-import { FileText, Download, Pencil, Trash2 } from "lucide-react";
+import { FileText, Download, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +12,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useState } from "react";
 
 interface ReportCardProps {
   id: string;
@@ -20,7 +19,6 @@ interface ReportCardProps {
   date: string;
   trainingsCount: number;
   onClick?: () => void;
-  onEdit?: () => void;
   onDelete?: () => void;
   onExport?: () => void;
 }
@@ -31,7 +29,6 @@ export default function ReportCard({
   date,
   trainingsCount,
   onClick,
-  onEdit,
   onDelete,
   onExport,
 }: ReportCardProps) {
@@ -56,18 +53,6 @@ export default function ReportCard({
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit?.();
-            }}
-            data-testid={`button-edit-report-${id}`}
-            className="w-9 h-9"
-          >
-            <Pencil className="w-4 h-4" />
-          </Button>
           <Button
             variant="ghost"
             size="icon"
