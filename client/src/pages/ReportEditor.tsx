@@ -720,15 +720,29 @@ export default function ReportEditor() {
               <ArrowLeft className="h-5 w-5 text-foreground" />
             </Button>
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <Calendar className="h-5 w-5 text-muted-foreground shrink-0 hidden sm:block" />
-              <Input
-                type="date"
-                value={reportDate}
-                onChange={(e) => setReportDate(e.target.value)}
-                className="w-full sm:w-auto sm:max-w-[200px]"
-                disabled={!!reportId}
-                data-testid="input-report-date"
-              />
+              <Calendar className="h-5 w-5 text-muted-foreground shrink-0" />
+              {reportId ? (
+                <div className="text-base font-medium" data-testid="text-report-date">
+                  {(() => {
+                    const [year, month, day] = reportDate.split('-').map(Number);
+                    const date = new Date(year, month - 1, day);
+                    return date.toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    });
+                  })()}
+                </div>
+              ) : (
+                <Input
+                  type="date"
+                  value={reportDate}
+                  onChange={(e) => setReportDate(e.target.value)}
+                  className="w-full sm:w-auto sm:max-w-[200px]"
+                  data-testid="input-report-date"
+                />
+              )}
             </div>
             <div className="hidden lg:flex items-center gap-2 flex-1 min-w-0">
               <Label className="text-sm text-muted-foreground whitespace-nowrap">SM on Duty:</Label>

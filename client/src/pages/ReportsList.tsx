@@ -127,7 +127,8 @@ export default function ReportsList() {
     const query = searchQuery.toLowerCase();
     
     // Search in report data
-    const dateStr = new Date(report.date).toLocaleDateString('en-US', { 
+    const [year, month, day] = report.date.split('-').map(Number);
+    const dateStr = new Date(year, month - 1, day).toLocaleDateString('en-US', { 
       weekday: 'long', 
       year: 'numeric', 
       month: 'long', 
@@ -136,7 +137,8 @@ export default function ReportsList() {
     
     // Try to parse query as a date
     const parsedQueryDate = tryParseDate(query);
-    const reportDate = new Date(report.date);
+    const [reportYear, reportMonth, reportDay] = report.date.split('-').map(Number);
+    const reportDate = new Date(reportYear, reportMonth - 1, reportDay);
     
     // Check if dates match (same day, month, year)
     const datesMatch = parsedQueryDate && 
@@ -272,7 +274,8 @@ export default function ReportsList() {
         ) : (
           <div className="space-y-3">
             {filteredReports.map((report) => {
-              const dateStr = new Date(report.date).toLocaleDateString('en-US', { 
+              const [year, month, day] = report.date.split('-').map(Number);
+              const dateStr = new Date(year, month - 1, day).toLocaleDateString('en-US', { 
                 weekday: 'long', 
                 year: 'numeric', 
                 month: 'long', 
