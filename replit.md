@@ -20,12 +20,17 @@ A production-ready full-stack web application for theatrical production training
 - **Design System**: Linear-inspired professional dark mode UI.
 - **Typography**: Inter and JetBrains Mono fonts.
 - **Accent Color**: Cyan.
-- **Responsiveness**: Mobile-first responsive design.
+- **Responsiveness**: Mobile-first responsive design with full mobile support for training reports and modals.
 - **Rich Text Editor**: Tiptap for rich text notes with full formatting.
 - **Grouped Displays**: Acts, locations, artists, and technicians are displayed grouped by their parent category with count badges.
 - **Hierarchical Dropdowns**: Training modal includes hierarchical dropdowns for Scene/Act selection and multi-select locations.
 - **Training Name Combobox**: Allows selecting scene/act from dropdown with optional custom display name override.
-- **Training Card Layout**: 3-column grid layout displaying training name, location, stage manager, and times.
+- **Training Card Layout**: Responsive layout - 3-column grid on desktop, stacked single-column on mobile.
+- **Mobile Optimizations**:
+    - **Training Cards**: Header information stacks vertically on mobile while maintaining horizontal layout on desktop.
+    - **Training Modal**: All grid layouts (training name/locations/SM, time fields, artist/department sections) collapse to single-column on mobile.
+    - **Dialog Components**: Base Dialog and AlertDialog enforce mobile-safe width constraints (`w-[calc(100%-2rem)]`) with responsive padding.
+    - **Report Header**: Responsive padding and gap values for better mobile fit.
 
 ### Technical Implementations
 - **Frontend**: React + Vite, Wouter for routing, TanStack Query for data management, shadcn/ui for components.
