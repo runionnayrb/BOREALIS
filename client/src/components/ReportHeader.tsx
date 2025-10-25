@@ -79,8 +79,8 @@ export default function ReportHeader({
   };
 
   return (
-    <div className="border border-border rounded-md p-6 bg-card">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="border border-border rounded-md p-4 md:p-6 bg-card">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         <div className="space-y-2">
           <Label htmlFor="left-image">Left Image</Label>
           <div className="flex flex-col gap-2">

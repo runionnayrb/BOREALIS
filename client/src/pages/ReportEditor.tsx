@@ -828,12 +828,12 @@ export default function ReportEditor() {
                     Add Training
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="w-[calc(100%-2rem)] max-w-6xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>{editingTraining ? "Edit Training Session" : "Add Training Session"}</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label>Training Name</Label>
                         <Popover open={trainingNameComboOpen} onOpenChange={setTrainingNameComboOpen}>
@@ -1080,7 +1080,7 @@ export default function ReportEditor() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label>Start Time</Label>
                         <Input
@@ -1153,7 +1153,7 @@ export default function ReportEditor() {
                           Remove artists or departments that don't apply to this specific training session.
                         </p>
                         
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label className="text-xs font-semibold">Artists ({actArtistIds.length})</Label>
                             <div className="space-y-1 max-h-40 overflow-y-auto">
@@ -1273,7 +1273,7 @@ export default function ReportEditor() {
 
       {/* Email Preview Dialog */}
       <Dialog open={emailPreviewOpen} onOpenChange={setEmailPreviewOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100%-2rem)] max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Review Email Before Sending</DialogTitle>
           </DialogHeader>

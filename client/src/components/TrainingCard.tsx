@@ -101,20 +101,20 @@ export default function TrainingCard({
   };
 
   return (
-    <Card className="p-4" data-testid={`card-training-${training.id}`}>
-      <div className="flex items-start justify-between gap-4 mb-3">
-        <div className="flex-1">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex-shrink-0">
-              <h3 className="font-semibold text-base" data-testid={training.customName ? `text-custom-name-${training.id}` : `text-act-${training.id}`}>
+    <Card className="p-3 md:p-4" data-testid={`card-training-${training.id}`}>
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4 mb-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-col gap-2">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-base break-words" data-testid={training.customName ? `text-custom-name-${training.id}` : `text-act-${training.id}`}>
                 {training.customName || (scene ? `${scene.name} (Full Scene)` : act?.name || "Unknown")} - {training.goal || "No Goal Set"}
               </h3>
             </div>
-            <div className="flex items-center gap-4 flex-shrink-0">
-              <div className="text-sm text-muted-foreground w-48 text-right">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm">
+              <div className="text-muted-foreground">
                 <span className="font-medium">SM:</span> <span>{training.stageManagerId ? getUserName(training.stageManagerId) : "None"}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm font-mono text-right min-w-[200px]">
+              <div className="flex items-center gap-2 font-mono">
                 <span className="text-muted-foreground" data-testid={`text-time-${training.id}`}>
                   {training.startTime} - {training.endTime}
                 </span>
@@ -222,7 +222,7 @@ export default function TrainingCard({
             </div>
           )}
         </div>
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex md:flex-col items-start md:items-center gap-1 shrink-0 md:self-start">
           <Button
             variant="ghost"
             size="icon"
@@ -243,7 +243,7 @@ export default function TrainingCard({
                 <Trash2 className="w-4 h-4" />
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent>
+            <AlertDialogContent className="w-[calc(100%-2rem)] max-w-lg mx-auto">
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete Training?</AlertDialogTitle>
                 <AlertDialogDescription>
