@@ -50,7 +50,6 @@ export default function ReportCard({
             <h3 className="font-semibold text-base mb-1 truncate" data-testid={`text-report-title-${id}`}>
               {title}
             </h3>
-            <p className="text-sm text-muted-foreground">{date}</p>
             <p className="text-xs text-muted-foreground mt-1">
               {trainingsCount} training{trainingsCount !== 1 ? "s" : ""}
             </p>
