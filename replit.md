@@ -30,7 +30,7 @@ A production-ready full-stack web application for theatrical production training
     - **Training Cards**: Header information stacks vertically on mobile while maintaining horizontal layout on desktop.
     - **Training Modal**: All grid layouts (training name/locations/SM, time fields, artist/department sections) collapse to single-column on mobile.
     - **Dialog Components**: Base Dialog and AlertDialog enforce mobile-safe width constraints (`w-[calc(100%-2rem)]`) with responsive padding.
-    - **Report Header**: Responsive padding and gap values for better mobile fit.
+    - **Report Header**: Fully responsive stacked layout on mobile (flex-col) with reduced padding, full-width date input, separate SM selector row on mobile, equal-width action buttons with shortened text, and no horizontal overflow.
 
 ### Technical Implementations
 - **Frontend**: React + Vite, Wouter for routing, TanStack Query for data management, shadcn/ui for components.
