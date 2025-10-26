@@ -111,6 +111,7 @@ export interface IStorage {
   // Artists
   getAllArtists(): Promise<Artist[]>;
   getArtist(id: string): Promise<Artist | undefined>;
+  getArtistByUserId(userId: string): Promise<Artist | undefined>;
   createArtist(artist: InsertArtist): Promise<Artist>;
   updateArtist(id: string, updates: Partial<InsertArtist>): Promise<Artist | undefined>;
   deleteArtist(id: string): Promise<void>;
@@ -472,6 +473,11 @@ export class DatabaseStorage implements IStorage {
 
   async getArtist(id: string): Promise<Artist | undefined> {
     const result = await db.select().from(artists).where(eq(artists.id, id));
+    return result[0];
+  }
+
+  async getArtistByUserId(userId: string): Promise<Artist | undefined> {
+    const result = await db.select().from(artists).where(eq(artists.userId, userId));
     return result[0];
   }
 
