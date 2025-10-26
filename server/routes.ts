@@ -622,6 +622,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(groups);
   });
 
+  app.get("/api/user-groups/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const group = await storage.getUserGroup(req.params.id);
+    if (!group) return res.sendStatus(404);
+    res.json(group);
+  });
+
   app.post("/api/user-groups", requireRole('stage_management', 'admin'), async (req, res) => {
     const validation = insertUserGroupSchema.safeParse(req.body);
     if (!validation.success) {

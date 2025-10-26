@@ -110,16 +110,16 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-8 bg-[#ffffff]">
+    <div className="min-h-screen w-full flex items-center justify-center p-8 bg-[#ffffff] text-black">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="flex justify-center mb-6">
             <img src={logoPath} alt="Borealis" className="h-36 w-auto" />
           </div>
-          <h1 className="text-3xl font-bold mb-2">Borealis</h1>
+          <h1 className="text-3xl font-bold mb-2 text-black">Borealis</h1>
         </div>
 
-        <Card className="p-6">
+        <Card className="p-6 bg-white border-gray-200">
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "login" | "register")}>
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="login" data-testid="tab-login">Login</TabsTrigger>
@@ -166,7 +166,7 @@ export default function AuthPage() {
                     <div className="text-center mt-4">
                       <a
                         href="/forgot-password"
-                        className="text-sm text-primary hover:underline"
+                        className="text-sm text-cyan-600 hover:underline"
                         data-testid="link-forgot-password"
                       >
                         Forgot password?

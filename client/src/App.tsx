@@ -58,7 +58,7 @@ function AuthenticatedApp() {
               <Route path="/new-report" component={ReportEditor} />
               <Route path="/report/:id" component={ReportEditor} />
               <Route path="/attendance/dashboard" component={AttendanceDashboard} />
-              <Route path="/attendance/tick-sheet" component={TickSheetPage} />
+              <Route path="/attendance/tickoff" component={TickSheetPage} />
               <Route path="/settings" component={Settings} />
               <Route path="/profile" component={Profile} />
             </Switch>
