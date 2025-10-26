@@ -111,7 +111,7 @@ export function validateGeofence(
         return {
           isInside: false,
           distanceToEdge: Math.round(distanceToEdge),
-          message: `You are ${Math.round(distanceToEdge)}m outside the venue boundary.`,
+          message: `You must be at the theatre to sign in.`,
         };
       }
 
@@ -129,7 +129,7 @@ export function validateGeofence(
     return {
       isInside: false,
       distanceToEdge: Math.round(distanceToEdge),
-      message: `You must be at La Perle to sign in. You are ${Math.round(distanceToEdge)}m from the venue.`,
+      message: `You must be at the theatre to sign in.`,
     };
   }
 

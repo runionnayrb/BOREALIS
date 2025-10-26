@@ -65,15 +65,13 @@ export default function ArtistSignIn() {
     },
     onSuccess: () => {
       toast({
-        title: "Signed In",
-        description: "You have successfully signed in.",
+        description: "Signed in successfully.",
       });
       handleClose();
     },
     onError: (error: any) => {
       const errorMessage = error.message || "Invalid PIN or location.";
       toast({
-        title: "Sign In Failed",
         description: errorMessage,
         variant: "destructive",
       });
@@ -97,14 +95,12 @@ export default function ArtistSignIn() {
     },
     onSuccess: () => {
       toast({
-        title: "Signed Out",
-        description: "You have successfully signed out.",
+        description: "Signed out successfully.",
       });
       handleClose();
     },
     onError: (error: any) => {
       toast({
-        title: "Sign Out Failed",
         description: error.message || "Invalid PIN or location.",
         variant: "destructive",
       });
@@ -125,7 +121,6 @@ export default function ArtistSignIn() {
       // Artist has a linked account - verify user is logged in and matches
       if (!user) {
         toast({
-          title: "Authentication Required",
           description: "You must be signed in to your account to sign in.",
           variant: "destructive",
         });
@@ -134,7 +129,6 @@ export default function ArtistSignIn() {
       
       if (user.id !== fullArtist.userId) {
         toast({
-          title: "Wrong Account",
           description: "You must be signed in to the account linked to this artist profile.",
           variant: "destructive",
         });
@@ -183,7 +177,6 @@ export default function ArtistSignIn() {
       setShowFallback(true);
       
       toast({
-        title: "Location Error",
         description: errorMessage,
         variant: "destructive",
       });
