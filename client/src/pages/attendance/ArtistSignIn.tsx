@@ -8,8 +8,9 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { Loader2, UserCircle2, LogIn, LogOut, MapPin, AlertCircle, CheckCircle2 } from "lucide-react";
-import type { PublicArtist, ArtistGroup } from "@shared/schema";
+import type { PublicArtist, ArtistGroup, Artist } from "@shared/schema";
 import logoPath from "@assets/LaPerle-logo-basic_1760100706441.png";
 import { getBestGPSReading, formatAccuracy, getGeolocationErrorMessage, type GPSReading } from "@/lib/geolocation";
 
@@ -36,9 +37,14 @@ export default function ArtistSignIn() {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [showFallback, setShowFallback] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const { data: artists = [], isLoading } = useQuery<PublicArtist[]>({
     queryKey: ["/api/attendance/artists"],
+  });
+
+  const { data: fullArtists = [] } = useQuery<Artist[]>({
+    queryKey: ["/api/artists"],
   });
 
   const { data: artistGroups = [] } = useQuery<ArtistGroup[]>({
@@ -113,6 +119,29 @@ export default function ArtistSignIn() {
   const isSignedIn = currentRecord && currentRecord.signInTime && !currentRecord.signOutTime;
 
   const handleArtistSelect = async (artist: PublicArtist) => {
+    // Check if this artist has a linked user account
+    const fullArtist = fullArtists.find(a => a.id === artist.id);
+    if (fullArtist?.userId) {
+      // Artist has a linked account - verify user is logged in and matches
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "You must be signed in to your account to sign in.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (user.id !== fullArtist.userId) {
+        toast({
+          title: "Wrong Account",
+          description: "You must be signed in to the account linked to this artist profile.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setSelectedArtist(artist);
     setPin("");
     setIsGettingLocation(true);
