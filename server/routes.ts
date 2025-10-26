@@ -851,18 +851,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).json({ error: "Artist not found" });
     }
 
+    // Require linked user account for all sign-ins
+    if (!artist.userId) {
+      return res.status(403).json({ error: "This artist profile must be linked to a user account before signing in. Please contact your stage manager." });
+    }
+
     if (artist.pinCode !== validation.data.pinCode) {
       return res.status(401).json({ error: "Invalid PIN" });
     }
 
-    // Verify user authentication if artist has a linked account
-    if (artist.userId) {
-      if (!req.user) {
-        return res.status(401).json({ error: "You must be signed in to your account to sign in." });
-      }
-      if (req.user.id !== artist.userId) {
-        return res.status(403).json({ error: "You must be signed in to the account linked to this artist profile." });
-      }
+    // Verify user authentication matches the linked account
+    if (!req.user) {
+      return res.status(401).json({ error: "You must be signed in to your account to sign in." });
+    }
+    if (req.user.id !== artist.userId) {
+      return res.status(403).json({ error: "You must be signed in to the account linked to this artist profile." });
     }
 
     // Get existing geofence session for hysteresis
@@ -950,18 +953,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).json({ error: "Artist not found" });
     }
 
+    // Require linked user account for all sign-outs
+    if (!artist.userId) {
+      return res.status(403).json({ error: "This artist profile must be linked to a user account before signing out. Please contact your stage manager." });
+    }
+
     if (artist.pinCode !== validation.data.pinCode) {
       return res.status(401).json({ error: "Invalid PIN" });
     }
 
-    // Verify user authentication if artist has a linked account
-    if (artist.userId) {
-      if (!req.user) {
-        return res.status(401).json({ error: "You must be signed in to your account to sign out." });
-      }
-      if (req.user.id !== artist.userId) {
-        return res.status(403).json({ error: "You must be signed in to the account linked to this artist profile." });
-      }
+    // Verify user authentication matches the linked account
+    if (!req.user) {
+      return res.status(401).json({ error: "You must be signed in to your account to sign out." });
+    }
+    if (req.user.id !== artist.userId) {
+      return res.status(403).json({ error: "You must be signed in to the account linked to this artist profile." });
     }
 
     const today = new Date().toISOString().split('T')[0];

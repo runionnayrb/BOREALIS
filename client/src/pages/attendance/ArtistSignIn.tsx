@@ -51,7 +51,11 @@ export default function ArtistSignIn() {
     queryKey: ["/api/attendance/artist-groups"],
   });
 
-  const availableArtists = artists;
+  // Only show artists with linked user accounts
+  const availableArtists = artists.filter(artist => {
+    const fullArtist = fullArtists.find(a => a.id === artist.id);
+    return fullArtist?.userId != null;
+  });
 
   const signInMutation = useMutation({
     mutationFn: async ({ artistId, pinCode, latitude, longitude, accuracy }: {
@@ -117,23 +121,31 @@ export default function ArtistSignIn() {
   const handleArtistSelect = async (artist: PublicArtist) => {
     // Check if this artist has a linked user account
     const fullArtist = fullArtists.find(a => a.id === artist.id);
-    if (fullArtist?.userId) {
-      // Artist has a linked account - verify user is logged in and matches
-      if (!user) {
-        toast({
-          description: "You must be signed in to your account to sign in.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (user.id !== fullArtist.userId) {
-        toast({
-          description: "You must be signed in to the account linked to this artist profile.",
-          variant: "destructive",
-        });
-        return;
-      }
+    
+    // All artists must have linked accounts to sign in
+    if (!fullArtist?.userId) {
+      toast({
+        description: "This artist profile must be linked to a user account before signing in. Please contact your stage manager.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Verify user is logged in and matches the linked account
+    if (!user) {
+      toast({
+        description: "You must be signed in to your account to sign in.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (user.id !== fullArtist.userId) {
+      toast({
+        description: "You must be signed in to the account linked to this artist profile.",
+        variant: "destructive",
+      });
+      return;
     }
 
     setSelectedArtist(artist);
