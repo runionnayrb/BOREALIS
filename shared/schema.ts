@@ -182,6 +182,7 @@ export const artists = pgTable("artists", {
   role: text("role"),
   photoUrl: text("photo_url"),
   pinCode: text("pin_code"), // Set by artist on first sign-in
+  userId: varchar("user_id").references(() => users.id), // Linked user account for authentication
   status: text("status").notNull().default('active'), // active, out, long_term_out
   artistGroupId: varchar("artist_group_id").references(() => artistGroups.id),
   sortOrder: integer("sort_order").notNull().default(0),
