@@ -54,6 +54,10 @@ export default function AuthPage() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
 
+  // Get returnTo parameter from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const returnTo = urlParams.get('returnTo') || '/';
+
   useEffect(() => {
     const originalBg = document.body.style.backgroundColor;
     document.body.style.backgroundColor = '#ffffff';
@@ -64,9 +68,9 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (user) {
-      setLocation("/");
+      setLocation(returnTo);
     }
-  }, [user, setLocation]);
+  }, [user, setLocation, returnTo]);
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),

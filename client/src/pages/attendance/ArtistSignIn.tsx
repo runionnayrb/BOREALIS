@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -38,6 +39,7 @@ export default function ArtistSignIn() {
   const [showFallback, setShowFallback] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
 
   const { data: artists = [], isLoading } = useQuery<PublicArtist[]>({
     queryKey: ["/api/attendance/artists"],
@@ -47,11 +49,8 @@ export default function ArtistSignIn() {
     queryKey: ["/api/attendance/artist-groups"],
   });
 
-  // Only show artists with linked user accounts
-  // The /api/attendance/artists endpoint includes userId field
-  const availableArtists = artists.filter(artist => {
-    return artist.userId != null;
-  });
+  // Show all artists - authentication check happens on selection
+  const availableArtists = artists;
 
   const signInMutation = useMutation({
     mutationFn: async ({ artistId, pinCode, latitude, longitude, accuracy }: {
@@ -124,18 +123,20 @@ export default function ArtistSignIn() {
       return;
     }
     
-    // Verify user is logged in and matches the linked account
+    // Check if user is logged in - if not, redirect to login page
     if (!user) {
       toast({
-        description: "You must be signed in to your account to sign in.",
-        variant: "destructive",
+        description: "Please log in to your account to sign in for attendance.",
       });
+      // Redirect to auth page and return to this page after login
+      setLocation("/auth?returnTo=/attendance/sign-in");
       return;
     }
     
+    // Verify logged-in user matches the artist's linked account
     if (user.id !== artist.userId) {
       toast({
-        description: "You must be signed in to the account linked to this artist profile.",
+        description: "You must be logged in to the account linked to this artist profile.",
         variant: "destructive",
       });
       return;
