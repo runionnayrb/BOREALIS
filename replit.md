@@ -37,7 +37,7 @@ A production-ready full-stack web application for theatrical production training
 - **Frontend**: React + Vite, Wouter for routing, TanStack Query for data management, shadcn/ui for components.
 - **Backend**: Express.js framework.
 - **Database**: PostgreSQL with Drizzle ORM.
-- **Authentication**: Passport.js with local strategy, bcrypt for password hashing, session-based authentication.
+- **Authentication**: Passport.js with local strategy, scrypt for password hashing, session-based authentication.
 - **Data Management**: TanStack Query for fetching, caching, and state management.
 - **XSS Protection**: Two-layer defense for rich text notes (Tiptap escaping + DOMPurify sanitization).
 - **Auto-Report Creation**: Automatically reuses or creates a new report for a given date, enforcing "One Report Per Day."
@@ -48,7 +48,11 @@ A production-ready full-stack web application for theatrical production training
 - **Date Formatting**: Timezone-safe date parsing using split-and-construct approach to prevent off-by-one day errors in non-UTC timezones. Report dates stored as YYYY-MM-DD are parsed by splitting into components and constructing with local timezone.
 
 ### Feature Specifications
-- **Secure Authentication**: Login/signup with hashed passwords and session management.
+- **Secure Authentication**: 
+    - Login/signup with scrypt-hashed passwords and session management.
+    - Registration requires: Email, Password, First Name, Last Name, Artist Name, and Department (User Group).
+    - Position is auto-assigned based on selected department during registration.
+    - Auth page supports `returnTo` query parameter for redirecting users back to their intended destination after login.
 - **Profile Management**: Update user details and password.
 - **Settings Management**: Full CRUD operations for all entities (scenes, acts, departments, locations, artists, technicians, report template).
     - **Artist Ordering**: Drag-and-drop reordering for artists using `@dnd-kit` with persistent `sortOrder`.
@@ -79,7 +83,7 @@ A production-ready full-stack web application for theatrical production training
 - **Audit Trail**: All reports and trainings track `createdBy`, `updatedBy`, and timestamps.
 - **One Report Per Day**: A single report encompasses all trainings for a given day.
 - **Attendance System**:
-    - **Artist Sign-In**: Public page at `/attendance/sign-in` with photo grid, 4-digit PIN, and geofencing validation.
+    - **Artist Sign-In**: Public page at `/attendance/sign-in` with photo grid, 4-digit PIN, and geofencing validation. All artists are visible on the page; authentication is required when selecting an artist (redirects to login if not authenticated).
     - **Stage Manager Dashboard**: Real-time tracking at `/attendance/dashboard` (requires role) with weekly calendar and manual sign-out.
     - **Tick Sheets**: Meeting attendance tracking at `/attendance/tick-sheet` (requires role) with real-time updates via WebSocket.
     - **Artist Management**: Photo URL and Status (Active, Out, Long-Term OUT) fields for artists. Artists can set PINs during first sign-in.
@@ -94,6 +98,6 @@ A production-ready full-stack web application for theatrical production training
 ## External Dependencies
 - **Database**: PostgreSQL
 - **Frontend Libraries**: React, Vite, Wouter, TanStack Query, shadcn/ui, Tiptap.
-- **Backend Libraries**: Express.js, Drizzle ORM, Passport.js, bcrypt.
+- **Backend Libraries**: Express.js, Drizzle ORM, Passport.js, scrypt.
 - **Sanitization**: DOMPurify.
 - **Email Integration**: Replit Outlook connector, Microsoft Graph Client.
