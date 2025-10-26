@@ -1168,6 +1168,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(artist);
   });
 
+  app.patch("/api/artists/:id/link-user", requireRole('stage_management', 'admin'), async (req, res) => {
+    const validation = z.object({
+      userId: z.string(),
+    }).safeParse(req.body);
+    
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+
+    const user = await storage.getUser(validation.data.userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const existingLink = await storage.getArtistByUserId(validation.data.userId);
+    if (existingLink) {
+      return res.status(400).json({ error: "This user is already linked to another artist profile" });
+    }
+
+    const artist = await storage.updateArtist(req.params.id, {
+      userId: validation.data.userId,
+    });
+
+    if (!artist) {
+      return res.status(404).json({ error: "Artist not found" });
+    }
+
+    res.json(artist);
+  });
+
+  app.patch("/api/artists/:id/unlink-user", requireRole('stage_management', 'admin'), async (req, res) => {
+    const artist = await storage.updateArtist(req.params.id, {
+      userId: null,
+    });
+
+    if (!artist) {
+      return res.status(404).json({ error: "Artist not found" });
+    }
+
+    res.json(artist);
+  });
+
   // Tick Sheet routes
   app.get("/api/tick-sheets", requireRole('stage_management', 'admin'), async (req, res) => {
     
