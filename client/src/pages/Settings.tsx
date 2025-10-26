@@ -98,6 +98,9 @@ export default function Settings() {
   // Local state for artist ordering
   const [orderedArtists, setOrderedArtists] = useState<Artist[]>([]);
 
+  // User linking state for artists
+  const [selectedLinkedUserId, setSelectedLinkedUserId] = useState<string | null>(null);
+
   const { toast} = useToast();
   const { user } = useAuth();
   
@@ -616,6 +619,34 @@ export default function Settings() {
       setArtistDialogOpen(false);
       setEditTarget(null);
       toast({ title: "Artist updated successfully" });
+    },
+  });
+
+  const linkUserToArtistMutation = useMutation({
+    mutationFn: async (data: { artistId: string; userId: string }) => {
+      return await apiRequest("PATCH", `/api/artists/${data.artistId}/link-user`, {
+        userId: data.userId,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artists"] });
+      toast({ title: "User linked successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: error.message || "Failed to link user", 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const unlinkUserFromArtistMutation = useMutation({
+    mutationFn: async (artistId: string) => {
+      return await apiRequest("PATCH", `/api/artists/${artistId}/unlink-user`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artists"] });
+      toast({ title: "User unlinked successfully" });
     },
   });
 
@@ -2606,6 +2637,7 @@ export default function Settings() {
                         if (!open) {
                           setEditTarget(null);
                           setUploadedPhotoUrl(null);
+                          setSelectedLinkedUserId(null);
                         }
                       }}
                     >
@@ -2780,6 +2812,79 @@ export default function Settings() {
                                 : "Artist will set their own PIN on first sign-in if left blank"}
                             </p>
                           </div>
+                          {editTarget?.type === "artist" && isStageManager && (
+                            <div className="space-y-2 pt-2 border-t">
+                              <Label>Linked User Account</Label>
+                              {editTarget.data.userId ? (
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between p-3 bg-muted rounded-md">
+                                    <div className="flex items-center gap-2">
+                                      <UserCircle2 className="w-4 h-4" />
+                                      <span className="text-sm">
+                                        {users.find(u => u.id === editTarget.data.userId)?.name || "Unknown User"}
+                                      </span>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        if (confirm("Are you sure you want to unlink this user account?")) {
+                                          unlinkUserFromArtistMutation.mutate(editTarget.id);
+                                        }
+                                      }}
+                                      disabled={unlinkUserFromArtistMutation.isPending}
+                                      data-testid="button-unlink-user"
+                                    >
+                                      Unlink
+                                    </Button>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    This artist must log in with this account to clock in
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <Select 
+                                    value={selectedLinkedUserId || ""}
+                                    onValueChange={setSelectedLinkedUserId}
+                                  >
+                                    <SelectTrigger data-testid="select-linked-user">
+                                      <SelectValue placeholder="Select a user account to link" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {users.filter(u => !artists.some(a => a.userId === u.id)).map((u) => (
+                                        <SelectItem key={u.id} value={u.id}>
+                                          {u.name} ({u.email})
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => {
+                                      if (selectedLinkedUserId) {
+                                        linkUserToArtistMutation.mutate({
+                                          artistId: editTarget.id,
+                                          userId: selectedLinkedUserId,
+                                        });
+                                        setSelectedLinkedUserId(null);
+                                      }
+                                    }}
+                                    disabled={!selectedLinkedUserId || linkUserToArtistMutation.isPending}
+                                    data-testid="button-link-user"
+                                  >
+                                    {linkUserToArtistMutation.isPending ? "Linking..." : "Link User Account"}
+                                  </Button>
+                                  <p className="text-xs text-muted-foreground">
+                                    Link a user account to require login for clock-in
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <DialogFooter>
                           <Button 
