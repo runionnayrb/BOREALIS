@@ -60,6 +60,7 @@ A production-ready full-stack web application for theatrical production training
     - **User Groups**: (Stage managers and admins only) Create, edit, and delete user groups. All users can view groups. Users displayed grouped alphabetically by their user group.
     - **User Deletion**: (Stage managers and admins only) Requires admin password confirmation (username: "admin", password: "laperleSM2025!"), prevents self-deletion and deletion of users who have created/modified reports.
     - **Role-Based Access Control**: Create, edit, and delete operations require 'stage_management' or 'admin' role. View operations available to all authenticated users.
+    - **Artist Account Linking**: When linking user accounts to artist profiles, dropdown only shows users in the "Artist" user group (case-insensitive) who are not already linked to another artist.
 - **Hierarchical Organization**: Consistent parent-child structures for Scenes → Acts, Location Types → Locations, and Artist Groups → Artists.
 - **Reports & Trainings**:
     - CRUD for reports and trainings with audit trails.

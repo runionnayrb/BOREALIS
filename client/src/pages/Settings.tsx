@@ -2853,7 +2853,17 @@ export default function Settings() {
                                       <SelectValue placeholder="Select a user account to link" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {users.filter(u => !artists.some(a => a.userId === u.id)).map((u) => (
+                                      {users.filter(u => {
+                                        // Find the "artist" user group
+                                        const artistUserGroup = userGroups.find(g => g.name.toLowerCase() === 'artist');
+                                        if (!artistUserGroup || u.userGroupId !== artistUserGroup.id) {
+                                          return false;
+                                        }
+                                        // Allow the currently linked user (if editing) OR users not linked to any other artist
+                                        const isCurrentlyLinked = editTarget?.type === "artist" && editTarget.data.userId === u.id;
+                                        const isLinkedToOtherArtist = artists.some(a => a.userId === u.id && a.id !== editTarget?.id);
+                                        return isCurrentlyLinked || !isLinkedToOtherArtist;
+                                      }).map((u) => (
                                         <SelectItem key={u.id} value={u.id}>
                                           {u.name} ({u.email})
                                         </SelectItem>
