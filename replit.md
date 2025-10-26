@@ -27,6 +27,7 @@ A production-ready full-stack web application for theatrical production training
 - **Hierarchical Dropdowns**: Training modal includes hierarchical dropdowns for Scene/Act selection and multi-select locations.
 - **Training Name Combobox**: Allows selecting scene/act from dropdown with optional custom display name override.
 - **Training Card Layout**: Responsive layout - 3-column grid on desktop, stacked single-column on mobile.
+- **Role-Based Sidebar Navigation**: Artists see empty sidebar (reserved for Magic Carpet Notes), while stage managers and admins see full navigation with hierarchical menus (Attendance → Dashboard/Tick Off). Sidebar shows loading state while fetching user group to prevent artists from seeing restricted menu items.
 - **Mobile Optimizations**:
     - **Training Cards**: Header information stacks vertically on mobile while maintaining horizontal layout on desktop.
     - **Training Modal**: All grid layouts (training name/locations/SM, time fields, artist/department sections) collapse to single-column on mobile.
@@ -51,8 +52,9 @@ A production-ready full-stack web application for theatrical production training
 - **Secure Authentication**: 
     - Login/signup with scrypt-hashed passwords and session management.
     - Registration requires: Email, Password, First Name, Last Name, Artist Name, and Department (User Group).
-    - Position is auto-assigned based on selected department during registration.
+    - Position and role are auto-assigned based on selected department during registration (e.g., "Artist" group → 'artist' role, "Stage Management" group → 'stage_management' role).
     - Auth page supports `returnTo` query parameter for redirecting users back to their intended destination after login.
+    - Auth page uses white background with dark text (no dark mode colors) to ensure visibility.
 - **Profile Management**: Update user details and password.
 - **Settings Management**: Full CRUD operations for all entities (scenes, acts, departments, locations, artists, technicians, report template).
     - **Artist Ordering**: Drag-and-drop reordering for artists using `@dnd-kit` with persistent `sortOrder`.
@@ -85,7 +87,7 @@ A production-ready full-stack web application for theatrical production training
 - **Attendance System**:
     - **Artist Sign-In**: Public page at `/attendance/sign-in` with photo grid, 4-digit PIN, and geofencing validation. All artists are visible on the page; authentication is required when selecting an artist (redirects to login if not authenticated).
     - **Stage Manager Dashboard**: Real-time tracking at `/attendance/dashboard` (requires role) with weekly calendar and manual sign-out.
-    - **Tick Sheets**: Meeting attendance tracking at `/attendance/tick-sheet` (requires role) with real-time updates via WebSocket.
+    - **Tick Sheets**: Meeting attendance tracking at `/attendance/tickoff` (requires role) with real-time updates via WebSocket.
     - **Artist Management**: Photo URL and Status (Active, Out, Long-Term OUT) fields for artists. Artists can set PINs during first sign-in.
     - **Real-time Synchronization**: All sign-in/sign-out and tick sheet marks broadcast via WebSocket.
 
