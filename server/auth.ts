@@ -119,7 +119,7 @@ export function setupAuth(app: Express) {
       });
     }
 
-    // Get user group to determine position
+    // Get user group to determine position and role
     const userGroup = await storage.getUserGroup(validation.data.userGroupId);
     if (!userGroup) {
       return res.status(400).json({ error: "Invalid department selected" });
@@ -127,6 +127,23 @@ export function setupAuth(app: Express) {
 
     // Auto-assign position based on user group
     const position = userGroup.name;
+    
+    // Auto-assign role based on user group name (case-insensitive)
+    let role: string;
+    const groupNameLower = userGroup.name.toLowerCase();
+    if (groupNameLower === 'artist') {
+      role = 'artist';
+    } else if (groupNameLower === 'stage management') {
+      role = 'stage_management';
+    } else if (groupNameLower === 'admin') {
+      role = 'admin';
+    } else if (groupNameLower === 'coaching') {
+      role = 'coaching';
+    } else if (groupNameLower === 'performance wellness') {
+      role = 'performance_wellness';
+    } else {
+      role = 'read_only'; // Default to read_only for unknown groups
+    }
 
     // Normalize formatting: lowercase email, title case for names
     const formattedData = {
@@ -136,6 +153,7 @@ export function setupAuth(app: Express) {
       artistName: validation.data.artistName, // Keep artist name as entered
       name: `${toTitleCase(validation.data.firstName)} ${toTitleCase(validation.data.lastName)}`, // Construct full name
       position: toTitleCase(position),
+      role: role,
       userGroupId: validation.data.userGroupId,
       password: await hashPassword(validation.data.password),
     };

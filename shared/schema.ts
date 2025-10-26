@@ -4,7 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // User roles
-export const userRoles = ['admin', 'stage_management', 'coaching', 'performance_wellness', 'read_only'] as const;
+export const userRoles = ['admin', 'stage_management', 'coaching', 'performance_wellness', 'read_only', 'artist'] as const;
 export type UserRole = typeof userRoles[number];
 
 // User Groups
