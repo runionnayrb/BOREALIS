@@ -855,6 +855,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ error: "Invalid PIN" });
     }
 
+    // Verify user authentication if artist has a linked account
+    if (artist.userId) {
+      if (!req.user) {
+        return res.status(401).json({ error: "You must be signed in to your account to sign in." });
+      }
+      if (req.user.id !== artist.userId) {
+        return res.status(403).json({ error: "You must be signed in to the account linked to this artist profile." });
+      }
+    }
+
     // Get existing geofence session for hysteresis
     const session = await storage.getGeofenceSession(validation.data.artistId);
 
@@ -942,6 +952,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     if (artist.pinCode !== validation.data.pinCode) {
       return res.status(401).json({ error: "Invalid PIN" });
+    }
+
+    // Verify user authentication if artist has a linked account
+    if (artist.userId) {
+      if (!req.user) {
+        return res.status(401).json({ error: "You must be signed in to your account to sign out." });
+      }
+      if (req.user.id !== artist.userId) {
+        return res.status(403).json({ error: "You must be signed in to the account linked to this artist profile." });
+      }
     }
 
     const today = new Date().toISOString().split('T')[0];
