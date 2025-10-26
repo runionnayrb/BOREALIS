@@ -4,18 +4,17 @@ import nearestPointOnLine from '@turf/nearest-point-on-line';
 
 // La Perle venue polygon (GeoJSON format)
 // Coordinates: [longitude, latitude]
-// Expanded by ~20 meters from original boundary
+// No external buffer - users must be inside or on the edge
 const LA_PERLE_POLYGON_COORDINATES = [
   [
-    [55.25560224754644, 25.18412693757665], // top right (expanded)
-    [55.25455113760126, 25.184630624209305], // top left (expanded)
-    [55.25404705248281, 25.183586370163838], // bottom left (expanded)
-    [55.255176925726794, 25.183339277480812], // bottom right (expanded)
-    [55.25560224754644, 25.18412693757665], // Close the polygon
+    [55.25545891962827, 25.18400041100044],
+    [55.25473615371274, 25.18456194763256],
+    [55.25419496069853, 25.18401317322558],
+    [55.25490714955171, 25.183414942494423],
+    [55.25545891962827, 25.18400041100044], // Close the polygon
   ],
 ];
 
-const ACCURACY_BUFFER_METERS = 5; // Additional buffer for GPS accuracy
 const HYSTERESIS_TIMEOUT_MINUTES = 10; // Keep user "in" for 10 minutes
 const HYSTERESIS_DISTANCE_METERS = 50; // Distance threshold to force "out"
 
