@@ -43,18 +43,14 @@ export default function ArtistSignIn() {
     queryKey: ["/api/attendance/artists"],
   });
 
-  const { data: fullArtists = [] } = useQuery<Artist[]>({
-    queryKey: ["/api/artists"],
-  });
-
   const { data: artistGroups = [] } = useQuery<ArtistGroup[]>({
     queryKey: ["/api/attendance/artist-groups"],
   });
 
   // Only show artists with linked user accounts
+  // The /api/attendance/artists endpoint includes userId field
   const availableArtists = artists.filter(artist => {
-    const fullArtist = fullArtists.find(a => a.id === artist.id);
-    return fullArtist?.userId != null;
+    return artist.userId != null;
   });
 
   const signInMutation = useMutation({
@@ -119,11 +115,8 @@ export default function ArtistSignIn() {
   const isSignedIn = currentRecord && currentRecord.signInTime && !currentRecord.signOutTime;
 
   const handleArtistSelect = async (artist: PublicArtist) => {
-    // Check if this artist has a linked user account
-    const fullArtist = fullArtists.find(a => a.id === artist.id);
-    
     // All artists must have linked accounts to sign in
-    if (!fullArtist?.userId) {
+    if (!artist.userId) {
       toast({
         description: "This artist profile must be linked to a user account before signing in. Please contact your stage manager.",
         variant: "destructive",
@@ -140,7 +133,7 @@ export default function ArtistSignIn() {
       return;
     }
     
-    if (user.id !== fullArtist.userId) {
+    if (user.id !== artist.userId) {
       toast({
         description: "You must be signed in to the account linked to this artist profile.",
         variant: "destructive",
