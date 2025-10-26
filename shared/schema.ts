@@ -28,7 +28,10 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
-  name: text("name"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  artistName: text("artist_name"), // Stage name for artist accounts
+  name: text("name"), // Full name (kept for backwards compatibility)
   position: text("position"),
   pronouns: text("pronouns"),
   role: text("role").notNull().default('stage_management'), // admin, stage_management, coaching, performance_wellness, read_only
@@ -43,6 +46,10 @@ export const users = pgTable("users", {
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
   password: true,
+  firstName: true,
+  lastName: true,
+  artistName: true,
+  userGroupId: true,
   name: true,
   position: true,
   pronouns: true,

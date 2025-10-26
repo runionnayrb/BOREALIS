@@ -18,10 +18,33 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
+import type { UserGroup } from "@shared/schema";
 import logoPath from "@assets/LaPerle-logo-basic_1760100706441.png";
 
 const loginSchema = insertUserSchema.pick({ email: true, password: true });
-const registerSchema = insertUserSchema;
+const registerSchema = insertUserSchema.pick({
+  email: true,
+  password: true,
+  firstName: true,
+  lastName: true,
+  artistName: true,
+  userGroupId: true,
+}).extend({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  artistName: z.string().min(1, "Artist name is required"),
+  userGroupId: z.string().min(1, "Department is required"),
+});
 
 type LoginFormData = z.infer<typeof loginSchema>;
 type RegisterFormData = z.infer<typeof registerSchema>;
@@ -58,10 +81,16 @@ export default function AuthPage() {
     defaultValues: {
       email: "",
       password: "",
-      name: "",
-      position: "",
-      pronouns: "",
+      firstName: "",
+      lastName: "",
+      artistName: "",
+      userGroupId: "",
     },
+  });
+
+  // Fetch user groups for department dropdown
+  const { data: userGroups = [] } = useQuery<UserGroup[]>({
+    queryKey: ["/api/user-groups"],
   });
 
   if (user) {
@@ -153,7 +182,7 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input type="email" {...field} value={field.value || ""} data-testid="input-register-email" />
+                            <Input type="email" {...field} data-testid="input-register-email" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -161,13 +190,63 @@ export default function AuthPage() {
                     />
                     <FormField
                       control={registerForm.control}
-                      name="name"
+                      name="artistName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Full Name (Optional)</FormLabel>
+                          <FormLabel>Artist Name</FormLabel>
                           <FormControl>
-                            <Input {...field} value={field.value || ""} data-testid="input-register-name" />
+                            <Input {...field} data-testid="input-register-artist-name" />
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={registerForm.control}
+                      name="firstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>First Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} data-testid="input-register-first-name" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={registerForm.control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} data-testid="input-register-last-name" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={registerForm.control}
+                      name="userGroupId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Department</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-register-department">
+                                <SelectValue placeholder="Select department" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {userGroups.map((group) => (
+                                <SelectItem key={group.id} value={group.id} data-testid={`option-department-${group.id}`}>
+                                  {group.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -180,32 +259,6 @@ export default function AuthPage() {
                           <FormLabel>Password</FormLabel>
                           <FormControl>
                             <Input type="password" {...field} data-testid="input-register-password" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={registerForm.control}
-                      name="position"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Position (Optional)</FormLabel>
-                          <FormControl>
-                            <Input {...field} value={field.value || ""} data-testid="input-register-position" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={registerForm.control}
-                      name="pronouns"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Pronouns (Optional)</FormLabel>
-                          <FormControl>
-                            <Input {...field} value={field.value || ""} placeholder="e.g., she/her, he/him, they/them" data-testid="input-register-pronouns" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

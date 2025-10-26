@@ -616,8 +616,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User Groups routes
+  // Public endpoint for registration form
   app.get("/api/user-groups", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
     const groups = await storage.getAllUserGroups();
     res.json(groups);
   });

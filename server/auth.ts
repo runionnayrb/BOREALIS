@@ -6,6 +6,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser, insertUserSchema } from "@shared/schema";
+import { z } from "zod";
 
 declare global {
   namespace Express {
@@ -92,8 +93,25 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/register", async (req, res, next) => {
+    // Define registration schema with required fields
+    const registrationSchema = insertUserSchema.pick({
+      email: true,
+      password: true,
+      firstName: true,
+      lastName: true,
+      artistName: true,
+      userGroupId: true,
+    }).extend({
+      email: z.string().email(),
+      password: z.string().min(6),
+      firstName: z.string().min(1, "First name is required"),
+      lastName: z.string().min(1, "Last name is required"),
+      artistName: z.string().min(1, "Artist name is required"),
+      userGroupId: z.string().min(1, "Department is required"),
+    });
+
     // Validate and sanitize input
-    const validation = insertUserSchema.safeParse(req.body);
+    const validation = registrationSchema.safeParse(req.body);
     if (!validation.success) {
       return res.status(400).json({ 
         error: "Validation failed", 
@@ -101,12 +119,25 @@ export function setupAuth(app: Express) {
       });
     }
 
+    // Get user group to determine position
+    const userGroup = await storage.getUserGroup(validation.data.userGroupId);
+    if (!userGroup) {
+      return res.status(400).json({ error: "Invalid department selected" });
+    }
+
+    // Auto-assign position based on user group
+    const position = userGroup.name;
+
     // Normalize formatting: lowercase email, title case for names
     const formattedData = {
-      ...validation.data,
       email: validation.data.email.toLowerCase(),
-      name: toTitleCase(validation.data.name),
-      position: toTitleCase(validation.data.position),
+      firstName: toTitleCase(validation.data.firstName),
+      lastName: toTitleCase(validation.data.lastName),
+      artistName: validation.data.artistName, // Keep artist name as entered
+      name: `${toTitleCase(validation.data.firstName)} ${toTitleCase(validation.data.lastName)}`, // Construct full name
+      position: toTitleCase(position),
+      userGroupId: validation.data.userGroupId,
+      password: await hashPassword(validation.data.password),
     };
 
     const existingEmail = await storage.getUserByEmail(formattedData.email);
@@ -114,10 +145,7 @@ export function setupAuth(app: Express) {
       return res.status(400).send("Email already exists");
     }
 
-    const user = await storage.createUser({
-      ...formattedData,
-      password: await hashPassword(validation.data.password),
-    });
+    const user = await storage.createUser(formattedData);
 
     req.login(user, (err) => {
       if (err) return next(err);
