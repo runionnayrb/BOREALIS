@@ -1,4 +1,4 @@
-import { Clock, Users, Pencil, Trash2, MapPin, Loader2, FileText, Briefcase, Target, ArrowUpCircle } from "lucide-react";
+import { Clock, Users, Trash2, MapPin, Loader2, FileText, Briefcase, Target, ArrowUpCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -101,7 +101,11 @@ export default function TrainingCard({
   };
 
   return (
-    <Card className="p-3 md:p-4" data-testid={`card-training-${training.id}`}>
+    <Card 
+      className="p-3 md:p-4 cursor-pointer hover-elevate transition-all" 
+      data-testid={`card-training-${training.id}`}
+      onClick={() => onEdit(training)}
+    >
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4 mb-3">
         <div className="flex-1 min-w-0">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 mb-2">
@@ -220,16 +224,7 @@ export default function TrainingCard({
             </div>
           )}
         </div>
-        <div className="flex md:flex-col items-start md:items-center gap-1 shrink-0 md:self-start">
-          <Button
-            variant="ghost"
-            size="icon"
-            data-testid={`button-edit-training-${training.id}`}
-            className="w-9 h-9"
-            onClick={() => onEdit(training)}
-          >
-            <Pencil className="w-4 h-4" />
-          </Button>
+        <div className="flex md:flex-col items-start md:items-center gap-1 shrink-0 md:self-start" onClick={(e) => e.stopPropagation()}>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
