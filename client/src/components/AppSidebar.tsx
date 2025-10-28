@@ -1,4 +1,4 @@
-import { FileText, Plus, Settings, ChevronRight, ClipboardCheck, CheckSquare } from "lucide-react";
+import { FileText, Plus, Settings, ChevronRight, ClipboardCheck, CheckSquare, Users, CalendarDays } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
@@ -83,6 +83,28 @@ export default function AppSidebar() {
                     <FileText className="w-4 h-4" />
                     <span>Reports</span>
                     {location === "/" && <ChevronRight className="w-4 h-4 ml-auto" />}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              {/* Lineups */}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={location.startsWith("/lineups")} data-testid="nav-lineups">
+                  <Link href="/lineups" className="flex items-center gap-3">
+                    <Users className="w-4 h-4" />
+                    <span>Lineups</span>
+                    {location.startsWith("/lineups") && <ChevronRight className="w-4 h-4 ml-auto" />}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              {/* Schedule */}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={location.startsWith("/schedule")} data-testid="nav-schedule">
+                  <Link href="/schedule/weekly" className="flex items-center gap-3">
+                    <CalendarDays className="w-4 h-4" />
+                    <span>Schedule</span>
+                    {location.startsWith("/schedule") && <ChevronRight className="w-4 h-4 ml-auto" />}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
