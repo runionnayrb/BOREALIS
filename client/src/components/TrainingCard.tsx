@@ -1,23 +1,9 @@
-import { Clock, Users, Trash2, MapPin, Loader2, FileText, Briefcase, Target, ArrowUpCircle } from "lucide-react";
+import { Clock, Users, MapPin, FileText, Briefcase, Target, ArrowUpCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
 import type { Training, Scene, Act, Department, Location, Artist, Technician, SafeUser, DepartmentAssignment, TrainingLocation, TrainingArtist } from "@shared/schema";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 interface TrainingCardProps {
   training: Training;
@@ -42,8 +28,6 @@ export default function TrainingCard({
   users,
   onEdit,
 }: TrainingCardProps) {
-  const { toast } = useToast();
-  
   const { data: assignments = [] } = useQuery<DepartmentAssignment[]>({
     queryKey: ['/api/trainings', training.id, 'assignments'],
   });
@@ -55,19 +39,6 @@ export default function TrainingCard({
   // Fetch artists assigned to this specific training
   const { data: trainingArtistLinks = [] } = useQuery<TrainingArtist[]>({
     queryKey: ['/api/trainings', training.id, 'artists'],
-  });
-
-  const deleteTrainingMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest('DELETE', `/api/trainings/${training.id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/reports', training.reportId, 'trainings'] });
-      toast({ title: "Training deleted successfully" });
-    },
-    onError: () => {
-      toast({ title: "Failed to delete training", variant: "destructive" });
-    },
   });
 
   const scene = scenes.find(s => s.id === training.sceneId);
@@ -223,41 +194,6 @@ export default function TrainingCard({
               </p>
             </div>
           )}
-        </div>
-        <div className="flex md:flex-col items-start md:items-center gap-1 shrink-0 md:self-start" onClick={(e) => e.stopPropagation()}>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                data-testid={`button-delete-training-${training.id}`}
-                className="w-9 h-9 text-destructive hover:text-destructive"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="w-[calc(100%-2rem)] max-w-lg mx-auto">
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Training?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently delete this training session. This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => deleteTrainingMutation.mutate()}
-                  disabled={deleteTrainingMutation.isPending}
-                  className="bg-destructive hover:bg-destructive/90"
-                >
-                  {deleteTrainingMutation.isPending && (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  )}
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </div>
       </div>
 

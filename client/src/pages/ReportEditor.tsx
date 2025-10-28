@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Download, Plus, Save, Calendar, Loader2, Mail } from "lucide-react";
+import { ArrowLeft, Download, Plus, Save, Calendar, Loader2, Mail, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import RichTextEditor from "@/components/RichTextEditor";
 import TrainingCard from "@/components/TrainingCard";
@@ -16,6 +16,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -490,6 +501,35 @@ export default function ReportEditor() {
     },
     onError: () => {
       toast({ title: "Failed to update training", variant: "destructive" });
+    },
+  });
+
+  const deleteTrainingMutation = useMutation({
+    mutationFn: async (trainingId: string) => {
+      return await apiRequest('DELETE', `/api/trainings/${trainingId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/reports', reportId, 'trainings'] });
+      toast({ title: "Training deleted successfully" });
+      setShowAddTraining(false);
+      setEditingTraining(null);
+      setSelectedActId("");
+      setCustomName("");
+      setTrainingNameInput("");
+      setSelectedLocationIds([]);
+      setSelectedStageManagerId("");
+      setStartTime("14:00");
+      setEndTime("16:30");
+      setTrainingGoal("");
+      setTrainingGoalNotes("");
+      setTrainingNotes("");
+      setTrainingFollowUpNotes("");
+      setActDepartmentIds([]);
+      setActArtistIds([]);
+      setTrainingAssignments([]);
+    },
+    onError: () => {
+      toast({ title: "Failed to delete training", variant: "destructive" });
     },
   });
 
@@ -1272,24 +1312,62 @@ export default function ReportEditor() {
                       </div>
                     )}
 
-                    <div className="flex justify-end gap-2 pt-4">
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowAddTraining(false)}
-                        data-testid="button-cancel-training"
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleSubmitTraining}
-                        disabled={createTrainingMutation.isPending || updateTrainingMutation.isPending || !selectedActId}
-                        data-testid="button-confirm-training"
-                      >
-                        {(createTrainingMutation.isPending || updateTrainingMutation.isPending) && (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2 text-primary-foreground" />
-                        )}
-                        {editingTraining ? "Update Training" : "Add Training"}
-                      </Button>
+                    <div className="flex justify-between items-center gap-2 pt-4">
+                      {editingTraining ? (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="text-destructive hover:text-destructive border-destructive/50 hover:bg-destructive/10"
+                              data-testid="button-delete-training-modal"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete Training
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="w-[calc(100%-2rem)] max-w-lg mx-auto">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Training?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete this training session. This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteTrainingMutation.mutate(editingTraining.id)}
+                                className="bg-destructive hover:bg-destructive/90"
+                              >
+                                {deleteTrainingMutation.isPending && (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                )}
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      ) : (
+                        <div />
+                      )}
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowAddTraining(false)}
+                          data-testid="button-cancel-training"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={handleSubmitTraining}
+                          disabled={createTrainingMutation.isPending || updateTrainingMutation.isPending || !selectedActId}
+                          data-testid="button-confirm-training"
+                        >
+                          {(createTrainingMutation.isPending || updateTrainingMutation.isPending) && (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2 text-primary-foreground" />
+                          )}
+                          {editingTraining ? "Update Training" : "Add Training"}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </DialogContent>
