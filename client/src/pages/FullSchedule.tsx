@@ -6,36 +6,38 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import type { Location } from "@shared/schema";
 
 // Mock full schedule data matching the PDF format
 const mockScheduleActivities = {
   "2025-10-29": [ // Wednesday
     {
       id: "1",
-      title: "ARTIST CALL - Individual Rehearsal",
+      title: "Individual Rehearsal",
       startTime: "09:00",
       endTime: "11:00",
-      location: "Pool",
+      locationName: "Pool",
       participants: "Aleksei, Kleber",
       color: "bg-green-500/20 border-green-500",
       type: "rehearsal"
     },
     {
       id: "2",
-      title: "COSTUME FITTING",
+      title: "Costume Fitting",
       startTime: "14:00",
       endTime: "15:30",
-      location: "Wardrobe",
+      locationName: "B2 Wardrobe",
       participants: "Martin, Carlos",
       color: "bg-purple-500/20 border-purple-500",
       type: "fitting"
     },
     {
       id: "3",
-      title: "ARTIST CALL - Show 21:00",
+      title: "Artist Call",
       startTime: "18:30",
       endTime: "19:30",
-      location: "Theatre",
+      locationName: "FULL STAGE",
       participants: "Full Cast",
       color: "bg-blue-500/20 border-blue-500",
       type: "call"
@@ -45,7 +47,7 @@ const mockScheduleActivities = {
       title: "SHOW #3445",
       startTime: "21:00",
       endTime: "22:30",
-      location: "Theatre",
+      locationName: "FULL STAGE",
       participants: "Full Cast",
       color: "bg-cyan-500/20 border-cyan-500",
       type: "show"
@@ -54,30 +56,30 @@ const mockScheduleActivities = {
   "2025-10-30": [ // Thursday
     {
       id: "5",
-      title: "COMPANY MEETING",
+      title: "Company Meeting",
       startTime: "10:00",
       endTime: "11:30",
-      location: "Green Room",
+      locationName: "B2 Stage Management",
       participants: "All Staff",
       color: "bg-yellow-500/20 border-yellow-500",
       type: "meeting"
     },
     {
       id: "6",
-      title: "DRY STAGE REHEARSAL",
+      title: "Dry Stage Rehearsal",
       startTime: "14:00",
       endTime: "17:00",
-      location: "Dry Stage",
+      locationName: "Drystage",
       participants: "Acrobats Group",
       color: "bg-green-500/20 border-green-500",
       type: "rehearsal"
     },
     {
       id: "7",
-      title: "ARTIST CALL - Show 21:00",
+      title: "Artist Call",
       startTime: "18:30",
       endTime: "19:30",
-      location: "Theatre",
+      locationName: "FULL STAGE",
       participants: "Full Cast",
       color: "bg-blue-500/20 border-blue-500",
       type: "call"
@@ -87,7 +89,7 @@ const mockScheduleActivities = {
       title: "SHOW #3446",
       startTime: "21:00",
       endTime: "22:30",
-      location: "Theatre",
+      locationName: "FULL STAGE",
       participants: "Full Cast",
       color: "bg-cyan-500/20 border-cyan-500",
       type: "show"
@@ -96,20 +98,20 @@ const mockScheduleActivities = {
   "2025-10-31": [ // Friday
     {
       id: "9",
-      title: "WET REHEARSAL - Desert Flower",
+      title: "Wet Rehearsal - Desert Flower",
       startTime: "10:00",
       endTime: "12:00",
-      location: "Pool",
+      locationName: "Pool",
       participants: "Pearl Girl, Antar, King",
       color: "bg-green-500/20 border-green-500",
       type: "rehearsal"
     },
     {
       id: "10",
-      title: "ARTIST CALL - Show 18:00",
+      title: "Artist Call",
       startTime: "16:00",
       endTime: "17:00",
-      location: "Theatre",
+      locationName: "FULL STAGE",
       participants: "Full Cast",
       color: "bg-blue-500/20 border-blue-500",
       type: "call"
@@ -119,17 +121,17 @@ const mockScheduleActivities = {
       title: "SHOW #3447",
       startTime: "18:00",
       endTime: "19:30",
-      location: "Theatre",
+      locationName: "FULL STAGE",
       participants: "Full Cast",
       color: "bg-cyan-500/20 border-cyan-500",
       type: "show"
     },
     {
       id: "12",
-      title: "ARTIST CALL - Show 21:00",
+      title: "Artist Call",
       startTime: "19:30",
       endTime: "20:30",
-      location: "Theatre",
+      locationName: "FULL STAGE",
       participants: "Full Cast",
       color: "bg-blue-500/20 border-blue-500",
       type: "call"
@@ -139,7 +141,7 @@ const mockScheduleActivities = {
       title: "SHOW #3448",
       startTime: "21:00",
       endTime: "22:30",
-      location: "Theatre",
+      locationName: "FULL STAGE",
       participants: "Full Cast",
       color: "bg-cyan-500/20 border-cyan-500",
       type: "show"
@@ -148,10 +150,10 @@ const mockScheduleActivities = {
   "2025-11-01": [ // Saturday
     {
       id: "14",
-      title: "ARTIST CALL - Show 18:00",
+      title: "Artist Call",
       startTime: "16:00",
       endTime: "17:00",
-      location: "Theatre",
+      locationName: "FULL STAGE",
       participants: "Full Cast",
       color: "bg-blue-500/20 border-blue-500",
       type: "call"
@@ -161,17 +163,17 @@ const mockScheduleActivities = {
       title: "SHOW #3449",
       startTime: "18:00",
       endTime: "19:30",
-      location: "Theatre",
+      locationName: "FULL STAGE",
       participants: "Full Cast",
       color: "bg-cyan-500/20 border-cyan-500",
       type: "show"
     },
     {
       id: "16",
-      title: "ARTIST CALL - Show 21:00",
+      title: "Artist Call",
       startTime: "19:30",
       endTime: "20:30",
-      location: "Theatre",
+      locationName: "FULL STAGE",
       participants: "Full Cast",
       color: "bg-blue-500/20 border-blue-500",
       type: "call"
@@ -181,23 +183,13 @@ const mockScheduleActivities = {
       title: "SHOW #3450",
       startTime: "21:00",
       endTime: "22:30",
-      location: "Theatre",
+      locationName: "FULL STAGE",
       participants: "Full Cast",
       color: "bg-cyan-500/20 border-cyan-500",
       type: "show"
     },
   ],
   "2025-11-02": [ // Sunday
-    {
-      id: "18",
-      title: "DAY OFF",
-      startTime: "00:00",
-      endTime: "23:59",
-      location: "",
-      participants: "",
-      color: "bg-muted/20 border-muted",
-      type: "off"
-    },
   ],
 };
 
@@ -242,6 +234,11 @@ export default function FullSchedule() {
 
   const prevWeek = () => setCurrentWeekStart((prev) => addDays(prev, -7));
   const nextWeek = () => setCurrentWeekStart((prev) => addDays(prev, 7));
+
+  // Fetch locations from database
+  const { data: locations = [] } = useQuery<Location[]>({
+    queryKey: ["/api/locations"],
+  });
 
   const activeDayActivities = mockScheduleActivities[activeDay as keyof typeof mockScheduleActivities] || [];
 
@@ -321,11 +318,14 @@ export default function FullSchedule() {
                 <Card>
                   <CardContent className="p-0">
                     <div className="overflow-x-auto">
-                      {/* Time Header */}
+                      {/* Header Row - Date and Time Slots */}
                       <div className="flex border-b sticky top-0 bg-card z-10">
-                        <div className="w-48 flex-shrink-0 p-4 border-r">
+                        <div className="w-48 flex-shrink-0 p-3 border-r">
                           <div className="text-sm font-semibold">
-                            {format(day, 'EEEE, MMMM d, yyyy')}
+                            {format(day, 'EEEE')}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {format(day, 'MMMM d, yyyy')}
                           </div>
                         </div>
                         <div className="flex-1 flex">
@@ -334,65 +334,72 @@ export default function FullSchedule() {
                               key={time}
                               className="min-w-[160px] p-2 border-r text-center"
                             >
-                              <div className="text-sm font-semibold">{time}</div>
+                              <div className="text-xs font-semibold">{time}</div>
                             </div>
                           ))}
                         </div>
                       </div>
 
-                      {/* Timeline */}
-                      <ScrollArea className="h-[500px]">
-                        <div className="relative" style={{ minHeight: '400px' }}>
-                          {/* Time Grid Lines */}
-                          <div className="absolute inset-0 flex">
-                            <div className="w-48 flex-shrink-0 border-r" />
-                            <div className="flex-1 flex">
-                              {timeSlots.map((time) => (
-                                <div
-                                  key={time}
-                                  className="min-w-[40px] border-r border-dashed border-border/50"
-                                />
-                              ))}
-                            </div>
-                          </div>
+                      {/* Location Rows */}
+                      <ScrollArea className="h-[600px]">
+                        {locations.map((location) => {
+                          const locationActivities = dayActivities.filter(
+                            (act) => act.locationName === location.name
+                          );
 
-                          {/* Activities */}
-                          <div className="relative pt-4 pb-4">
-                            {dayActivities.map((activity, idx) => {
-                              const position = getActivityPosition(activity.startTime, activity.endTime);
-                              return (
-                                <div
-                                  key={activity.id}
-                                  className={`absolute border-l-4 rounded-md p-3 ${activity.color}`}
-                                  style={{
-                                    left: `${192 + position.left}px`, // 192px = w-48 offset
-                                    top: `${idx * 80 + 16}px`,
-                                    width: `${position.width}px`,
-                                    minWidth: '200px',
-                                  }}
-                                  data-testid={`activity-${activity.id}`}
-                                >
-                                  <div className="font-semibold text-sm mb-1">
-                                    {activity.title}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground mb-1">
-                                    {activity.startTime} - {activity.endTime}
-                                  </div>
-                                  {activity.location && (
-                                    <div className="text-xs text-muted-foreground">
-                                      📍 {activity.location}
-                                    </div>
-                                  )}
-                                  {activity.participants && (
-                                    <div className="text-xs mt-1">
-                                      {activity.participants}
-                                    </div>
-                                  )}
+                          return (
+                            <div key={location.id} className="flex border-b hover:bg-accent/50 transition-colors min-h-[60px]">
+                              {/* Location Name */}
+                              <div className="w-48 flex-shrink-0 p-3 border-r bg-muted/30">
+                                <div className="text-sm font-medium">
+                                  {location.name}
                                 </div>
-                              );
-                            })}
-                          </div>
-                        </div>
+                              </div>
+
+                              {/* Time Grid */}
+                              <div className="flex-1 relative min-h-[60px]">
+                                {/* Grid Lines */}
+                                <div className="absolute inset-0 flex">
+                                  {timeSlots.map((time) => (
+                                    <div
+                                      key={time}
+                                      className="min-w-[40px] border-r border-dashed border-border/30"
+                                    />
+                                  ))}
+                                </div>
+
+                                {/* Activities for this location */}
+                                {locationActivities.map((activity) => {
+                                  const position = getActivityPosition(activity.startTime, activity.endTime);
+                                  return (
+                                    <div
+                                      key={activity.id}
+                                      className={`absolute border-l-4 rounded-md p-2 ${activity.color} top-1 bottom-1`}
+                                      style={{
+                                        left: `${position.left}px`,
+                                        width: `${position.width}px`,
+                                        minWidth: '120px',
+                                      }}
+                                      data-testid={`activity-${activity.id}`}
+                                    >
+                                      <div className="font-semibold text-xs mb-1 truncate">
+                                        {activity.title}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground truncate">
+                                        {activity.startTime} - {activity.endTime}
+                                      </div>
+                                      {activity.participants && (
+                                        <div className="text-xs mt-1 truncate">
+                                          {activity.participants}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </ScrollArea>
                     </div>
                   </CardContent>
