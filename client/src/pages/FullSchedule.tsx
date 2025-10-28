@@ -356,7 +356,7 @@ export default function FullSchedule() {
                             {format(day, 'MMMM d, yyyy')}
                           </div>
                         </div>
-                        <div className="flex-1 flex">
+                        <div className="flex" style={{ minWidth: `${timeSlots.length * 40}px` }}>
                           {timeSlots.filter((_, idx) => {
                             // Show hourly labels regardless of increment
                             if (timeIncrement === 15) return idx % 4 === 0; // Every hour (4 x 15min)
@@ -397,7 +397,7 @@ export default function FullSchedule() {
                               </div>
 
                               {/* Time Grid */}
-                              <div className="flex-1 relative py-2" style={{ minHeight: rowHeight }}>
+                              <div className="relative py-2" style={{ minHeight: rowHeight, minWidth: `${timeSlots.length * 40}px` }}>
                                 {/* Grid Lines */}
                                 <div className="absolute inset-0 flex">
                                   {timeSlots.map((time) => (
