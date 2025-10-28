@@ -199,13 +199,15 @@ const generateTimeSlots = (increment: number) => {
   for (let hour = 7; hour <= 23; hour++) {
     for (let minute = 0; minute < 60; minute += increment) {
       const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-      // Stop after 23:45 (11:45 PM)
-      if (hour === 23 && minute >= 45) {
-        slots.push(time);
-        break;
-      }
       slots.push(time);
+      // Stop after adding slots up to and including minute 45 for hour 23
+      if (hour === 23 && minute >= 45) break;
     }
+  }
+  // Ensure 23:45 is included if the increment didn't naturally produce it
+  const lastSlot = slots[slots.length - 1];
+  if (lastSlot !== '23:45') {
+    slots.push('23:45');
   }
   return slots;
 };
