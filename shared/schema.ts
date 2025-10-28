@@ -534,3 +534,189 @@ export const insertTickSheetMarkSchema = createInsertSchema(tickSheetMarks).omit
 
 export type InsertTickSheetMark = z.infer<typeof insertTickSheetMarkSchema>;
 export type TickSheetMark = typeof tickSheetMarks.$inferSelect;
+
+// Lineup Templates - reusable stage position layouts
+export const lineupTemplates = pgTable("lineup_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(), // e.g., "City", "Spaceship", "Desert Flower"
+  sceneId: varchar("scene_id").references(() => scenes.id),
+  actId: varchar("act_id").references(() => acts.id),
+  description: text("description"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdBy: varchar("created_by").references(() => users.id),
+});
+
+export const insertLineupTemplateSchema = createInsertSchema(lineupTemplates).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertLineupTemplate = z.infer<typeof insertLineupTemplateSchema>;
+export type LineupTemplate = typeof lineupTemplates.$inferSelect;
+
+// Position Types - types of positions in a lineup (entry, inversion, zombie, character, etc.)
+export const positionTypes = ['entry', 'inversion', 'character', 'zombie', 'bike', 'aerial', 'other'] as const;
+export type PositionType = typeof positionTypes[number];
+
+// Template Positions - positions within a lineup template
+export const templatePositions = pgTable("template_positions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  templateId: varchar("template_id").notNull().references(() => lineupTemplates.id, { onDelete: "cascade" }),
+  name: text("name").notNull(), // e.g., "VOM 5 ENTRY", "P2 DSR INVER. WALK", "King"
+  label: text("label"), // Optional display label (e.g., position number "1", "2")
+  type: text("type").notNull().default('other'), // entry, inversion, character, zombie, bike, aerial, other
+  section: text("section"), // Grouping (e.g., "VOM 5 ENTRY", "DOOR ENTRY", "CHARACTERS")
+  sortOrder: integer("sort_order").notNull().default(0),
+  xPosition: integer("x_position"), // Visual positioning (optional)
+  yPosition: integer("y_position"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertTemplatePositionSchema = createInsertSchema(templatePositions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertTemplatePosition = z.infer<typeof insertTemplatePositionSchema>;
+export type TemplatePosition = typeof templatePositions.$inferSelect;
+
+// Show Lineups - specific show instances
+export const showLineups = pgTable("show_lineups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  showNumber: text("show_number").notNull(), // e.g., "#3445"
+  showDate: text("show_date").notNull(), // YYYY-MM-DD
+  showTime: text("show_time").notNull(), // HH:MM (e.g., "21:00")
+  showcaller: varchar("showcaller_id").references(() => users.id),
+  notes: text("notes"), // General show notes
+  technicalNotes: text("technical_notes"), // Equipment/technical issues
+  diveHeights: text("dive_heights"), // JSON object for dive heights
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdBy: varchar("created_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  updatedBy: varchar("updated_by").references(() => users.id),
+});
+
+export const insertShowLineupSchema = createInsertSchema(showLineups).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertShowLineup = z.infer<typeof insertShowLineupSchema>;
+export type ShowLineup = typeof showLineups.$inferSelect;
+
+// EM Team Roles
+export const emTeamRoles = ['DOD', 'CFW', 'PWD', 'SR PWD', 'CARPS', 'WARD', 'RIG', 'AQX', 'SM'] as const;
+export type EmTeamRole = typeof emTeamRoles[number];
+
+// Show EM Team Assignments
+export const showEmTeam = pgTable("show_em_team", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  showLineupId: varchar("show_lineup_id").notNull().references(() => showLineups.id, { onDelete: "cascade" }),
+  role: text("role").notNull(), // DOD, CFW, PWD, etc.
+  technicianId: varchar("technician_id").references(() => technicians.id),
+  name: text("name"), // In case technician is not in system
+  location: text("location"), // e.g., "Vom 1", "Vom 4"
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertShowEmTeamSchema = createInsertSchema(showEmTeam).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertShowEmTeam = z.infer<typeof insertShowEmTeamSchema>;
+export type ShowEmTeam = typeof showEmTeam.$inferSelect;
+
+// Show Lineup Scenes - which template scenes are in this show
+export const showLineupScenes = pgTable("show_lineup_scenes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  showLineupId: varchar("show_lineup_id").notNull().references(() => showLineups.id, { onDelete: "cascade" }),
+  templateId: varchar("template_id").notNull().references(() => lineupTemplates.id),
+  sortOrder: integer("sort_order").notNull().default(0),
+  sceneNotes: text("scene_notes"), // Notes specific to this scene in this show
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertShowLineupSceneSchema = createInsertSchema(showLineupScenes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertShowLineupScene = z.infer<typeof insertShowLineupSceneSchema>;
+export type ShowLineupScene = typeof showLineupScenes.$inferSelect;
+
+// Show Position Assignments - artist assignments to positions
+export const showPositionAssignments = pgTable("show_position_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  showLineupSceneId: varchar("show_lineup_scene_id").notNull().references(() => showLineupScenes.id, { onDelete: "cascade" }),
+  positionId: varchar("position_id").notNull().references(() => templatePositions.id),
+  artistId: varchar("artist_id").references(() => artists.id),
+  artistNumber: text("artist_number"), // Artist's number (e.g., "114", "183")
+  characterName: text("character_name"), // Override character name if different from template
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertShowPositionAssignmentSchema = createInsertSchema(showPositionAssignments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertShowPositionAssignment = z.infer<typeof insertShowPositionAssignmentSchema>;
+export type ShowPositionAssignment = typeof showPositionAssignments.$inferSelect;
+
+// Schedule Call Types
+export const callTypes = ['show', 'rehearsal', 'training', 'fitting', 'meeting', 'medical', 'break', 'other'] as const;
+export type CallType = typeof callTypes[number];
+
+// Schedules - weekly/daily schedule
+export const schedules = pgTable("schedules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(), // e.g., "Week 44", "Daily - Oct 29"
+  startDate: text("start_date").notNull(), // YYYY-MM-DD
+  endDate: text("end_date").notNull(), // YYYY-MM-DD
+  weekNumber: integer("week_number"),
+  version: text("version").notNull().default("1.00"), // e.g., "V01.00"
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdBy: varchar("created_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  updatedBy: varchar("updated_by").references(() => users.id),
+});
+
+export const insertScheduleSchema = createInsertSchema(schedules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertSchedule = z.infer<typeof insertScheduleSchema>;
+export type Schedule = typeof schedules.$inferSelect;
+
+// Schedule Calls - individual scheduled activities
+export const scheduleCalls = pgTable("schedule_calls", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  scheduleId: varchar("schedule_id").notNull().references(() => schedules.id, { onDelete: "cascade" }),
+  artistId: varchar("artist_id").references(() => artists.id),
+  artistGroupId: varchar("artist_group_id").references(() => artistGroups.id), // For group calls
+  date: text("date").notNull(), // YYYY-MM-DD
+  startTime: text("start_time").notNull(), // HH:MM
+  endTime: text("end_time").notNull(), // HH:MM
+  callType: text("call_type").notNull().default('other'), // show, rehearsal, training, fitting, etc.
+  title: text("title").notNull(), // e.g., "Show 21:00", "Dry Rehearsal"
+  location: text("location"),
+  showLineupId: varchar("show_lineup_id").references(() => showLineups.id), // Link to show lineup if applicable
+  color: text("color"), // Background color for visual coding
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertScheduleCallSchema = createInsertSchema(scheduleCalls).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertScheduleCall = z.infer<typeof insertScheduleCallSchema>;
+export type ScheduleCall = typeof scheduleCalls.$inferSelect;
