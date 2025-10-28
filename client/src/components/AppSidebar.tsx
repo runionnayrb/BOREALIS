@@ -68,142 +68,139 @@ export default function AppSidebar() {
           <DialogTitle className="text-2xl font-semibold">La Perle Borealis - Version 1.00</DialogTitle>
         </DialogHeader>
         <ScrollArea className="h-[calc(80vh-8rem)] pr-4">
-          <div className="space-y-8">
-            {/* Major Updates */}
+          <div className="space-y-6">
+            {/* Reports */}
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-primary">Major Features</h3>
-              <div className="space-y-3">
+              <h3 className="text-lg font-semibold mb-3 text-primary">Reports</h3>
+              <div className="space-y-3 text-sm text-muted-foreground">
                 <div className="space-y-1">
-                  <h4 className="font-medium">Authentication & User Management</h4>
-                  <p className="text-sm text-muted-foreground">Secure login/signup system with scrypt password hashing, session-based authentication, and role-based access control. Full user management with user groups, active/inactive status, and admin-protected deletion.</p>
+                  <p className="font-medium text-foreground">Daily Training Reports</p>
+                  <p>Create and manage daily training reports with three customizable sections: Goal, Training Notes, and Follow-Up. Track which scenes, acts, departments, artists, and locations were involved in each training session.</p>
                 </div>
-
                 <div className="space-y-1">
-                  <h4 className="font-medium">Training Reports System</h4>
-                  <p className="text-sm text-muted-foreground">Create daily training reports with rich text notes (Goal, Training Notes, Follow-Up sections), track trainings by act, department, artist, location. Supports multi-location assignments, custom training names, and chronological list display with click-to-edit cards.</p>
+                  <p className="font-medium text-foreground">Training Sessions</p>
+                  <p>Add multiple training sessions to each daily report. Assign lead technicians for each department, select multiple locations, and choose which artists participated. Training cards are displayed chronologically and can be clicked to edit. Delete trainings from within the edit modal.</p>
                 </div>
-
                 <div className="space-y-1">
-                  <h4 className="font-medium">Settings Management</h4>
-                  <p className="text-sm text-muted-foreground">Full CRUD operations for scenes, acts, departments, locations, artists, and technicians. Hierarchical organization with parent-child relationships. Drag-and-drop artist ordering with persistent sort order.</p>
+                  <p className="font-medium text-foreground">Rich Text Formatting</p>
+                  <p>Format your notes with bold, italic, underline, bullet lists, numbered lists, and text alignment. All formatting is preserved when exporting to PDF or sending via email.</p>
                 </div>
-
                 <div className="space-y-1">
-                  <h4 className="font-medium">Report Template System</h4>
-                  <p className="text-sm text-muted-foreground">Global header/footer template with image upload support for professional PDF exports with custom branding.</p>
+                  <p className="font-medium text-foreground">PDF Export</p>
+                  <p>Export reports to PDF with custom header and footer branding. The PDF includes your uploaded logos, report date, Stage Manager on duty, and all training sessions with their details. File naming follows the format: ART-SM-TRN La Perle Training Report YYYYMMDD.pdf</p>
                 </div>
-
                 <div className="space-y-1">
-                  <h4 className="font-medium">PDF Export & Email Distribution</h4>
-                  <p className="text-sm text-muted-foreground">Export reports to PDF with custom header including logos, title, date, and Stage Manager. Outlook integration with configurable email templates, TO/CC/BCC distribution lists, and customizable subject/body with date variables.</p>
+                  <p className="font-medium text-foreground">Email Distribution</p>
+                  <p>Connect your Outlook account to send reports via email. Configure distribution lists (TO, CC, BCC), customize the subject line and email body. The date in the subject line automatically updates to match the report date.</p>
                 </div>
-
                 <div className="space-y-1">
-                  <h4 className="font-medium">Show Lineup Management</h4>
-                  <p className="text-sm text-muted-foreground">Visual stage layout builder with position assignments matching production format. Organize by scenes/acts (Prologue/Desert Flower, City, Spaceship/Tower Bridge). Manage EM team roster (DOD, CFW, PWD, SR PWD, CARPS, WARD, RIG, AQX, SM) with location assignments. Display OUT artists, show notes, technical notes, and dive heights. Drag-and-drop visual cues with searchable artist roster.</p>
-                </div>
-
-                <div className="space-y-1">
-                  <h4 className="font-medium">Schedule Management</h4>
-                  <p className="text-sm text-muted-foreground">Full timeline-based daily schedule showing activities as horizontal blocks across time slots (7:00 AM - 11:45 PM). Per-artist weekly grid view with individual calls organized by artist rows. Support for Shows, Artist Calls, Rehearsals, Fittings, Meetings with color-coded distinction. Week navigation, day tabs, and PDF export for both views.</p>
-                </div>
-
-                <div className="space-y-1">
-                  <h4 className="font-medium">Attendance System</h4>
-                  <p className="text-sm text-muted-foreground">Public artist sign-in page with photo grid, 4-digit PIN, and server-side geofencing validation (100-meter radius from La Perle venue). Stage Manager dashboard with real-time tracking, weekly calendar, and manual sign-out. Tick sheets for meeting attendance with real-time updates via WebSocket. Artist photo URLs, status management (Active, Out, Long-Term OUT), and PIN setup during first sign-in.</p>
+                  <p className="font-medium text-foreground">Report Template</p>
+                  <p>Upload custom logos and branding for your report header and footer. This template is applied to all PDF exports automatically.</p>
                 </div>
               </div>
             </div>
 
-            {/* Minor Updates */}
+            {/* Lineups */}
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-primary">Minor Updates & Enhancements</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  <p className="text-muted-foreground">Two-layer XSS protection with Tiptap escaping and DOMPurify sanitization for rich text notes</p>
+              <h3 className="text-lg font-semibold mb-3 text-primary">Lineups</h3>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Show Lineups</p>
+                  <p>View and manage show lineups with show number, date, time, showcaller, and status. Create new lineups or edit existing ones.</p>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  <p className="text-muted-foreground">Lead technician assignment per department for each training session</p>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Visual Stage Layout</p>
+                  <p>Build lineups using a visual stage layout that matches the production format. Positions are organized by scenes and acts: Show Info, Prologue/Desert Flower, City, Spaceship/Tower Bridge, etc.</p>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  <p className="text-muted-foreground">Audit trail tracking (createdBy, updatedBy, timestamps) for all reports and trainings</p>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Artist Assignments</p>
+                  <p>Assign artists to stage positions with their roles. Search through the artist roster to quickly find and assign performers. Visual drag-and-drop cues guide you through the assignment process.</p>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  <p className="text-muted-foreground">One report per day enforcement with automatic reuse or creation</p>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">EM Team Management</p>
+                  <p>Manage the full EM team roster including DOD, CFW, PWD, SR PWD, CARPS, WARD, RIG, AQX, and SM. Assign locations to each team member for the show.</p>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  <p className="text-muted-foreground">Real-time WebSocket synchronization for attendance sign-in/sign-out and tick sheet updates</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  <p className="text-muted-foreground">Mobile-first responsive design with full mobile support for training reports, modals, and schedules</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  <p className="text-muted-foreground">Linear-inspired professional dark mode UI with Inter/JetBrains Mono fonts and cyan accent colors</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  <p className="text-muted-foreground">Hierarchical dropdowns for scene/act selection and multi-select locations in training modal</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  <p className="text-muted-foreground">Training cards with responsive layout - 3-column grid on desktop, single-column on mobile</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  <p className="text-muted-foreground">Chronological sorting of training sessions by start time, then end time</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  <p className="text-muted-foreground">Professional date formatting (e.g., "Wednesday, October 25, 2025") throughout the application</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  <p className="text-muted-foreground">Timezone-safe date parsing to prevent off-by-one day errors in non-UTC timezones</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  <p className="text-muted-foreground">Artist account linking restricted to users in "Artist" user group only</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  <p className="text-muted-foreground">Role-based sidebar navigation - artists see empty sidebar (reserved for Magic Carpet Notes), stage managers and admins see full navigation</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  <p className="text-muted-foreground">Toast notifications for all user actions (create, update, delete) with success and error states</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  <p className="text-muted-foreground">Training cards click-to-edit functionality with delete moved to modal footer</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  <p className="text-muted-foreground">Schedule grid uses 15-minute base units (40px per slot) for precise activity positioning with hour/half-hour labels for readability</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  <p className="text-muted-foreground">User deletion requires admin password confirmation and prevents deletion of users who have created/modified reports</p>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Show Notes</p>
+                  <p>Track OUT artists, add show notes and technical notes. Configure dive heights and other show-specific details all in one place.</p>
                 </div>
               </div>
             </div>
 
-            {/* Technical Stack */}
+            {/* Schedule */}
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-primary">Technical Stack</h3>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p><strong>Frontend:</strong> React, Vite, Wouter, TanStack Query, shadcn/ui, Tiptap</p>
-                <p><strong>Backend:</strong> Express.js, Drizzle ORM, Passport.js, scrypt</p>
-                <p><strong>Database:</strong> PostgreSQL with session store</p>
-                <p><strong>Real-time:</strong> WebSocket server for live attendance and tick sheet updates</p>
-                <p><strong>Security:</strong> XSS protection with DOMPurify, role-based middleware authorization</p>
-                <p><strong>Email:</strong> Microsoft Graph API via Replit Outlook connector</p>
+              <h3 className="text-lg font-semibold mb-3 text-primary">Schedule</h3>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Full Schedule View</p>
+                  <p>See the entire day's schedule at a glance with a timeline from 7:00 AM to 11:45 PM. Activities appear as horizontal blocks showing title, time, location, and participants. Shows, artist calls, rehearsals, fittings, and meetings each have their own color coding.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">By Artist View</p>
+                  <p>View the weekly schedule organized by artist. See each artist's individual calls and activities in their own row. Navigate between weeks and select specific days using the tab system.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Activity Management</p>
+                  <p>Create and manage different types of activities: Shows, Artist Calls, Rehearsals, Fittings, and Meetings. Each activity shows its time range, location, and which artists or groups are involved.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Schedule Export</p>
+                  <p>Export both the full schedule and per-artist views to PDF for distribution or printing.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Attendance */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3 text-primary">Attendance</h3>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Artist Sign-In</p>
+                  <p>Artists can sign themselves in using a public sign-in page. They select their photo, enter their 4-digit PIN, and the system validates they're at the venue (within 100 meters of La Perle). Artists set their PIN during their first sign-in.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Stage Manager Dashboard</p>
+                  <p>Track artist attendance in real-time with the weekly calendar view. See who's signed in, when they arrived, and manually sign out artists when needed. All sign-ins and sign-outs update instantly across all devices.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Tick Sheets</p>
+                  <p>Take attendance for meetings and rehearsals using tick sheets. Mark artists as present or absent. All changes sync in real-time so everyone on the team sees the same information.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Artist Status</p>
+                  <p>Manage artist status (Active, Out, Long-Term OUT) and upload artist photos for the sign-in page.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Settings */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3 text-primary">Settings</h3>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Production Setup</p>
+                  <p>Configure scenes, acts, departments, locations, artists, and technicians. Organize locations by type (e.g., Studio, Pool, Backstage) and acts by scene. Drag and drop to reorder artists in your preferred display order.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">User Management</p>
+                  <p>Create and manage user accounts for the team. Assign users to groups (Artist, Stage Management, Admin, etc.) which determines their access level. Activate or deactivate user accounts as needed.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">User Groups</p>
+                  <p>Create custom user groups to organize your team. Users are displayed grouped by their assigned group for easy management.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Artist Accounts</p>
+                  <p>Link user accounts to artist profiles. Only users in the "Artist" group can be linked to artist profiles, preventing accidental misassignment.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Access Control</p>
+                  <p>Stage managers and admins have full access to all features. Artists have access to sign-in and their personal schedule views. User deletion requires admin password confirmation for security.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Profile Settings</p>
+                  <p>Update your name, email, position, and password from your profile page.</p>
+                </div>
               </div>
             </div>
           </div>
