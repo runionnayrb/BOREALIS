@@ -179,19 +179,6 @@ export default function LineupBuilder() {
                         <div className="space-y-6">
                           <div>
                             <Label className="text-sm font-semibold mb-2 block">
-                              OUT Artists
-                            </Label>
-                            <div className="flex flex-wrap gap-2">
-                              {mockShowData.outArtists.map((artist, idx) => (
-                                <Badge key={idx} variant="destructive">
-                                  {artist.name}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div>
-                            <Label className="text-sm font-semibold mb-2 block">
                               Show Notes
                             </Label>
                             <Textarea
@@ -200,6 +187,19 @@ export default function LineupBuilder() {
                               className="font-mono text-sm"
                               data-testid="textarea-show-notes"
                             />
+                          </div>
+
+                          <div>
+                            <Label className="text-sm font-semibold mb-2 block">
+                              Distinguished Artists
+                            </Label>
+                            <div className="flex flex-wrap gap-2">
+                              {mockShowData.outArtists.map((artist, idx) => (
+                                <Badge key={idx} variant="destructive">
+                                  {artist.name}
+                                </Badge>
+                              ))}
+                            </div>
                           </div>
 
                           <div>
