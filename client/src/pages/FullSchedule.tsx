@@ -210,14 +210,15 @@ function timeToMinutes(time: string): number {
   return hours * 60 + minutes;
 }
 
-function getActivityPosition(startTime: string, endTime: string, increment: number) {
+function getActivityPosition(startTime: string, endTime: string) {
   const startMinutes = timeToMinutes(startTime) - timeToMinutes('07:00');
   const duration = timeToMinutes(endTime) - timeToMinutes(startTime);
-  const slotWidth = 40; // pixels per slot
+  const slotWidth = 40; // pixels per 15-minute slot (base unit)
+  const baseIncrement = 15; // Always use 15-minute base for positioning
   
   return {
-    left: (startMinutes / increment) * slotWidth,
-    width: (duration / increment) * slotWidth,
+    left: (startMinutes / baseIncrement) * slotWidth,
+    width: (duration / baseIncrement) * slotWidth,
   };
 }
 
@@ -411,7 +412,7 @@ export default function FullSchedule() {
 
                                 {/* Activities for this location */}
                                 {locationActivities.map((activity) => {
-                                  const position = getActivityPosition(activity.startTime, activity.endTime, timeIncrement);
+                                  const position = getActivityPosition(activity.startTime, activity.endTime);
                                   return (
                                     <div
                                       key={activity.id}
