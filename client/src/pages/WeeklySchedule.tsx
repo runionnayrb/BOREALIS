@@ -226,7 +226,7 @@ export default function WeeklySchedule() {
                       return (
                         <div
                           key={`group-${item.group.id}`}
-                          className="flex border-b bg-muted/50 sticky top-0 z-[5]"
+                          className="flex border-b bg-muted/50"
                         >
                           <div className="w-40 flex-shrink-0 p-3 border-r">
                             <div className="text-sm font-bold uppercase text-muted-foreground">
