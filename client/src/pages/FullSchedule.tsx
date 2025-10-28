@@ -193,11 +193,11 @@ const mockScheduleActivities = {
   ],
 };
 
-// Generate 15-minute time slots
-const generateTimeSlots = () => {
+// Generate time slots based on increment
+const generateTimeSlots = (increment: number) => {
   const slots: string[] = [];
   for (let hour = 7; hour < 24; hour++) {
-    for (let minute = 0; minute < 60; minute += 15) {
+    for (let minute = 0; minute < 60; minute += increment) {
       const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
       slots.push(time);
     }
@@ -205,21 +205,19 @@ const generateTimeSlots = () => {
   return slots;
 };
 
-const timeSlots = generateTimeSlots();
-
 function timeToMinutes(time: string): number {
   const [hours, minutes] = time.split(':').map(Number);
   return hours * 60 + minutes;
 }
 
-function getActivityPosition(startTime: string, endTime: string) {
+function getActivityPosition(startTime: string, endTime: string, increment: number) {
   const startMinutes = timeToMinutes(startTime) - timeToMinutes('07:00');
   const duration = timeToMinutes(endTime) - timeToMinutes(startTime);
-  const slotWidth = 40; // pixels per 15-minute slot
+  const slotWidth = 40; // pixels per slot
   
   return {
-    left: (startMinutes / 15) * slotWidth,
-    width: (duration / 15) * slotWidth,
+    left: (startMinutes / increment) * slotWidth,
+    width: (duration / increment) * slotWidth,
   };
 }
 
@@ -227,6 +225,7 @@ export default function FullSchedule() {
   const [currentWeekStart, setCurrentWeekStart] = useState(() => 
     startOfWeek(new Date('2025-10-29'), { weekStartsOn: 3 }) // Week starting Wednesday
   );
+  const [timeIncrement, setTimeIncrement] = useState(15); // 15, 30, or 60 minutes
 
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 3 });
   const weekDays = eachDayOfInterval({ start: currentWeekStart, end: weekEnd });
@@ -234,6 +233,8 @@ export default function FullSchedule() {
 
   const prevWeek = () => setCurrentWeekStart((prev) => addDays(prev, -7));
   const nextWeek = () => setCurrentWeekStart((prev) => addDays(prev, 7));
+  
+  const timeSlots = generateTimeSlots(timeIncrement);
 
   // Fetch locations from database
   const { data: locations = [] } = useQuery<Location[]>({
@@ -254,6 +255,32 @@ export default function FullSchedule() {
             </p>
           </div>
           <div className="flex gap-2">
+            <div className="flex items-center gap-2 border rounded-lg p-1">
+              <Button
+                variant={timeIncrement === 15 ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setTimeIncrement(15)}
+                data-testid="button-increment-15"
+              >
+                15 min
+              </Button>
+              <Button
+                variant={timeIncrement === 30 ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setTimeIncrement(30)}
+                data-testid="button-increment-30"
+              >
+                30 min
+              </Button>
+              <Button
+                variant={timeIncrement === 60 ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setTimeIncrement(60)}
+                data-testid="button-increment-60"
+              >
+                60 min
+              </Button>
+            </div>
             <Button variant="outline" data-testid="button-export-full-schedule">
               <Download className="w-4 h-4 mr-2" />
               Export PDF
@@ -290,14 +317,15 @@ export default function FullSchedule() {
 
         {/* Day Tabs */}
         <Tabs value={activeDay} onValueChange={setActiveDay}>
-          <TabsList className="w-full justify-start overflow-x-auto flex-wrap h-auto">
+          <TabsList className="w-full grid grid-cols-7 gap-1 h-auto bg-transparent p-0">
             {weekDays.map((day) => (
               <TabsTrigger
                 key={day.toISOString()}
                 value={format(day, 'yyyy-MM-dd')}
+                className="flex-1"
                 data-testid={`tab-day-${format(day, 'yyyy-MM-dd')}`}
               >
-                <div className="flex flex-col items-center gap-1">
+                <div className="flex flex-col items-center gap-1 py-2">
                   <div className="text-xs font-semibold">
                     {format(day, 'EEE')}
                   </div>
@@ -329,14 +357,23 @@ export default function FullSchedule() {
                           </div>
                         </div>
                         <div className="flex-1 flex">
-                          {timeSlots.filter((_, idx) => idx % 4 === 0).map((time) => (
-                            <div
-                              key={time}
-                              className="min-w-[160px] p-2 border-r text-center"
-                            >
-                              <div className="text-xs font-semibold">{time}</div>
-                            </div>
-                          ))}
+                          {timeSlots.filter((_, idx) => {
+                            // Show hourly labels regardless of increment
+                            if (timeIncrement === 15) return idx % 4 === 0; // Every hour (4 x 15min)
+                            if (timeIncrement === 30) return idx % 2 === 0; // Every hour (2 x 30min)
+                            return true; // Every slot for 60min
+                          }).map((time) => {
+                            const slotWidth = timeIncrement === 15 ? 160 : timeIncrement === 30 ? 80 : 40;
+                            return (
+                              <div
+                                key={time}
+                                className="p-2 border-r text-center"
+                                style={{ minWidth: `${slotWidth}px` }}
+                              >
+                                <div className="text-xs font-semibold">{time}</div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
 
@@ -347,8 +384,11 @@ export default function FullSchedule() {
                             (act) => act.locationName === location.name
                           );
 
+                          // Calculate row height based on content
+                          const rowHeight = locationActivities.length > 0 ? 'auto' : '60px';
+                          
                           return (
-                            <div key={location.id} className="flex border-b hover:bg-accent/50 transition-colors min-h-[60px]">
+                            <div key={location.id} className="flex border-b hover:bg-accent/50 transition-colors" style={{ minHeight: rowHeight }}>
                               {/* Location Name */}
                               <div className="w-48 flex-shrink-0 p-3 border-r bg-muted/30">
                                 <div className="text-sm font-medium">
@@ -357,24 +397,25 @@ export default function FullSchedule() {
                               </div>
 
                               {/* Time Grid */}
-                              <div className="flex-1 relative min-h-[60px]">
+                              <div className="flex-1 relative py-2" style={{ minHeight: rowHeight }}>
                                 {/* Grid Lines */}
                                 <div className="absolute inset-0 flex">
                                   {timeSlots.map((time) => (
                                     <div
                                       key={time}
-                                      className="min-w-[40px] border-r border-dashed border-border/30"
+                                      className="border-r border-dashed border-border/30"
+                                      style={{ minWidth: '40px' }}
                                     />
                                   ))}
                                 </div>
 
                                 {/* Activities for this location */}
                                 {locationActivities.map((activity) => {
-                                  const position = getActivityPosition(activity.startTime, activity.endTime);
+                                  const position = getActivityPosition(activity.startTime, activity.endTime, timeIncrement);
                                   return (
                                     <div
                                       key={activity.id}
-                                      className={`absolute border-l-4 rounded-md p-2 ${activity.color} top-1 bottom-1`}
+                                      className={`absolute border-l-4 rounded-md p-2 ${activity.color} my-1`}
                                       style={{
                                         left: `${position.left}px`,
                                         width: `${position.width}px`,
