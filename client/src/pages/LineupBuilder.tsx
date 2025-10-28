@@ -34,11 +34,21 @@ const mockShowData = {
     { role: "AQX", name: "Dawson", location: "" },
     { role: "SM", name: "Precious", location: "" },
   ],
-  outArtists: [
-    { name: "Monster", status: "OUT" },
-    { name: "Carolina", status: "OUT" },
-    { name: "Maiander", status: "OUT" },
-  ],
+  distinguishedArtists: {
+    out: [
+      { name: "Monster" },
+      { name: "Carolina" },
+    ],
+    cuesOnly: [
+      { name: "Maiander" },
+      { name: "Ricardo" },
+    ],
+    longTermOut: [
+      { name: "Alexei" },
+      { name: "Viktor" },
+      { name: "Isabella" },
+    ],
+  },
 };
 
 const mockScenes = [
@@ -190,15 +200,51 @@ export default function LineupBuilder() {
                           </div>
 
                           <div>
-                            <Label className="text-sm font-semibold mb-2 block">
+                            <Label className="text-sm font-semibold mb-3 block">
                               Distinguished Artists
                             </Label>
-                            <div className="flex flex-wrap gap-2">
-                              {mockShowData.outArtists.map((artist, idx) => (
-                                <Badge key={idx} variant="destructive">
-                                  {artist.name}
-                                </Badge>
-                              ))}
+                            <div className="space-y-4">
+                              {/* Out Section */}
+                              <div>
+                                <Label className="text-xs text-muted-foreground mb-2 block">
+                                  Out
+                                </Label>
+                                <div className="flex flex-wrap gap-2">
+                                  {mockShowData.distinguishedArtists.out.map((artist, idx) => (
+                                    <Badge key={idx} variant="destructive">
+                                      {artist.name}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Cues Only Section */}
+                              <div>
+                                <Label className="text-xs text-muted-foreground mb-2 block">
+                                  Cues Only
+                                </Label>
+                                <div className="flex flex-wrap gap-2">
+                                  {mockShowData.distinguishedArtists.cuesOnly.map((artist, idx) => (
+                                    <Badge key={idx} variant="outline" className="bg-yellow-500/20 border-yellow-500/50">
+                                      {artist.name}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Long-Term Out Section */}
+                              <div>
+                                <Label className="text-xs text-muted-foreground mb-2 block">
+                                  Long-Term Out
+                                </Label>
+                                <div className="flex flex-wrap gap-2">
+                                  {mockShowData.distinguishedArtists.longTermOut.map((artist, idx) => (
+                                    <Badge key={idx} variant="secondary" className="bg-muted/50">
+                                      {artist.name}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
                             </div>
                           </div>
 
