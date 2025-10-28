@@ -94,7 +94,9 @@ A production-ready full-stack web application for theatrical production manageme
     - **Artist Roster**: Searchable artist sidebar showing names and roles for easy assignment.
     - **Export Capability**: PDF export button for lineup sheets.
 - **Schedule Management**:
-    - **Full Schedule View**: Timeline-based daily schedule showing all activities as horizontal blocks across time slots (7:00 AM - 11:45 PM in 15-minute increments).
+    - **Full Schedule View**: Timeline-based daily schedule showing all activities as horizontal blocks across time slots (7:00 AM - 11:45 PM).
+    - **Time Display**: Header labels show only hour and half-hour markers (7:00, 7:30, 8:00, etc.) for readability.
+    - **Grid Structure**: Internal grid uses 15-minute increments (40px per slot) for precise activity positioning, with dashed vertical lines every 15 minutes.
     - **Activity Types**: Shows, Artist Calls, Rehearsals, Fittings, Meetings with color-coded visual distinction.
     - **Per-Artist View**: Weekly grid showing individual artist calls and activities organized by artist rows.
     - **Week Navigation**: Navigate between weeks with week number display.
