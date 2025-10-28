@@ -212,6 +212,13 @@ const generateTimeSlots = (increment: number) => {
   return slots;
 };
 
+// Filter time slots to show only hour and half-hour labels
+const shouldShowTimeLabel = (time: string) => {
+  const [, minutes] = time.split(':');
+  // Only show hour (00) and half-hour (30) labels
+  return minutes === '00' || minutes === '30';
+};
+
 function timeToMinutes(time: string): number {
   const [hours, minutes] = time.split(':').map(Number);
   return hours * 60 + minutes;
@@ -245,8 +252,8 @@ export default function FullSchedule() {
   // Always generate 15-minute slots for the grid structure
   const baseTimeSlots = generateTimeSlots(15);
   
-  // Generate display slots based on selected increment for labels
-  const displayTimeSlots = generateTimeSlots(timeIncrement);
+  // Filter labels to show only hour and half-hour markers
+  const displayTimeLabels = baseTimeSlots.filter(shouldShowTimeLabel);
 
   // Fetch locations from database
   const { data: locations = [] } = useQuery<Location[]>({
@@ -369,13 +376,14 @@ export default function FullSchedule() {
                           </div>
                         </div>
                         <div className="flex">
-                          {displayTimeSlots.map((time) => {
-                            const slotWidth = (timeIncrement / 15) * 40; // Width per slot based on increment
+                          {displayTimeLabels.map((time) => {
+                            // Each label spans 30 minutes = 2 base slots (15 min each) = 80px
+                            const labelWidth = 2 * 40; // 2 base slots x 40px per slot
                             return (
                               <div
                                 key={time}
                                 className="p-2 border-r text-center flex-shrink-0"
-                                style={{ width: `${slotWidth}px` }}
+                                style={{ width: `${labelWidth}px` }}
                               >
                                 <div className="text-xs font-semibold">{time}</div>
                               </div>
@@ -402,10 +410,10 @@ export default function FullSchedule() {
 
                               {/* Time Grid */}
                               <div className="relative flex-1 py-2 h-full">
-                                {/* Grid Lines */}
+                                {/* Grid Lines - Always use 15-minute base slots */}
                                 <div className="absolute inset-0 flex pointer-events-none">
-                                  {displayTimeSlots.map((time) => {
-                                    const slotWidth = (timeIncrement / 15) * 40;
+                                  {baseTimeSlots.map((time) => {
+                                    const slotWidth = 40; // Base slot width (15 minutes)
                                     return (
                                       <div
                                         key={time}
