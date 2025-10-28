@@ -81,7 +81,7 @@ export default function TickSheetPage() {
     },
   });
 
-  // Toggle mark mutation
+  // Toggle mark mutation with optimistic updates
   const toggleMarkMutation = useMutation({
     mutationFn: async ({ artistId, isMarked }: { artistId: string; isMarked: boolean }) => {
       if (!activeSheetId) throw new Error("No active tick sheet");
@@ -94,37 +94,88 @@ export default function TickSheetPage() {
         return apiRequest("POST", `/api/tick-sheets/${activeSheetId}/marks`, { artistId });
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tick-sheets", activeSheetId, "marks"] });
+    onMutate: async ({ artistId, isMarked }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/tick-sheets", activeSheetId, "marks"] });
+      
+      // Snapshot the previous value
+      const previousMarks = queryClient.getQueryData<TickSheetMark[]>(["/api/tick-sheets", activeSheetId, "marks"]);
+      
+      // Optimistically update the UI
+      queryClient.setQueryData<TickSheetMark[]>(["/api/tick-sheets", activeSheetId, "marks"], (old = []) => {
+        if (isMarked) {
+          // Remove the mark
+          return old.filter(m => m.artistId !== artistId);
+        } else {
+          // Add the mark
+          return [...old, {
+            tickSheetId: activeSheetId!,
+            artistId,
+            markedBy: "", // Will be set by server
+            markedAt: new Date(),
+          }];
+        }
+      });
+      
+      // Return context with the snapshot
+      return { previousMarks };
     },
-    onError: (error: any) => {
+    onError: (error: any, variables, context) => {
+      // Rollback on error
+      if (context?.previousMarks) {
+        queryClient.setQueryData(["/api/tick-sheets", activeSheetId, "marks"], context.previousMarks);
+      }
       toast({
         title: "Error",
         description: error.message || "Failed to update tick sheet.",
         variant: "destructive",
       });
     },
+    onSettled: () => {
+      // Refetch to ensure we're in sync with server
+      queryClient.invalidateQueries({ queryKey: ["/api/tick-sheets", activeSheetId, "marks"] });
+    },
   });
 
-  // Reset tick sheet mutation
+  // Reset tick sheet mutation with optimistic updates
   const resetSheetMutation = useMutation({
     mutationFn: async () => {
       if (!activeSheetId) throw new Error("No active tick sheet");
       return apiRequest("POST", `/api/tick-sheets/${activeSheetId}/reset`, undefined);
     },
+    onMutate: async () => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/tick-sheets", activeSheetId, "marks"] });
+      
+      // Snapshot the previous value
+      const previousMarks = queryClient.getQueryData<TickSheetMark[]>(["/api/tick-sheets", activeSheetId, "marks"]);
+      
+      // Optimistically clear all marks
+      queryClient.setQueryData<TickSheetMark[]>(["/api/tick-sheets", activeSheetId, "marks"], []);
+      
+      // Return context with the snapshot
+      return { previousMarks };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tick-sheets", activeSheetId, "marks"] });
       toast({
         title: "Tick Sheet Reset",
         description: "All marks have been cleared.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: any, variables, context) => {
+      // Rollback on error
+      if (context?.previousMarks) {
+        queryClient.setQueryData(["/api/tick-sheets", activeSheetId, "marks"], context.previousMarks);
+      }
       toast({
         title: "Error",
         description: error.message || "Failed to reset tick sheet.",
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      // Refetch to ensure we're in sync with server
+      queryClient.invalidateQueries({ queryKey: ["/api/tick-sheets", activeSheetId, "marks"] });
     },
   });
 
@@ -174,16 +225,19 @@ export default function TickSheetPage() {
   // Filter active artists only (not OUT or Long-Term OUT)
   const activeArtists = artists.filter(a => a.status === 'active');
 
-  // Group artists by their groups
+  const markedArtistIds = new Set(marks.map(m => m.artistId));
+
+  // Filter out marked artists - they disappear when ticked
+  const unmarkedArtists = activeArtists.filter(a => !markedArtistIds.has(a.id));
+
+  // Group unmarked artists by their groups
   const groupedArtists = groups.map(group => ({
     group,
-    artists: activeArtists.filter(a => a.artistGroupId === group.id),
+    artists: unmarkedArtists.filter(a => a.artistGroupId === group.id),
   })).filter(g => g.artists.length > 0);
 
-  // Artists without a group
-  const ungroupedArtists = activeArtists.filter(a => !a.artistGroupId);
-
-  const markedArtistIds = new Set(marks.map(m => m.artistId));
+  // Unmarked artists without a group
+  const ungroupedArtists = unmarkedArtists.filter(a => !a.artistGroupId);
 
   const handleToggleMark = (artistId: string) => {
     const isMarked = markedArtistIds.has(artistId);
@@ -245,37 +299,33 @@ export default function TickSheetPage() {
             <CardHeader>
               <CardTitle>{group.name}</CardTitle>
               <CardDescription>
-                {groupArtists.filter(a => markedArtistIds.has(a.id)).length} / {groupArtists.length} marked
+                {groupArtists.length} {groupArtists.length === 1 ? 'artist' : 'artists'} remaining
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {groupArtists.map(artist => {
-                const isMarked = markedArtistIds.has(artist.id);
-                return (
-                  <div
-                    key={artist.id}
-                    data-testid={`row-artist-${artist.id}`}
-                    className="flex items-center gap-3 p-3 rounded-md hover-elevate cursor-pointer"
-                    onClick={() => handleToggleMark(artist.id)}
-                  >
-                    <Checkbox
-                      checked={isMarked}
-                      onCheckedChange={() => handleToggleMark(artist.id)}
-                      disabled={toggleMarkMutation.isPending}
-                      data-testid={`checkbox-artist-${artist.id}`}
-                    />
-                    <Avatar className="w-10 h-10">
-                      {artist.photoUrl ? (
-                        <AvatarImage src={artist.photoUrl} alt={getArtistDisplayName(artist)} />
-                      ) : null}
-                      <AvatarFallback>
-                        <UserCircle2 className="w-6 h-6" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="font-medium text-sm">{getArtistDisplayName(artist)}</span>
-                  </div>
-                );
-              })}
+              {groupArtists.map(artist => (
+                <div
+                  key={artist.id}
+                  data-testid={`row-artist-${artist.id}`}
+                  className="flex items-center gap-3 p-3 rounded-md hover-elevate cursor-pointer"
+                  onClick={() => handleToggleMark(artist.id)}
+                >
+                  <Checkbox
+                    checked={false}
+                    onCheckedChange={() => handleToggleMark(artist.id)}
+                    data-testid={`checkbox-artist-${artist.id}`}
+                  />
+                  <Avatar className="w-10 h-10">
+                    {artist.photoUrl ? (
+                      <AvatarImage src={artist.photoUrl} alt={getArtistDisplayName(artist)} />
+                    ) : null}
+                    <AvatarFallback>
+                      <UserCircle2 className="w-6 h-6" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium text-sm">{getArtistDisplayName(artist)}</span>
+                </div>
+              ))}
             </CardContent>
           </Card>
         ))}
@@ -285,38 +335,42 @@ export default function TickSheetPage() {
             <CardHeader>
               <CardTitle>Other Artists</CardTitle>
               <CardDescription>
-                {ungroupedArtists.filter(a => markedArtistIds.has(a.id)).length} / {ungroupedArtists.length} marked
+                {ungroupedArtists.length} {ungroupedArtists.length === 1 ? 'artist' : 'artists'} remaining
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {ungroupedArtists.map(artist => {
-                const isMarked = markedArtistIds.has(artist.id);
-                return (
-                  <div
-                    key={artist.id}
-                    data-testid={`row-artist-${artist.id}`}
-                    className="flex items-center gap-3 p-3 rounded-md hover-elevate cursor-pointer"
-                    onClick={() => handleToggleMark(artist.id)}
-                  >
-                    <Checkbox
-                      checked={isMarked}
-                      onCheckedChange={() => handleToggleMark(artist.id)}
-                      disabled={toggleMarkMutation.isPending}
-                      data-testid={`checkbox-artist-${artist.id}`}
-                    />
-                    <Avatar className="w-10 h-10">
-                      {artist.photoUrl ? (
-                        <AvatarImage src={artist.photoUrl} alt={getArtistDisplayName(artist)} />
-                      ) : null}
-                      <AvatarFallback>
-                        <UserCircle2 className="w-6 h-6" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="font-medium text-sm">{getArtistDisplayName(artist)}</span>
-                  </div>
-                );
-              })}
+              {ungroupedArtists.map(artist => (
+                <div
+                  key={artist.id}
+                  data-testid={`row-artist-${artist.id}`}
+                  className="flex items-center gap-3 p-3 rounded-md hover-elevate cursor-pointer"
+                  onClick={() => handleToggleMark(artist.id)}
+                >
+                  <Checkbox
+                    checked={false}
+                    onCheckedChange={() => handleToggleMark(artist.id)}
+                    data-testid={`checkbox-artist-${artist.id}`}
+                  />
+                  <Avatar className="w-10 h-10">
+                    {artist.photoUrl ? (
+                      <AvatarImage src={artist.photoUrl} alt={getArtistDisplayName(artist)} />
+                    ) : null}
+                    <AvatarFallback>
+                      <UserCircle2 className="w-6 h-6" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium text-sm">{getArtistDisplayName(artist)}</span>
+                </div>
+              ))}
             </CardContent>
+          </Card>
+        )}
+
+        {unmarkedArtists.length === 0 && activeArtists.length > 0 && (
+          <Card className="p-12 text-center">
+            <Users className="w-16 h-16 mx-auto mb-4 text-primary" />
+            <h2 className="text-2xl font-bold mb-2">All Artists Marked!</h2>
+            <p className="text-muted-foreground">Everyone has been ticked off the list.</p>
           </Card>
         )}
 
