@@ -10,6 +10,8 @@ import { useLocation, useParams } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useQuery } from "@tanstack/react-query";
+import type { Artist, ArtistGroup } from "@shared/schema";
 
 // Mock data matching the PDF
 const mockShowData = {
@@ -51,46 +53,6 @@ const mockShowData = {
   },
 };
 
-// Mock artists grouped by artist group, sorted alphabetically
-const mockArtists = [
-  // Characters
-  { name: "Carlos", role: "Clown Prince", group: "Characters" },
-  { name: "Erik", role: "Fisherman", group: "Characters" },
-  { name: "Hung", role: "Lion Back", group: "Characters" },
-  { name: "Khrystsina", role: "Pearl Girl", group: "Characters" },
-  { name: "Kleber", role: "Antar", group: "Characters" },
-  { name: "Martin", role: "King", group: "Characters" },
-  { name: "Phu", role: "Lion Front", group: "Characters" },
-  
-  // Divers
-  { name: "Aleksei", role: "King's Guard", group: "Divers" },
-  { name: "Alexane", role: "Diver", group: "Divers" },
-  { name: "Alla", role: "Diver", group: "Divers" },
-  { name: "Danish", role: "Diver", group: "Divers" },
-  { name: "Elyor", role: "Diver", group: "Divers" },
-  { name: "Kirill", role: "Diver", group: "Divers" },
-  { name: "Maksym", role: "Diver", group: "Divers" },
-  { name: "Marion", role: "Diver", group: "Divers" },
-  { name: "Merayo", role: "Diver", group: "Divers" },
-  { name: "Oleksandra", role: "Diver", group: "Divers" },
-  { name: "Pavel", role: "Diver", group: "Divers" },
-  { name: "Pichichi", role: "Diver", group: "Divers" },
-  { name: "Ricardo", role: "Diver", group: "Divers" },
-  { name: "Romero", role: "Diver", group: "Divers" },
-  
-  // Acrobats
-  { name: "Anastasia", role: "Acrobat", group: "Acrobats" },
-  { name: "Anton", role: "Acrobat", group: "Acrobats" },
-  { name: "Felix", role: "Acrobat", group: "Acrobats" },
-  { name: "Natalia", role: "Acrobat", group: "Acrobats" },
-].sort((a, b) => a.name.localeCompare(b.name));
-
-// Group artists by their artist group
-const artistsByGroup = mockArtists.reduce((acc, artist) => {
-  if (!acc[artist.group]) acc[artist.group] = [];
-  acc[artist.group].push(artist);
-  return acc;
-}, {} as Record<string, typeof mockArtists>);
 
 const mockScenes = [
   {
@@ -151,6 +113,48 @@ export default function LineupBuilder() {
   const params = useParams();
   const [activeScene, setActiveScene] = useState(mockScenes[1].id);
   const [draggedArtist, setDraggedArtist] = useState<string | null>(null);
+
+  // Fetch artists from database
+  const { data: artists = [], isLoading: loadingArtists } = useQuery<Artist[]>({
+    queryKey: ["/api/artists"],
+  });
+
+  // Fetch artist groups from database
+  const { data: artistGroups = [], isLoading: loadingGroups } = useQuery<ArtistGroup[]>({
+    queryKey: ["/api/artist-groups"],
+  });
+
+  // Create a map of artist group IDs to names
+  const artistGroupMap = artistGroups.reduce((acc, group) => {
+    acc[group.id] = group;
+    return acc;
+  }, {} as Record<string, ArtistGroup>);
+
+  // Group artists by their artist group and sort alphabetically
+  const artistsByGroup = artists
+    .sort((a, b) => {
+      // First get display names
+      const aName = a.stageName || `${a.firstName} ${a.lastName}`;
+      const bName = b.stageName || `${b.firstName} ${b.lastName}`;
+      return aName.localeCompare(bName);
+    })
+    .reduce((acc, artist) => {
+      const groupId = artist.artistGroupId;
+      const groupName = groupId && artistGroupMap[groupId] ? artistGroupMap[groupId].name : "Ungrouped";
+      
+      if (!acc[groupName]) acc[groupName] = [];
+      acc[groupName].push(artist);
+      return acc;
+    }, {} as Record<string, Artist[]>);
+
+  // Sort groups by their sortOrder
+  const sortedGroupNames = Object.keys(artistsByGroup).sort((a, b) => {
+    const groupA = artistGroups.find(g => g.name === a);
+    const groupB = artistGroups.find(g => g.name === b);
+    if (!groupA) return 1;
+    if (!groupB) return -1;
+    return groupA.sortOrder - groupB.sortOrder;
+  });
 
   const selectedScene = mockScenes.find((s) => s.id === activeScene) || mockScenes[0];
 
@@ -442,7 +446,7 @@ export default function LineupBuilder() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">Artists</CardTitle>
-                  <Badge variant="outline">{mockArtists.length} total</Badge>
+                  <Badge variant="outline">{artists.length} total</Badge>
                 </div>
               </CardHeader>
               <CardContent>
@@ -451,43 +455,64 @@ export default function LineupBuilder() {
                   className="mb-3"
                   data-testid="input-search-artists"
                 />
-                <ScrollArea className="h-[300px]">
-                  <div className="space-y-4">
-                    {Object.entries(artistsByGroup).map(([group, artists]) => (
-                      <div key={group}>
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                            {group}
-                          </h3>
-                          <Badge variant="outline" className="text-xs">
-                            {artists.length}
-                          </Badge>
-                        </div>
-                        <div className="space-y-1">
-                          {artists.map((artist, idx) => (
-                            <div
-                              key={`${group}-${idx}`}
-                              draggable
-                              onDragStart={() => setDraggedArtist(artist.name)}
-                              className="flex items-center gap-2 p-2 rounded-md hover-elevate cursor-move transition-all"
-                              data-testid={`artist-${artist.name}`}
-                            >
-                              <Avatar className="w-8 h-8">
-                                <AvatarFallback className="text-xs">
-                                  {artist.name.split(' ').map(n => n[0]).join('')}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium truncate">{artist.name}</div>
-                                <div className="text-xs text-muted-foreground">{artist.role}</div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+                {loadingArtists || loadingGroups ? (
+                  <div className="h-[300px] flex items-center justify-center">
+                    <p className="text-sm text-muted-foreground">Loading artists...</p>
                   </div>
-                </ScrollArea>
+                ) : (
+                  <ScrollArea className="h-[300px]">
+                    <div className="space-y-4">
+                      {sortedGroupNames.map((groupName) => {
+                        const groupArtists = artistsByGroup[groupName];
+                        return (
+                          <div key={groupName}>
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                {groupName}
+                              </h3>
+                              <Badge variant="outline" className="text-xs">
+                                {groupArtists.length}
+                              </Badge>
+                            </div>
+                            <div className="space-y-1">
+                              {groupArtists.map((artist) => {
+                                const displayName = artist.stageName || `${artist.firstName} ${artist.lastName}`;
+                                const initials = artist.stageName 
+                                  ? artist.stageName.split(' ').map(n => n[0]).join('')
+                                  : `${artist.firstName[0]}${artist.lastName[0]}`;
+                                
+                                return (
+                                  <div
+                                    key={artist.id}
+                                    draggable
+                                    onDragStart={() => setDraggedArtist(displayName)}
+                                    className="flex items-center gap-2 p-2 rounded-md hover-elevate cursor-move transition-all"
+                                    data-testid={`artist-${displayName}`}
+                                  >
+                                    <Avatar className="w-8 h-8">
+                                      {artist.photoUrl ? (
+                                        <AvatarImage src={artist.photoUrl} alt={displayName} />
+                                      ) : null}
+                                      <AvatarFallback className="text-xs">
+                                        {initials}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm font-medium truncate">{displayName}</div>
+                                      {artist.role && (
+                                        <div className="text-xs text-muted-foreground">{artist.role}</div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                )}
               </CardContent>
             </Card>
           </div>
