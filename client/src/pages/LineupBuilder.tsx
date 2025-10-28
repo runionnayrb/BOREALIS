@@ -51,6 +51,47 @@ const mockShowData = {
   },
 };
 
+// Mock artists grouped by artist group, sorted alphabetically
+const mockArtists = [
+  // Characters
+  { name: "Carlos", role: "Clown Prince", group: "Characters" },
+  { name: "Erik", role: "Fisherman", group: "Characters" },
+  { name: "Hung", role: "Lion Back", group: "Characters" },
+  { name: "Khrystsina", role: "Pearl Girl", group: "Characters" },
+  { name: "Kleber", role: "Antar", group: "Characters" },
+  { name: "Martin", role: "King", group: "Characters" },
+  { name: "Phu", role: "Lion Front", group: "Characters" },
+  
+  // Divers
+  { name: "Aleksei", role: "King's Guard", group: "Divers" },
+  { name: "Alexane", role: "Diver", group: "Divers" },
+  { name: "Alla", role: "Diver", group: "Divers" },
+  { name: "Danish", role: "Diver", group: "Divers" },
+  { name: "Elyor", role: "Diver", group: "Divers" },
+  { name: "Kirill", role: "Diver", group: "Divers" },
+  { name: "Maksym", role: "Diver", group: "Divers" },
+  { name: "Marion", role: "Diver", group: "Divers" },
+  { name: "Merayo", role: "Diver", group: "Divers" },
+  { name: "Oleksandra", role: "Diver", group: "Divers" },
+  { name: "Pavel", role: "Diver", group: "Divers" },
+  { name: "Pichichi", role: "Diver", group: "Divers" },
+  { name: "Ricardo", role: "Diver", group: "Divers" },
+  { name: "Romero", role: "Diver", group: "Divers" },
+  
+  // Acrobats
+  { name: "Anastasia", role: "Acrobat", group: "Acrobats" },
+  { name: "Anton", role: "Acrobat", group: "Acrobats" },
+  { name: "Felix", role: "Acrobat", group: "Acrobats" },
+  { name: "Natalia", role: "Acrobat", group: "Acrobats" },
+].sort((a, b) => a.name.localeCompare(b.name));
+
+// Group artists by their artist group
+const artistsByGroup = mockArtists.reduce((acc, artist) => {
+  if (!acc[artist.group]) acc[artist.group] = [];
+  acc[artist.group].push(artist);
+  return acc;
+}, {} as Record<string, typeof mockArtists>);
+
 const mockScenes = [
   {
     id: "1",
@@ -401,7 +442,7 @@ export default function LineupBuilder() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">Artists</CardTitle>
-                  <Badge variant="outline">28 total</Badge>
+                  <Badge variant="outline">{mockArtists.length} total</Badge>
                 </div>
               </CardHeader>
               <CardContent>
@@ -411,32 +452,37 @@ export default function LineupBuilder() {
                   data-testid="input-search-artists"
                 />
                 <ScrollArea className="h-[300px]">
-                  <div className="space-y-1">
-                    {[
-                      { name: "Khrystsina", role: "Pearl Girl" },
-                      { name: "Kleber", role: "Antar" },
-                      { name: "Martin", role: "King" },
-                      { name: "Carlos", role: "Clown Prince" },
-                      { name: "Phu", role: "Lion Front" },
-                      { name: "Hung", role: "Lion Back" },
-                      { name: "Erik", role: "Fisherman" },
-                      { name: "Aleksei", role: "King's Guard" }
-                    ].map((artist, idx) => (
-                      <div
-                        key={idx}
-                        draggable
-                        onDragStart={() => setDraggedArtist(artist.name)}
-                        className="flex items-center gap-2 p-2 rounded-md hover-elevate cursor-move transition-all"
-                        data-testid={`artist-${artist.name}`}
-                      >
-                        <Avatar className="w-8 h-8">
-                          <AvatarFallback className="text-xs">
-                            {artist.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">{artist.name}</div>
-                          <div className="text-xs text-muted-foreground">{artist.role}</div>
+                  <div className="space-y-4">
+                    {Object.entries(artistsByGroup).map(([group, artists]) => (
+                      <div key={group}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            {group}
+                          </h3>
+                          <Badge variant="outline" className="text-xs">
+                            {artists.length}
+                          </Badge>
+                        </div>
+                        <div className="space-y-1">
+                          {artists.map((artist, idx) => (
+                            <div
+                              key={`${group}-${idx}`}
+                              draggable
+                              onDragStart={() => setDraggedArtist(artist.name)}
+                              className="flex items-center gap-2 p-2 rounded-md hover-elevate cursor-move transition-all"
+                              data-testid={`artist-${artist.name}`}
+                            >
+                              <Avatar className="w-8 h-8">
+                                <AvatarFallback className="text-xs">
+                                  {artist.name.split(' ').map(n => n[0]).join('')}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium truncate">{artist.name}</div>
+                                <div className="text-xs text-muted-foreground">{artist.role}</div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     ))}
