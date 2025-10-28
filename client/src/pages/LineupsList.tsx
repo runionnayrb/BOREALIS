@@ -6,17 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
 
-// Mock data for demonstration
+// Mock data for demonstration - sorted by most recent first
 const mockLineups = [
   {
-    id: "1",
-    showNumber: "#3445",
-    showDate: "2025-10-17",
-    showTime: "21:00",
-    showcaller: "Pamela",
-    sceneCount: 4,
-    artistCount: 28,
-    status: "published",
+    id: "3",
+    showNumber: "#3447",
+    showDate: "2025-10-19",
+    showTime: "18:00",
+    showcaller: "Precious",
+    status: "draft",
   },
   {
     id: "2",
@@ -24,19 +22,15 @@ const mockLineups = [
     showDate: "2025-10-18",
     showTime: "21:00",
     showcaller: "Pamela",
-    sceneCount: 4,
-    artistCount: 27,
     status: "published",
   },
   {
-    id: "3",
-    showNumber: "#3447",
-    showDate: "2025-10-19",
-    showTime: "18:00",
-    showcaller: "Precious",
-    sceneCount: 4,
-    artistCount: 28,
-    status: "draft",
+    id: "1",
+    showNumber: "#3445",
+    showDate: "2025-10-17",
+    showTime: "21:00",
+    showcaller: "Pamela",
+    status: "published",
   },
 ];
 
@@ -77,60 +71,57 @@ export default function LineupsList() {
           />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredLineups.map((lineup) => (
-            <Card
-              key={lineup.id}
-              className="hover-elevate cursor-pointer transition-all"
-              onClick={() => setLocation(`/lineups/${lineup.id}`)}
-              data-testid={`card-lineup-${lineup.id}`}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-xl">
-                      Show {lineup.showNumber}
-                    </CardTitle>
-                    <CardDescription className="mt-1">
-                      Showcaller: {lineup.showcaller}
-                    </CardDescription>
+        <Card>
+          <CardContent className="p-0">
+            <div className="divide-y">
+              {filteredLineups.map((lineup) => (
+                <div
+                  key={lineup.id}
+                  className="flex items-center justify-between p-4 hover-elevate cursor-pointer transition-all"
+                  onClick={() => setLocation(`/lineups/${lineup.id}`)}
+                  data-testid={`card-lineup-${lineup.id}`}
+                >
+                  <div className="flex items-center gap-6 flex-1 min-w-0">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-semibold">
+                          Show {lineup.showNumber}
+                        </h3>
+                        <Badge
+                          variant={lineup.status === "published" ? "default" : "secondary"}
+                          data-testid={`badge-status-${lineup.id}`}
+                        >
+                          {lineup.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                        <span>Showcaller: {lineup.showcaller}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-6 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        <span>
+                          {new Date(lineup.showDate).toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-muted-foreground" />
+                        <span>{lineup.showTime}</span>
+                      </div>
+                    </div>
                   </div>
-                  <Badge
-                    variant={lineup.status === "published" ? "default" : "secondary"}
-                    data-testid={`badge-status-${lineup.id}`}
-                  >
-                    {lineup.status}
-                  </Badge>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar className="w-4 h-4" />
-                  <span>
-                    {new Date(lineup.showDate).toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="w-4 h-4" />
-                  <span>{lineup.showTime}</span>
-                </div>
-                <div className="flex gap-2 pt-2 border-t">
-                  <Badge variant="outline">
-                    {lineup.sceneCount} scenes
-                  </Badge>
-                  <Badge variant="outline">
-                    {lineup.artistCount} artists
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {filteredLineups.length === 0 && (
           <Card className="p-12">
