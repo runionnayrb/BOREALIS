@@ -193,12 +193,17 @@ const mockScheduleActivities = {
   ],
 };
 
-// Generate time slots based on increment
+// Generate time slots based on increment (7:00 AM to 11:45 PM)
 const generateTimeSlots = (increment: number) => {
   const slots: string[] = [];
-  for (let hour = 7; hour < 24; hour++) {
+  for (let hour = 7; hour <= 23; hour++) {
     for (let minute = 0; minute < 60; minute += increment) {
       const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      // Stop after 23:45 (11:45 PM)
+      if (hour === 23 && minute >= 45) {
+        slots.push(time);
+        break;
+      }
       slots.push(time);
     }
   }
@@ -361,24 +366,14 @@ export default function FullSchedule() {
                             {format(day, 'MMMM d, yyyy')}
                           </div>
                         </div>
-                        <div className="flex" style={{ minWidth: `${baseTimeSlots.length * 40}px` }}>
-                          {displayTimeSlots.filter((_, idx) => {
-                            // Show hourly labels regardless of increment
-                            if (timeIncrement === 15) return idx % 4 === 0; // Every hour (4 x 15min)
-                            if (timeIncrement === 30) return idx % 2 === 0; // Every hour (2 x 30min)
-                            return true; // Every slot for 60min
-                          }).map((time) => {
-                            // Calculate width based on how many 15-min base slots this represents
-                            const slotsRepresented = timeIncrement / 15;
-                            const slotWidth = slotsRepresented * 40;
-                            const hourlySlots = 60 / timeIncrement; // How many slots in an hour
-                            const displayWidth = slotWidth * hourlySlots; // Width for hour label
-                            
+                        <div className="flex">
+                          {displayTimeSlots.map((time) => {
+                            const slotWidth = (timeIncrement / 15) * 40; // Width per slot based on increment
                             return (
                               <div
                                 key={time}
-                                className="p-2 border-r text-center"
-                                style={{ minWidth: `${displayWidth}px` }}
+                                className="p-2 border-r text-center flex-shrink-0"
+                                style={{ width: `${slotWidth}px` }}
                               >
                                 <div className="text-xs font-semibold">{time}</div>
                               </div>
@@ -393,60 +388,64 @@ export default function FullSchedule() {
                           const locationActivities = dayActivities.filter(
                             (act) => act.locationName === location.name
                           );
-
-                          // Calculate row height based on content
-                          const rowHeight = locationActivities.length > 0 ? 'auto' : '60px';
                           
                           return (
-                            <div key={location.id} className="flex border-b hover:bg-accent/50 transition-colors" style={{ minHeight: rowHeight }}>
+                            <div key={location.id} className="flex border-b hover:bg-accent/50 transition-colors h-20">
                               {/* Location Name */}
-                              <div className="w-48 flex-shrink-0 p-3 border-r bg-muted/30">
+                              <div className="w-48 flex-shrink-0 p-3 border-r bg-muted/30 flex items-center h-full">
                                 <div className="text-sm font-medium">
                                   {location.name}
                                 </div>
                               </div>
 
                               {/* Time Grid */}
-                              <div className="relative py-2" style={{ minHeight: rowHeight, minWidth: `${baseTimeSlots.length * 40}px` }}>
-                                {/* Grid Lines - Always show 15-minute grid */}
-                                <div className="absolute inset-0 flex">
-                                  {baseTimeSlots.map((time) => (
-                                    <div
-                                      key={time}
-                                      className="border-r border-dashed border-border/30"
-                                      style={{ minWidth: '40px' }}
-                                    />
-                                  ))}
+                              <div className="relative flex-1 py-2 h-full">
+                                {/* Grid Lines */}
+                                <div className="absolute inset-0 flex pointer-events-none">
+                                  {displayTimeSlots.map((time) => {
+                                    const slotWidth = (timeIncrement / 15) * 40;
+                                    return (
+                                      <div
+                                        key={time}
+                                        className="border-r border-dashed border-border/30 flex-shrink-0"
+                                        style={{ width: `${slotWidth}px` }}
+                                      />
+                                    );
+                                  })}
                                 </div>
 
                                 {/* Activities for this location */}
-                                {locationActivities.map((activity) => {
-                                  const position = getActivityPosition(activity.startTime, activity.endTime);
-                                  return (
-                                    <div
-                                      key={activity.id}
-                                      className={`absolute border-l-4 rounded-md p-2 ${activity.color} my-1`}
-                                      style={{
-                                        left: `${position.left}px`,
-                                        width: `${position.width}px`,
-                                        minWidth: '120px',
-                                      }}
-                                      data-testid={`activity-${activity.id}`}
-                                    >
-                                      <div className="font-semibold text-xs mb-1 truncate">
-                                        {activity.title}
-                                      </div>
-                                      <div className="text-xs text-muted-foreground truncate">
-                                        {activity.startTime} - {activity.endTime}
-                                      </div>
-                                      {activity.participants && (
-                                        <div className="text-xs mt-1 truncate">
-                                          {activity.participants}
+                                <div className="relative h-full">
+                                  {locationActivities.map((activity) => {
+                                    const position = getActivityPosition(activity.startTime, activity.endTime);
+                                    return (
+                                      <div
+                                        key={activity.id}
+                                        className={`absolute border-l-4 rounded-md p-2 ${activity.color}`}
+                                        style={{
+                                          left: `${position.left}px`,
+                                          width: `${position.width}px`,
+                                          minWidth: '120px',
+                                          top: '4px',
+                                          bottom: '4px',
+                                        }}
+                                        data-testid={`activity-${activity.id}`}
+                                      >
+                                        <div className="font-semibold text-xs mb-1 truncate">
+                                          {activity.title}
                                         </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
+                                        <div className="text-xs text-muted-foreground truncate">
+                                          {activity.startTime} - {activity.endTime}
+                                        </div>
+                                        {activity.participants && (
+                                          <div className="text-xs mt-1 truncate">
+                                            {activity.participants}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
                               </div>
                             </div>
                           );
