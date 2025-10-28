@@ -1,107 +1,38 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Download, Plus, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format, addWeeks, subWeeks, startOfWeek, endOfWeek, eachDayOfInterval, getWeek } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import type { Artist, ArtistGroup } from "@shared/schema";
 
-// Mock schedule data
-const mockArtists = [
-  { id: "1", name: "Khrystsina", role: "Pearl Girl" },
-  { id: "2", name: "Kleber", role: "Antar" },
-  { id: "3", name: "Martin", role: "King" },
-  { id: "4", name: "Carlos", role: "Clown Prince" },
-  { id: "5", name: "Phu", role: "Lion Front" },
-  { id: "6", name: "Hung", role: "Lion Back" },
-  { id: "7", name: "Erik", role: "Fisherman" },
-  { id: "8", name: "Aleksei", role: "King's Guard" },
-];
-
-const mockCalls = [
-  {
-    artistId: "1",
-    date: "2025-10-29",
-    startTime: "18:30",
-    endTime: "23:00",
-    title: "Show 21:00",
-    callType: "show",
-    color: "bg-blue-500/20 border-blue-500/50",
-  },
-  {
-    artistId: "1",
-    date: "2025-10-30",
-    startTime: "18:30",
-    endTime: "23:00",
-    title: "Show 21:00",
-    callType: "show",
-    color: "bg-blue-500/20 border-blue-500/50",
-  },
-  {
-    artistId: "2",
-    date: "2025-10-29",
-    startTime: "09:00",
-    endTime: "11:00",
-    title: "Dry Rehearsal",
-    callType: "rehearsal",
-    color: "bg-green-500/20 border-green-500/50",
-  },
-  {
-    artistId: "2",
-    date: "2025-10-29",
-    startTime: "18:30",
-    endTime: "23:00",
-    title: "Show 21:00",
-    callType: "show",
-    color: "bg-blue-500/20 border-blue-500/50",
-  },
-  {
-    artistId: "3",
-    date: "2025-10-29",
-    startTime: "14:00",
-    endTime: "15:00",
-    title: "Costume Fitting",
-    callType: "fitting",
-    color: "bg-purple-500/20 border-purple-500/50",
-  },
-  {
-    artistId: "3",
-    date: "2025-10-29",
-    startTime: "18:30",
-    endTime: "23:00",
-    title: "Show 21:00",
-    callType: "show",
-    color: "bg-blue-500/20 border-blue-500/50",
-  },
-  {
-    artistId: "4",
-    date: "2025-10-30",
-    startTime: "10:00",
-    endTime: "11:30",
-    title: "Company Meeting",
-    callType: "meeting",
-    color: "bg-yellow-500/20 border-yellow-500/50",
-  },
-  {
-    artistId: "5",
-    date: "2025-10-29",
-    startTime: "18:30",
-    endTime: "23:00",
-    title: "Show 21:00",
-    callType: "show",
-    color: "bg-blue-500/20 border-blue-500/50",
-  },
-  {
-    artistId: "5",
-    date: "2025-10-31",
-    startTime: "16:00",
-    endTime: "20:30",
-    title: "Show 18:00",
-    callType: "show",
-    color: "bg-blue-500/20 border-blue-500/50",
-  },
-];
+// Mock calls data - will be replaced with real data later
+const getMockCallsForArtist = (artistId: string) => {
+  // Sample calls for demonstration
+  return [
+    {
+      artistId,
+      date: "2025-10-29",
+      startTime: "18:30",
+      endTime: "23:00",
+      title: "Show 21:00",
+      callType: "show",
+      color: "bg-blue-500/20 border-blue-500/50",
+    },
+    {
+      artistId,
+      date: "2025-10-30",
+      startTime: "18:30",
+      endTime: "23:00",
+      title: "Show 21:00",
+      callType: "show",
+      color: "bg-blue-500/20 border-blue-500/50",
+    },
+  ];
+};
 
 // Generate 15-minute time slots from 7:00 to 23:45
 const generateTimeSlots = () => {
@@ -133,6 +64,17 @@ function getCallPosition(startTime: string, endTime: string) {
   };
 }
 
+function getArtistDisplayName(artist: Artist): string {
+  return artist.stageName || `${artist.firstName} ${artist.lastName}`;
+}
+
+function getArtistInitials(artist: Artist): string {
+  if (artist.stageName) {
+    return artist.stageName.split(' ').map(n => n[0]).join('').substring(0, 2);
+  }
+  return `${artist.firstName[0]}${artist.lastName[0]}`;
+}
+
 export default function WeeklySchedule() {
   const [currentWeekStart, setCurrentWeekStart] = useState(() => 
     startOfWeek(new Date('2025-10-29'), { weekStartsOn: 3 }) // Week starting Wednesday
@@ -144,6 +86,66 @@ export default function WeeklySchedule() {
 
   const prevWeek = () => setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   const nextWeek = () => setCurrentWeekStart(addWeeks(currentWeekStart, 1));
+
+  // Fetch artists and groups
+  const { data: artists = [] } = useQuery<Artist[]>({
+    queryKey: ["/api/artists"],
+  });
+
+  const { data: artistGroups = [] } = useQuery<ArtistGroup[]>({
+    queryKey: ["/api/artist-groups"],
+  });
+
+  // Group and sort artists
+  const groupedArtists = useMemo(() => {
+    // Create a map of group ID to group
+    const groupMap = new Map(artistGroups.map(g => [g.id, g]));
+    
+    // Group artists by their artist group
+    const grouped: Record<string, Artist[]> = {};
+    
+    artists.forEach(artist => {
+      const groupId = artist.artistGroupId || 'ungrouped';
+      if (!grouped[groupId]) {
+        grouped[groupId] = [];
+      }
+      grouped[groupId].push(artist);
+    });
+
+    // Sort artists within each group alphabetically by display name
+    Object.keys(grouped).forEach(groupId => {
+      grouped[groupId].sort((a, b) => {
+        const nameA = getArtistDisplayName(a);
+        const nameB = getArtistDisplayName(b);
+        return nameA.localeCompare(nameB);
+      });
+    });
+
+    // Sort groups by their sortOrder
+    const sortedGroups = [...artistGroups].sort((a, b) => a.sortOrder - b.sortOrder);
+    
+    // Build final array with group headers
+    const result: Array<{ type: 'group', group: ArtistGroup } | { type: 'artist', artist: Artist }> = [];
+    
+    sortedGroups.forEach(group => {
+      if (grouped[group.id] && grouped[group.id].length > 0) {
+        result.push({ type: 'group', group });
+        grouped[group.id].forEach(artist => {
+          result.push({ type: 'artist', artist });
+        });
+      }
+    });
+
+    // Add ungrouped artists at the end if any
+    if (grouped['ungrouped'] && grouped['ungrouped'].length > 0) {
+      result.push({ type: 'group', group: { id: 'ungrouped', name: 'Other', sortOrder: 999, createdAt: new Date(), updatedAt: new Date() } as ArtistGroup });
+      grouped['ungrouped'].forEach(artist => {
+        result.push({ type: 'artist', artist });
+      });
+    }
+
+    return result;
+  }, [artists, artistGroups]);
 
   return (
     <div className="flex flex-col h-full">
@@ -218,58 +220,90 @@ export default function WeeklySchedule() {
 
                 {/* Artist Rows */}
                 <ScrollArea className="h-[600px]">
-                  {mockArtists.map((artist) => (
-                    <div key={artist.id} className="flex border-b hover:bg-accent/50 transition-colors">
-                      {/* Artist Name */}
-                      <div className="w-40 flex-shrink-0 p-4 border-r">
-                        <div className="flex items-center gap-2">
-                          <Avatar className="w-8 h-8">
-                            <AvatarFallback className="text-xs">
-                              {artist.name.split(' ').map(n => n[0]).join('')}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium truncate">
-                              {artist.name}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {artist.role}
+                  {groupedArtists.map((item, idx) => {
+                    if (item.type === 'group') {
+                      // Group Header
+                      return (
+                        <div
+                          key={`group-${item.group.id}`}
+                          className="flex border-b bg-muted/50 sticky top-0 z-[5]"
+                        >
+                          <div className="w-40 flex-shrink-0 p-3 border-r">
+                            <div className="text-sm font-bold uppercase text-muted-foreground">
+                              {item.group.name}
                             </div>
                           </div>
+                          {weekDays.map((day) => (
+                            <div
+                              key={day.toISOString()}
+                              className="flex-1 min-w-[150px] border-r last:border-r-0"
+                            />
+                          ))}
                         </div>
-                      </div>
-
-                      {/* Day Cells */}
-                      {weekDays.map((day) => {
-                        const dayStr = format(day, 'yyyy-MM-dd');
-                        const calls = mockCalls.filter(
-                          (call) => call.artistId === artist.id && call.date === dayStr
-                        );
-
-                        return (
-                          <div
-                            key={day.toISOString()}
-                            className="flex-1 min-w-[150px] p-2 border-r last:border-r-0 relative min-h-[80px]"
-                          >
-                            <div className="space-y-1">
-                              {calls.map((call, idx) => (
-                                <div
-                                  key={idx}
-                                  className={`p-2 rounded border text-xs ${call.color}`}
-                                  data-testid={`call-${artist.id}-${dayStr}-${idx}`}
-                                >
-                                  <div className="font-semibold truncate">{call.title}</div>
-                                  <div className="text-muted-foreground">
-                                    {call.startTime} - {call.endTime}
-                                  </div>
+                      );
+                    } else {
+                      // Artist Row
+                      const artist = item.artist;
+                      const artistName = getArtistDisplayName(artist);
+                      const artistInitials = getArtistInitials(artist);
+                      
+                      return (
+                        <div key={artist.id} className="flex border-b hover:bg-accent/50 transition-colors">
+                          {/* Artist Name */}
+                          <div className="w-40 flex-shrink-0 p-4 border-r">
+                            <div className="flex items-center gap-2">
+                              <Avatar className="w-8 h-8">
+                                {artist.photoUrl && (
+                                  <AvatarImage src={artist.photoUrl} alt={artistName} />
+                                )}
+                                <AvatarFallback className="text-xs">
+                                  {artistInitials}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium truncate">
+                                  {artistName}
                                 </div>
-                              ))}
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {artist.role}
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  ))}
+
+                          {/* Day Cells */}
+                          {weekDays.map((day) => {
+                            const dayStr = format(day, 'yyyy-MM-dd');
+                            const calls = getMockCallsForArtist(artist.id).filter(
+                              (call) => call.date === dayStr
+                            );
+
+                            return (
+                              <div
+                                key={day.toISOString()}
+                                className="flex-1 min-w-[150px] p-2 border-r last:border-r-0 relative min-h-[80px]"
+                              >
+                                <div className="space-y-1">
+                                  {calls.map((call, callIdx) => (
+                                    <div
+                                      key={callIdx}
+                                      className={`p-2 rounded border text-xs ${call.color}`}
+                                      data-testid={`call-${artist.id}-${dayStr}-${callIdx}`}
+                                    >
+                                      <div className="font-semibold truncate">{call.title}</div>
+                                      <div className="text-muted-foreground">
+                                        {call.startTime} - {call.endTime}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    }
+                  })}
                 </ScrollArea>
               </div>
             </div>
