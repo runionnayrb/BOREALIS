@@ -322,7 +322,7 @@ export default function FullSchedule() {
               <TabsTrigger
                 key={day.toISOString()}
                 value={format(day, 'yyyy-MM-dd')}
-                className="flex-1"
+                className="flex-1 hover-elevate transition-all"
                 data-testid={`tab-day-${format(day, 'yyyy-MM-dd')}`}
               >
                 <div className="flex flex-col items-center gap-1 py-2">
