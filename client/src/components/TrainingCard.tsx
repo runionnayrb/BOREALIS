@@ -104,25 +104,23 @@ export default function TrainingCard({
     <Card className="p-3 md:p-4" data-testid={`card-training-${training.id}`}>
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4 mb-3">
         <div className="flex-1 min-w-0">
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 mb-2">
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-base break-words" data-testid={training.customName ? `text-custom-name-${training.id}` : `text-act-${training.id}`}>
                 {training.customName || (scene ? `${scene.name} (Full Scene)` : act?.name || "Unknown")} - {training.goal || "No Goal Set"}
               </h3>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm">
-              <div className="text-muted-foreground">
-                <span className="font-medium">SM:</span> <span>{training.stageManagerId ? getUserName(training.stageManagerId) : "None"}</span>
-              </div>
-              <div className="flex items-center gap-2 font-mono">
-                <span className="text-muted-foreground" data-testid={`text-time-${training.id}`}>
-                  {training.startTime} - {training.endTime}
-                </span>
-                <Badge variant="secondary" className="font-mono">
-                  {training.durationMinutes} min
-                </Badge>
-              </div>
+            <div className="flex items-center gap-3 font-mono text-sm shrink-0 md:ml-4">
+              <Badge variant="secondary" className="font-mono">
+                {training.durationMinutes} min
+              </Badge>
+              <span className="text-muted-foreground tabular-nums" data-testid={`text-time-${training.id}`}>
+                {training.startTime} - {training.endTime}
+              </span>
             </div>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            <span className="font-medium">SM:</span> <span>{training.stageManagerId ? getUserName(training.stageManagerId) : "None"}</span>
           </div>
           {trainingLocationsList.length > 0 && (
             <div className="flex items-center gap-1.5 text-sm text-foreground mt-1 mb-3" data-testid={`text-locations-${training.id}`}>
