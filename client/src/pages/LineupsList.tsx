@@ -114,7 +114,7 @@ export default function LineupsList() {
                       </div>
                       
                       <div className="text-sm text-muted-foreground">
-                        Showcaller: {lineup.showcaller}
+                        Show Caller: {lineup.showcaller}
                       </div>
                     </div>
                   </div>
