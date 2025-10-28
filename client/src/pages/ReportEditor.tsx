@@ -141,9 +141,19 @@ export default function ReportEditor() {
     enabled: !!reportId,
   });
 
-  const { data: trainings = [], isLoading: trainingsLoading } = useQuery<Training[]>({
+  const { data: rawTrainings = [], isLoading: trainingsLoading } = useQuery<Training[]>({
     queryKey: ['/api/reports', reportId!, 'trainings'],
     enabled: !!reportId,
+  });
+
+  // Sort trainings chronologically by start time, then end time
+  const trainings = [...rawTrainings].sort((a, b) => {
+    // First compare by start time
+    if (a.startTime !== b.startTime) {
+      return a.startTime.localeCompare(b.startTime);
+    }
+    // If start times are equal, compare by end time
+    return a.endTime.localeCompare(b.endTime);
   });
 
   const { data: scenes = [] } = useQuery<Scene[]>({ queryKey: ['/api/scenes'] });
@@ -1286,9 +1296,9 @@ export default function ReportEditor() {
               </Dialog>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="flex flex-col gap-4">
               {trainings.length === 0 ? (
-                <div className="col-span-full text-center py-12 text-muted-foreground">
+                <div className="text-center py-12 text-muted-foreground">
                   No training sessions added yet. Click "Add Training" to get started.
                 </div>
               ) : (
