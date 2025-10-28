@@ -77,43 +77,44 @@ export default function LineupsList() {
               {filteredLineups.map((lineup) => (
                 <div
                   key={lineup.id}
-                  className="flex items-center justify-between p-4 hover-elevate cursor-pointer transition-all"
+                  className="flex items-start justify-between p-4 hover-elevate cursor-pointer transition-all"
                   onClick={() => setLocation(`/lineups/${lineup.id}`)}
                   data-testid={`card-lineup-${lineup.id}`}
                 >
-                  <div className="flex items-center gap-6 flex-1 min-w-0">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3">
-                        <h3 className="text-lg font-semibold">
-                          Show {lineup.showNumber}
-                        </h3>
-                        <Badge
-                          variant={lineup.status === "published" ? "default" : "secondary"}
-                          data-testid={`badge-status-${lineup.id}`}
-                        >
-                          {lineup.status}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                        <span>Showcaller: {lineup.showcaller}</span>
-                      </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-lg font-semibold">
+                        Show {lineup.showNumber}
+                      </h3>
+                      <Badge
+                        variant={lineup.status === "published" ? "default" : "secondary"}
+                        data-testid={`badge-status-${lineup.id}`}
+                      >
+                        {lineup.status}
+                      </Badge>
                     </div>
                     
-                    <div className="flex items-center gap-6 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <span>
-                          {new Date(lineup.showDate).toLocaleDateString('en-US', {
-                            weekday: 'short',
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                          })}
-                        </span>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Calendar className="w-4 h-4 text-muted-foreground" />
+                          <span>
+                            {new Date(lineup.showDate).toLocaleDateString('en-US', {
+                              weekday: 'short',
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Clock className="w-4 h-4" />
+                          <span>{lineup.showTime}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-muted-foreground" />
-                        <span>{lineup.showTime}</span>
+                      
+                      <div className="text-sm text-muted-foreground">
+                        Showcaller: {lineup.showcaller}
                       </div>
                     </div>
                   </div>
