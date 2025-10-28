@@ -224,7 +224,7 @@ export default function AttendanceDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold" data-testid="text-out-count">{outArtists.length}</div>
-                <p className="text-xs text-muted-foreground">Temporarily unavailable</p>
+                <p className="text-xs text-muted-foreground">Out of the Show</p>
               </CardContent>
             </Card>
 
@@ -346,7 +346,7 @@ export default function AttendanceDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>OUT Artists</CardTitle>
-                <CardDescription>{outArtists.length} artists temporarily unavailable</CardDescription>
+                <CardDescription>{outArtists.length} artists Out of the Show</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {outArtists.length === 0 ? (
@@ -368,7 +368,7 @@ export default function AttendanceDashboard() {
                       </Avatar>
                       <div>
                         <p className="font-medium text-sm">{getArtistDisplayName(status.artist)}</p>
-                        <p className="text-xs text-muted-foreground">Temporarily unavailable</p>
+                        <p className="text-xs text-muted-foreground">Out of the Show</p>
                       </div>
                     </div>
                   ))
