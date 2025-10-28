@@ -235,7 +235,11 @@ export default function FullSchedule() {
   const prevWeek = () => setCurrentWeekStart((prev) => addDays(prev, -7));
   const nextWeek = () => setCurrentWeekStart((prev) => addDays(prev, 7));
   
-  const timeSlots = generateTimeSlots(timeIncrement);
+  // Always generate 15-minute slots for the grid structure
+  const baseTimeSlots = generateTimeSlots(15);
+  
+  // Generate display slots based on selected increment for labels
+  const displayTimeSlots = generateTimeSlots(timeIncrement);
 
   // Fetch locations from database
   const { data: locations = [] } = useQuery<Location[]>({
@@ -357,19 +361,24 @@ export default function FullSchedule() {
                             {format(day, 'MMMM d, yyyy')}
                           </div>
                         </div>
-                        <div className="flex" style={{ minWidth: `${timeSlots.length * 40}px` }}>
-                          {timeSlots.filter((_, idx) => {
+                        <div className="flex" style={{ minWidth: `${baseTimeSlots.length * 40}px` }}>
+                          {displayTimeSlots.filter((_, idx) => {
                             // Show hourly labels regardless of increment
                             if (timeIncrement === 15) return idx % 4 === 0; // Every hour (4 x 15min)
                             if (timeIncrement === 30) return idx % 2 === 0; // Every hour (2 x 30min)
                             return true; // Every slot for 60min
                           }).map((time) => {
-                            const slotWidth = timeIncrement === 15 ? 160 : timeIncrement === 30 ? 80 : 40;
+                            // Calculate width based on how many 15-min base slots this represents
+                            const slotsRepresented = timeIncrement / 15;
+                            const slotWidth = slotsRepresented * 40;
+                            const hourlySlots = 60 / timeIncrement; // How many slots in an hour
+                            const displayWidth = slotWidth * hourlySlots; // Width for hour label
+                            
                             return (
                               <div
                                 key={time}
                                 className="p-2 border-r text-center"
-                                style={{ minWidth: `${slotWidth}px` }}
+                                style={{ minWidth: `${displayWidth}px` }}
                               >
                                 <div className="text-xs font-semibold">{time}</div>
                               </div>
@@ -398,10 +407,10 @@ export default function FullSchedule() {
                               </div>
 
                               {/* Time Grid */}
-                              <div className="relative py-2" style={{ minHeight: rowHeight, minWidth: `${timeSlots.length * 40}px` }}>
-                                {/* Grid Lines */}
+                              <div className="relative py-2" style={{ minHeight: rowHeight, minWidth: `${baseTimeSlots.length * 40}px` }}>
+                                {/* Grid Lines - Always show 15-minute grid */}
                                 <div className="absolute inset-0 flex">
-                                  {timeSlots.map((time) => (
+                                  {baseTimeSlots.map((time) => (
                                     <div
                                       key={time}
                                       className="border-r border-dashed border-border/30"
