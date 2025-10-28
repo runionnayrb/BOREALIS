@@ -265,9 +265,9 @@ export default function LineupBuilder() {
                                               <div className="text-sm font-medium truncate">
                                                 {position.artistName}
                                               </div>
-                                              {position.artistNumber && (
+                                              {position.name && (
                                                 <div className="text-xs text-muted-foreground">
-                                                  #{position.artistNumber}
+                                                  {position.name}
                                                 </div>
                                               )}
                                             </div>
@@ -366,22 +366,31 @@ export default function LineupBuilder() {
                 />
                 <ScrollArea className="h-[300px]">
                   <div className="space-y-1">
-                    {["Khrystsina", "Kleber", "Martin", "Carlos", "Phu", "Hung", "Erik", "Aleksei"].map((name, idx) => (
+                    {[
+                      { name: "Khrystsina", role: "Pearl Girl" },
+                      { name: "Kleber", role: "Antar" },
+                      { name: "Martin", role: "King" },
+                      { name: "Carlos", role: "Clown Prince" },
+                      { name: "Phu", role: "Lion Front" },
+                      { name: "Hung", role: "Lion Back" },
+                      { name: "Erik", role: "Fisherman" },
+                      { name: "Aleksei", role: "King's Guard" }
+                    ].map((artist, idx) => (
                       <div
                         key={idx}
                         draggable
-                        onDragStart={() => setDraggedArtist(name)}
+                        onDragStart={() => setDraggedArtist(artist.name)}
                         className="flex items-center gap-2 p-2 rounded-md hover-elevate cursor-move transition-all"
-                        data-testid={`artist-${name}`}
+                        data-testid={`artist-${artist.name}`}
                       >
                         <Avatar className="w-8 h-8">
                           <AvatarFallback className="text-xs">
-                            {name.split(' ').map(n => n[0]).join('')}
+                            {artist.name.split(' ').map(n => n[0]).join('')}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">{name}</div>
-                          <div className="text-xs text-muted-foreground">#{100 + idx}</div>
+                          <div className="text-sm font-medium truncate">{artist.name}</div>
+                          <div className="text-xs text-muted-foreground">{artist.role}</div>
                         </div>
                       </div>
                     ))}

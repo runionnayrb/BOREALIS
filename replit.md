@@ -1,7 +1,7 @@
-# La Perle Training Reports
+# La Perle - Borealis
 
 ## Overview
-A production-ready full-stack web application for theatrical production training management. It enables Stage Managers to create daily training reports with rich text notes, track trainings by various criteria (act, department, artist, location), assign technician leads, and export reports to PDF. The application also features a comprehensive Attendance System with real-time artist sign-in/sign-out using geofencing and PIN codes, meeting tick sheets with live updates, and role-based access control. The project aims to streamline and professionalize administrative tasks for theatrical training schedules, attendance tracking, and reporting.
+A production-ready full-stack web application for theatrical production management. It enables Stage Managers to create daily training reports with rich text notes, track trainings by various criteria (act, department, artist, location), assign technician leads, and export reports to PDF. The application also features show lineup management with visual stage position layouts, comprehensive scheduling with full timeline and per-artist views, and an Attendance System with real-time artist sign-in/sign-out using geofencing and PIN codes. The project aims to streamline and professionalize administrative tasks for theatrical training schedules, show lineups, scheduling, attendance tracking, and reporting.
 
 ## User Preferences
 - All Stage Managers see the same interface (no user-based filtering).
@@ -84,6 +84,24 @@ A production-ready full-stack web application for theatrical production training
     - Email Templates: Configurable TO/CC/BCC, subject line with `{{date}}` variable, and customizable body prefix.
 - **Audit Trail**: All reports and trainings track `createdBy`, `updatedBy`, and timestamps.
 - **One Report Per Day**: A single report encompasses all trainings for a given day.
+- **Lineup Management**:
+    - **Lineup List**: Card-based view of all show lineups with show number, date, time, showcaller, and status badges.
+    - **Lineup Builder**: Visual stage layout matching production format, organized by scenes/acts (Show Info, Prologue/Desert Flower, City, Spaceship/Tower Bridge, etc.).
+    - **Stage Positions**: Positions grouped by sections (VOM entries, inversions, characters, zombies), each showing artist assignments with roles.
+    - **Show Information**: OUT artists display, show notes, technical notes, dive heights configuration.
+    - **EM Team Management**: Full EM team roster (DOD, CFW, PWD, SR PWD, CARPS, WARD, RIG, AQX, SM) with location assignments.
+    - **Drag-and-Drop Interface**: Visual cues for drag-and-drop artist assignment (mockup ready for full implementation).
+    - **Artist Roster**: Searchable artist sidebar showing names and roles for easy assignment.
+    - **Export Capability**: PDF export button for lineup sheets.
+- **Schedule Management**:
+    - **Full Schedule View**: Timeline-based daily schedule showing all activities as horizontal blocks across time slots (7:00 AM - 11:45 PM in 15-minute increments).
+    - **Activity Types**: Shows, Artist Calls, Rehearsals, Fittings, Meetings with color-coded visual distinction.
+    - **Per-Artist View**: Weekly grid showing individual artist calls and activities organized by artist rows.
+    - **Week Navigation**: Navigate between weeks with week number display.
+    - **Day Tabs**: Quick access to individual day schedules within the week.
+    - **Activity Details**: Each activity displays title, time range, location, and participants.
+    - **Color Legend**: Visual legend explaining activity type color coding.
+    - **Export Capability**: PDF export buttons for both schedule views.
 - **Attendance System**:
     - **Artist Sign-In**: Public page at `/attendance/sign-in` with photo grid, 4-digit PIN, and geofencing validation. All artists are visible on the page; authentication is required when selecting an artist (redirects to login if not authenticated).
     - **Stage Manager Dashboard**: Real-time tracking at `/attendance/dashboard` (requires role) with weekly calendar and manual sign-out.
@@ -92,7 +110,9 @@ A production-ready full-stack web application for theatrical production training
     - **Real-time Synchronization**: All sign-in/sign-out and tick sheet marks broadcast via WebSocket.
 
 ### System Design Choices
-- **Database Schema**: Comprehensive PostgreSQL schema covering users, scenes, acts, departments, locations, artists, technicians, reports, trainings, attendance records, and tick sheets.
+- **Database Schema**: Comprehensive PostgreSQL schema covering users, scenes, acts, departments, locations, artists, technicians, reports, trainings, attendance records, tick sheets, lineup templates, show lineups, and schedules.
+- **Lineup Data Model**: Reusable lineup templates with position definitions, show-specific lineups linking templates to shows, position assignments for artists, EM team assignments, and scene-specific notes.
+- **Schedule Data Model**: Schedule containers for weekly/daily views, individual schedule calls with artist/group assignments, call type categorization, and optional show lineup linkage.
 - **API Endpoints**: RESTful API for all application functionalities.
 - **Session Management**: Session-based authentication with PostgreSQL session store.
 - **WebSocket Architecture**: Standalone WebSocket server for real-time updates.

@@ -18,6 +18,7 @@ import TickSheetPage from "@/pages/attendance/TickSheet";
 import LineupsList from "@/pages/LineupsList";
 import LineupBuilder from "@/pages/LineupBuilder";
 import WeeklySchedule from "@/pages/WeeklySchedule";
+import FullSchedule from "@/pages/FullSchedule";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
@@ -65,7 +66,8 @@ function AuthenticatedApp() {
               <Route path="/lineups" component={LineupsList} />
               <Route path="/lineups/new" component={LineupBuilder} />
               <Route path="/lineups/:id" component={LineupBuilder} />
-              <Route path="/schedule/weekly" component={WeeklySchedule} />
+              <Route path="/schedule/full" component={FullSchedule} />
+              <Route path="/schedule/artists" component={WeeklySchedule} />
               <Route path="/settings" component={Settings} />
               <Route path="/profile" component={Profile} />
             </Switch>

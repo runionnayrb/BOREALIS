@@ -9,14 +9,14 @@ import { format, addWeeks, subWeeks, startOfWeek, endOfWeek, eachDayOfInterval, 
 
 // Mock schedule data
 const mockArtists = [
-  { id: "1", name: "Khrystsina", number: "114" },
-  { id: "2", name: "Kleber", number: "115" },
-  { id: "3", name: "Martin", number: "91" },
-  { id: "4", name: "Carlos", number: "183" },
-  { id: "5", name: "Phu", number: "106" },
-  { id: "6", name: "Hung", number: "24" },
-  { id: "7", name: "Erik", number: "181" },
-  { id: "8", name: "Aleksei", number: "158" },
+  { id: "1", name: "Khrystsina", role: "Pearl Girl" },
+  { id: "2", name: "Kleber", role: "Antar" },
+  { id: "3", name: "Martin", role: "King" },
+  { id: "4", name: "Carlos", role: "Clown Prince" },
+  { id: "5", name: "Phu", role: "Lion Front" },
+  { id: "6", name: "Hung", role: "Lion Back" },
+  { id: "7", name: "Erik", role: "Fisherman" },
+  { id: "8", name: "Aleksei", role: "King's Guard" },
 ];
 
 const mockCalls = [
@@ -233,7 +233,7 @@ export default function WeeklySchedule() {
                               {artist.name}
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              #{artist.number}
+                              {artist.role}
                             </div>
                           </div>
                         </div>

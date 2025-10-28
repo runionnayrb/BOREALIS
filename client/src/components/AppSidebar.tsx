@@ -98,15 +98,30 @@ export default function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
-              {/* Schedule */}
+              {/* Schedule with sub-menu */}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={location.startsWith("/schedule")} data-testid="nav-schedule">
-                  <Link href="/schedule/weekly" className="flex items-center gap-3">
+                  <Link href="/schedule/full" className="flex items-center gap-3">
                     <CalendarDays className="w-4 h-4" />
                     <span>Schedule</span>
-                    {location.startsWith("/schedule") && <ChevronRight className="w-4 h-4 ml-auto" />}
                   </Link>
                 </SidebarMenuButton>
+                <SidebarMenuSub>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild isActive={location === "/schedule/full"} data-testid="nav-schedule-full">
+                      <Link href="/schedule/full" className="flex items-center gap-3">
+                        <span>Full Schedule</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild isActive={location === "/schedule/artists"} data-testid="nav-schedule-artists">
+                      <Link href="/schedule/artists" className="flex items-center gap-3">
+                        <span>By Artist</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                </SidebarMenuSub>
               </SidebarMenuItem>
 
               {/* Attendance with sub-menu */}
