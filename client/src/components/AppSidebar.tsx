@@ -287,6 +287,7 @@ export default function AppSidebar() {
                   <Link href="/schedule/full" className="flex items-center gap-3">
                     <CalendarDays className="w-4 h-4" />
                     <span>Schedule</span>
+                    <span className="text-xs text-muted-foreground">(Coming Soon)</span>
                   </Link>
                 </SidebarMenuButton>
                 <SidebarMenuSub>
