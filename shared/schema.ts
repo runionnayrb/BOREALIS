@@ -38,6 +38,7 @@ export const users = pgTable("users", {
   active: integer("active").notNull().default(1), // 1 = active, 0 = inactive
   userGroupId: varchar("user_group_id").references(() => userGroups.id),
   outlookConnected: integer("outlook_connected").notNull().default(0), // 0 = not connected, 1 = connected
+  mustChangePassword: integer("must_change_password").notNull().default(0), // 1 = must change on next login, 0 = normal
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
