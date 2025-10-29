@@ -290,7 +290,6 @@ export default function ReportsList() {
                   date={report.date}
                   trainingsCount={trainingsCount}
                   onClick={() => setLocation(`/report/${report.id}`)}
-                  onDelete={() => deleteReportMutation.mutate(report.id)}
                   onExport={() => console.log("Export", report.id)}
                 />
               );
