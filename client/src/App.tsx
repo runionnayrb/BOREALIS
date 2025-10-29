@@ -19,6 +19,7 @@ import LineupsList from "@/pages/LineupsList";
 import LineupBuilder from "@/pages/LineupBuilder";
 import WeeklySchedule from "@/pages/WeeklySchedule";
 import FullSchedule from "@/pages/FullSchedule";
+import ChangePassword from "@/pages/ChangePassword";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
@@ -33,6 +34,13 @@ function AuthenticatedApp() {
     }
   }, [user, isLoading, location, setLocation]);
 
+  // Redirect to change password if required
+  useEffect(() => {
+    if (user && (user as any).mustChangePassword === 1 && location !== "/change-password") {
+      setLocation("/change-password");
+    }
+  }, [user, location, setLocation]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -43,6 +51,11 @@ function AuthenticatedApp() {
 
   if (!user) {
     return <AuthPage />;
+  }
+
+  // Show change password page if required (without sidebar/topbar)
+  if ((user as any).mustChangePassword === 1 && location === "/change-password") {
+    return <ChangePassword />;
   }
 
   const style = {
@@ -58,6 +71,7 @@ function AuthenticatedApp() {
           <TopBar />
           <main className="flex-1 overflow-auto">
             <Switch>
+              <Route path="/change-password" component={ChangePassword} />
               <Route path="/" component={ReportsList} />
               <Route path="/new-report" component={ReportEditor} />
               <Route path="/report/:id" component={ReportEditor} />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit, Settings as SettingsIcon, Shield, UserCircle2, GripVertical } from "lucide-react";
+import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit, Settings as SettingsIcon, Shield, UserCircle2, GripVertical, KeyRound, Copy, Check } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -81,6 +81,11 @@ export default function Settings() {
   const [selectedUserGroupId, setSelectedUserGroupId] = useState<string | null>(null);
   const [userGroupDialogOpen, setUserGroupDialogOpen] = useState(false);
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
+  
+  // Password reset dialog
+  const [passwordResetDialogOpen, setPasswordResetDialogOpen] = useState(false);
+  const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
+  const [resetPasswordUser, setResetPasswordUser] = useState<SafeUser | null>(null);
   const [selectedLocationTypeId, setSelectedLocationTypeId] = useState<string | undefined>(undefined);
   const [selectedSceneId, setSelectedSceneId] = useState<string | undefined>(undefined);
   const [selectedDepartmentIds, setSelectedDepartmentIds] = useState<string[]>([]);
@@ -829,6 +834,25 @@ export default function Settings() {
     onError: (error: Error) => {
       toast({ 
         title: error.message || "Failed to delete user", 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // User password reset mutation
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      return await apiRequest<{ temporaryPassword: string; user: SafeUser }>("POST", `/api/users/${userId}/reset-password`, {});
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setTemporaryPassword(data.temporaryPassword);
+      setPasswordResetDialogOpen(true);
+      toast({ title: "Password reset successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: error.message || "Failed to reset password", 
         variant: "destructive" 
       });
     },
@@ -3332,6 +3356,19 @@ export default function Settings() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
+                                  setResetPasswordUser(user);
+                                  resetPasswordMutation.mutate(user.id);
+                                }}
+                                disabled={resetPasswordMutation.isPending}
+                                data-testid={`button-reset-password-${user.id}`}
+                              >
+                                <KeyRound className="w-4 h-4 mr-1" />
+                                Reset Password
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
                                   updateUserMutation.mutate({
                                     id: user.id,
                                     active: user.active === 1 ? 0 : 1,
@@ -3461,6 +3498,59 @@ export default function Settings() {
               data-testid="button-confirm-delete-user"
             >
               {deleteUserMutation.isPending ? "Deleting..." : "Delete User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={passwordResetDialogOpen} onOpenChange={setPasswordResetDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Password Reset Successful</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              A temporary password has been generated for <strong>{resetPasswordUser?.name || resetPasswordUser?.email}</strong>. 
+              The user will be required to change their password upon next login.
+            </p>
+            <div className="space-y-2">
+              <Label>Temporary Password</Label>
+              <div className="flex gap-2">
+                <Input 
+                  value={temporaryPassword || ""}
+                  readOnly
+                  className="font-mono bg-muted"
+                  data-testid="input-temporary-password"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    if (temporaryPassword) {
+                      navigator.clipboard.writeText(temporaryPassword);
+                      toast({ title: "Password copied to clipboard" });
+                    }
+                  }}
+                  data-testid="button-copy-password"
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Make sure to save this password. It will not be shown again.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              onClick={() => {
+                setPasswordResetDialogOpen(false);
+                setTemporaryPassword(null);
+                setResetPasswordUser(null);
+              }}
+              data-testid="button-close-reset-dialog"
+            >
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

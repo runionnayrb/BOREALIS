@@ -267,6 +267,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(204);
   });
 
+  // Password reset routes
+  app.post("/api/users/:id/reset-password", requireRole('stage_management', 'admin'), async (req, res) => {
+    // Generate temporary password (8 characters: letters and numbers)
+    const generateTempPassword = () => {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+      let password = '';
+      for (let i = 0; i < 8; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return password;
+    };
+
+    const temporaryPassword = generateTempPassword();
+    const hashedPassword = await hashPassword(temporaryPassword);
+
+    // Update user with new password and set mustChangePassword flag
+    const updated = await storage.updateUser(req.params.id, {
+      password: hashedPassword,
+      mustChangePassword: 1,
+    });
+
+    if (!updated) {
+      return res.status(404).send("User not found");
+    }
+
+    // Return the temporary password (only this one time)
+    res.json({ 
+      temporaryPassword,
+      user: sanitizeUser(updated)
+    });
+  });
+
+  const changePasswordSchema = z.object({
+    currentPassword: z.string().optional(), // Optional for forced password change
+    newPassword: z.string().min(6, "Password must be at least 6 characters"),
+  });
+
+  app.post("/api/users/change-password", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const validation = changePasswordSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: "Validation failed",
+        details: validation.error.issues,
+      });
+    }
+
+    // Get current user
+    const user = await storage.getUser(req.user!.id);
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+
+    // If not forced change, require and verify current password
+    if (!user.mustChangePassword) {
+      if (!validation.data.currentPassword) {
+        return res.status(400).send("Current password is required");
+      }
+      const { comparePasswords } = await import("./auth");
+      const isValid = await comparePasswords(validation.data.currentPassword, user.password);
+      if (!isValid) {
+        return res.status(400).send("Current password is incorrect");
+      }
+    }
+
+    // Hash new password
+    const hashedPassword = await hashPassword(validation.data.newPassword);
+
+    // Update user with new password and clear mustChangePassword flag
+    const updated = await storage.updateUser(user.id, {
+      password: hashedPassword,
+      mustChangePassword: 0,
+    });
+
+    if (!updated) {
+      return res.status(500).send("Failed to update password");
+    }
+
+    res.json({ 
+      success: true,
+      user: sanitizeUser(updated)
+    });
+  });
+
   // Artist photo upload routes
   app.post("/api/photos/upload", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
