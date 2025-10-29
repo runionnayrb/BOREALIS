@@ -40,6 +40,7 @@ A production-ready full-stack web application for theatrical production manageme
 - **Database**: PostgreSQL with Drizzle ORM.
 - **Authentication**: Passport.js with local strategy, scrypt for password hashing, session-based authentication.
 - **Data Management**: TanStack Query for fetching, caching, and state management.
+- **Department Assignment Auto-Creation**: When creating a training, department assignments are automatically created for all departments associated with the selected scene/act via POST /api/assignments (with trainingId in request body). Cache invalidation explicitly targets all training-specific queries (['/api/trainings', id, 'assignments'|'locations'|'artists']) to ensure immediate UI updates.
 - **XSS Protection**: Two-layer defense for rich text notes (Tiptap escaping + DOMPurify sanitization).
 - **Auto-Report Creation**: Automatically reuses or creates a new report for a given date, enforcing "One Report Per Day."
 - **Email Integration**: Microsoft Graph API for sending emails with customizable templates and distribution lists.
