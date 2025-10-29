@@ -1246,11 +1246,14 @@ export default function ReportEditor() {
                       />
                     </div>
 
-                    {editingTraining && (
+                    {(actDepartmentIds.length > 0 || actArtistIds.length > 0) && (
                       <div className="space-y-4 border-t pt-4">
-                        <h3 className="font-semibold text-sm">Customize Assignments</h3>
+                        <h3 className="font-semibold text-sm">{editingTraining ? "Customize Assignments" : "Artists & Departments"}</h3>
                         <p className="text-sm text-muted-foreground">
-                          Remove artists or departments that don't apply to this specific training session.
+                          {editingTraining 
+                            ? "Remove artists or departments that don't apply to this specific training session."
+                            : "The following artists and departments will be assigned to this training based on the selected scene/act. You can customize assignments after creating the training."
+                          }
                         </p>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1269,15 +1272,17 @@ export default function ReportEditor() {
                                         <div>{artist.stageName || `${artist.firstName} ${artist.lastName}`}</div>
                                         {artist.role && <div className="text-xs text-muted-foreground">{artist.role}</div>}
                                       </div>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 w-7 p-0"
-                                        onClick={() => setActArtistIds(actArtistIds.filter(id => id !== artistId))}
-                                        data-testid={`button-remove-artist-${artistId}`}
-                                      >
-                                        ×
-                                      </Button>
+                                      {editingTraining && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-7 w-7 p-0"
+                                          onClick={() => setActArtistIds(actArtistIds.filter(id => id !== artistId))}
+                                          data-testid={`button-remove-artist-${artistId}`}
+                                        >
+                                          ×
+                                        </Button>
+                                      )}
                                     </div>
                                   );
                                 })
@@ -1291,20 +1296,34 @@ export default function ReportEditor() {
                               {actDepartmentIds.length === 0 ? (
                                 <div className="text-sm text-muted-foreground">No departments assigned</div>
                               ) : (
-                                actDepartmentIds
-                                  .map(deptId => ({ id: deptId, dept: departments.find(d => d.id === deptId) }))
-                                  .filter(({ dept }) => dept !== undefined)
-                                  .sort((a, b) => a.dept!.name.localeCompare(b.dept!.name))
-                                  .map(({ id: deptId, dept }) => (
-                                    <DepartmentLeadSelector
-                                      key={deptId}
-                                      departmentId={deptId}
-                                      departmentName={dept!.name}
-                                      leadTechnicianId={trainingAssignments.find(a => a.departmentId === deptId)?.leadTechnicianId || null}
-                                      onUpdateLead={(value) => handleUpdateLeadTechnician(deptId, value)}
-                                      onRemove={() => handleRemoveDepartment(deptId)}
-                                    />
-                                  ))
+                                editingTraining ? (
+                                  // Edit mode: show department selectors with remove option
+                                  actDepartmentIds
+                                    .map(deptId => ({ id: deptId, dept: departments.find(d => d.id === deptId) }))
+                                    .filter(({ dept }) => dept !== undefined)
+                                    .sort((a, b) => a.dept!.name.localeCompare(b.dept!.name))
+                                    .map(({ id: deptId, dept }) => (
+                                      <DepartmentLeadSelector
+                                        key={deptId}
+                                        departmentId={deptId}
+                                        departmentName={dept!.name}
+                                        leadTechnicianId={trainingAssignments.find(a => a.departmentId === deptId)?.leadTechnicianId || null}
+                                        onUpdateLead={(value) => handleUpdateLeadTechnician(deptId, value)}
+                                        onRemove={() => handleRemoveDepartment(deptId)}
+                                      />
+                                    ))
+                                ) : (
+                                  // Create mode: just show the list
+                                  actDepartmentIds
+                                    .map(deptId => departments.find(d => d.id === deptId))
+                                    .filter(dept => dept !== undefined)
+                                    .sort((a, b) => a!.name.localeCompare(b!.name))
+                                    .map(dept => (
+                                      <div key={dept!.id} className="p-2 rounded bg-muted/50">
+                                        <div className="text-sm font-medium">{dept!.name}</div>
+                                      </div>
+                                    ))
+                                )
                               )}
                             </div>
                           </div>
