@@ -73,20 +73,6 @@ export default function ReportsList() {
     queryKey: ['/api/assignments/all'] 
   });
 
-  const deleteReportMutation = useMutation({
-    mutationFn: async (reportId: string) => {
-      await apiRequest('DELETE', `/api/reports/${reportId}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/reports'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/trainings/all'] });
-      toast({ title: "Report deleted successfully" });
-    },
-    onError: () => {
-      toast({ title: "Failed to delete report", variant: "destructive" });
-    },
-  });
-
   // Helper function to try parsing search query as a date
   const tryParseDate = (query: string): Date | null => {
     const currentYear = new Date().getFullYear();

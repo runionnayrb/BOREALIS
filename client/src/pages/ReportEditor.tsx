@@ -355,6 +355,21 @@ export default function ReportEditor() {
     },
   });
 
+  const deleteReportMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest('DELETE', `/api/reports/${reportId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/reports'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/trainings/all'] });
+      toast({ title: "Report deleted successfully" });
+      setLocation('/');
+    },
+    onError: () => {
+      toast({ title: "Failed to delete report", variant: "destructive" });
+    },
+  });
+
   const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
   const [emailTo, setEmailTo] = useState("");
   const [emailCc, setEmailCc] = useState("");
@@ -902,6 +917,44 @@ export default function ReportEditor() {
               <span className="hidden sm:inline">Export PDF</span>
               <span className="sm:hidden">Export</span>
             </Button>
+            {reportId && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    data-testid="button-delete-report"
+                    className="flex-1 sm:flex-none text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Delete Report</span>
+                    <span className="sm:hidden">Delete</span>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Report?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete this report? This will permanently delete the report and all associated training sessions. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel data-testid="button-cancel-delete-report">Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                      asChild
+                      data-testid="button-confirm-delete-report"
+                    >
+                      <Button
+                        onClick={() => deleteReportMutation.mutate()}
+                        disabled={deleteReportMutation.isPending}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {deleteReportMutation.isPending ? "Deleting..." : "Delete"}
+                      </Button>
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
         </div>
       </header>
