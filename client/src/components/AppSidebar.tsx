@@ -275,6 +275,7 @@ export default function AppSidebar() {
                   <Link href="/lineups" className="flex items-center gap-3">
                     <Users className="w-4 h-4" />
                     <span>Lineups</span>
+                    <span className="text-xs text-muted-foreground">(Coming Soon)</span>
                     {location.startsWith("/lineups") && <ChevronRight className="w-4 h-4 ml-auto" />}
                   </Link>
                 </SidebarMenuButton>
