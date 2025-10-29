@@ -454,7 +454,9 @@ export default function ReportEditor() {
       queryClient.invalidateQueries({ queryKey: ['/api/reports', training.reportId, 'trainings'] });
       queryClient.invalidateQueries({ queryKey: ['/api/reports'] });
       // Invalidate training-specific queries (assignments, locations, artists)
-      queryClient.invalidateQueries({ queryKey: ['/api/trainings', training.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/trainings', training.id, 'assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/trainings', training.id, 'locations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/trainings', training.id, 'artists'] });
       toast({ title: "Training added successfully" });
       setShowAddTraining(false);
       setEditingTraining(null);
@@ -486,7 +488,9 @@ export default function ReportEditor() {
       queryClient.invalidateQueries({ queryKey: ['/api/reports', reportId, 'trainings'] });
       // Invalidate training-specific queries (assignments, locations, artists)
       if (editingTraining) {
-        queryClient.invalidateQueries({ queryKey: ['/api/trainings', editingTraining.id] });
+        queryClient.invalidateQueries({ queryKey: ['/api/trainings', editingTraining.id, 'assignments'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/trainings', editingTraining.id, 'locations'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/trainings', editingTraining.id, 'artists'] });
       }
       toast({ title: "Training updated successfully" });
       setShowAddTraining(false);
