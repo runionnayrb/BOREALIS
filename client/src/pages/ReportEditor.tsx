@@ -439,7 +439,8 @@ export default function ReportEditor() {
       // Auto-create department assignments for the act's required departments
       if (actDepartmentIds.length > 0) {
         for (const departmentId of actDepartmentIds) {
-          await apiRequest('POST', `/api/trainings/${training.id}/assignments`, {
+          await apiRequest('POST', '/api/assignments', {
+            trainingId: training.id,
             departmentId,
             leadTechnicianId: null,
             notes: "",
@@ -452,6 +453,8 @@ export default function ReportEditor() {
     onSuccess: (training) => {
       queryClient.invalidateQueries({ queryKey: ['/api/reports', training.reportId, 'trainings'] });
       queryClient.invalidateQueries({ queryKey: ['/api/reports'] });
+      // Invalidate training-specific queries (assignments, locations, artists)
+      queryClient.invalidateQueries({ queryKey: ['/api/trainings', training.id] });
       toast({ title: "Training added successfully" });
       setShowAddTraining(false);
       setEditingTraining(null);
@@ -481,6 +484,10 @@ export default function ReportEditor() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/reports', reportId, 'trainings'] });
+      // Invalidate training-specific queries (assignments, locations, artists)
+      if (editingTraining) {
+        queryClient.invalidateQueries({ queryKey: ['/api/trainings', editingTraining.id] });
+      }
       toast({ title: "Training updated successfully" });
       setShowAddTraining(false);
       setEditingTraining(null);
