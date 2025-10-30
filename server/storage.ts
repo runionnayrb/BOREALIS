@@ -79,6 +79,7 @@ export interface IStorage {
   createAct(act: InsertAct): Promise<Act>;
   updateAct(id: string, updates: Partial<InsertAct>): Promise<Act | undefined>;
   deleteAct(id: string): Promise<void>;
+  reorderActs(actIds: string[]): Promise<void>;
   
   // Act Departments
   getActDepartments(actId: string): Promise<ActDepartment[]>;
@@ -90,6 +91,7 @@ export interface IStorage {
   createCue(cue: InsertCue): Promise<Cue>;
   updateCue(id: string, updates: Partial<InsertCue>): Promise<Cue | undefined>;
   deleteCue(id: string): Promise<void>;
+  reorderCues(cueIds: string[]): Promise<void>;
   
   // Cue Departments
   getCueDepartments(cueId: string): Promise<CueDepartment[]>;
@@ -379,6 +381,12 @@ export class DatabaseStorage implements IStorage {
     await db.delete(acts).where(eq(acts.id, id));
   }
 
+  async reorderActs(actIds: string[]): Promise<void> {
+    for (let i = 0; i < actIds.length; i++) {
+      await db.update(acts).set({ sortOrder: i }).where(eq(acts.id, actIds[i]));
+    }
+  }
+
   // Act Departments
   async getActDepartments(actId: string): Promise<ActDepartment[]> {
     return await db.select().from(actDepartments).where(eq(actDepartments.actId, actId));
@@ -415,6 +423,12 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCue(id: string): Promise<void> {
     await db.delete(cues).where(eq(cues.id, id));
+  }
+
+  async reorderCues(cueIds: string[]): Promise<void> {
+    for (let i = 0; i < cueIds.length; i++) {
+      await db.update(cues).set({ sortOrder: i }).where(eq(cues.id, cueIds[i]));
+    }
   }
 
   // Cue Departments

@@ -503,6 +503,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(204);
   });
 
+  app.post("/api/acts/reorder", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const { actIds } = req.body;
+    if (!Array.isArray(actIds)) {
+      return res.status(400).json({ error: "actIds must be an array" });
+    }
+    await storage.reorderActs(actIds);
+    res.sendStatus(200);
+  });
+
   // Act Departments routes
   app.get("/api/acts/:id/departments", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -589,6 +599,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     await storage.deleteCue(req.params.id);
     res.sendStatus(204);
+  });
+
+  app.post("/api/cues/reorder", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const { cueIds } = req.body;
+    if (!Array.isArray(cueIds)) {
+      return res.status(400).json({ error: "cueIds must be an array" });
+    }
+    await storage.reorderCues(cueIds);
+    res.sendStatus(200);
   });
 
   // Cue Departments routes
