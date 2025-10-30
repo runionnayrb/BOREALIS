@@ -3985,7 +3985,18 @@ export default function Settings() {
                         {groupName}
                       </h3>
                       {groupUsers.map((user) => (
-                        <Card key={user.id} className="p-4">
+                        <Card 
+                          key={user.id} 
+                          className={`p-4 ${isStageManager ? 'cursor-pointer hover-elevate active-elevate-2' : ''}`}
+                          onClick={() => {
+                            if (isStageManager) {
+                              setUserToEdit(user);
+                              setSelectedUserGroupId(user.userGroupId || null);
+                              setEditUserDialogOpen(true);
+                            }
+                          }}
+                          data-testid={`card-user-${user.id}`}
+                        >
                           <div className="flex items-center justify-between gap-4">
                             <div className="flex-1">
                               <p className="font-medium" data-testid={`text-user-name-${user.id}`}>
@@ -4001,62 +4012,9 @@ export default function Settings() {
                               )}
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className={`px-3 py-1 rounded-full text-sm ${user.active === 1 ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                              <span className={`px-3 py-1 rounded-full text-sm ${user.active === 1 ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`} data-testid={`text-user-status-${user.id}`}>
                                 {user.active === 1 ? 'Active' : 'Inactive'}
                               </span>
-                              {isStageManager && <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setUserToEdit(user);
-                                  setSelectedUserGroupId(user.userGroupId || null);
-                                  setEditUserDialogOpen(true);
-                                }}
-                                data-testid={`button-edit-user-${user.id}`}
-                              >
-                                <Edit className="w-4 h-4 mr-1" />
-                                Edit
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setResetPasswordUser(user);
-                                  resetPasswordMutation.mutate(user.id);
-                                }}
-                                disabled={resetPasswordMutation.isPending}
-                                data-testid={`button-reset-password-${user.id}`}
-                              >
-                                <KeyRound className="w-4 h-4 mr-1" />
-                                Reset Password
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  updateUserMutation.mutate({
-                                    id: user.id,
-                                    active: user.active === 1 ? 0 : 1,
-                                  });
-                                }}
-                                disabled={updateUserMutation.isPending}
-                                data-testid={`button-toggle-user-${user.id}`}
-                              >
-                                {user.active === 1 ? 'Deactivate' : 'Activate'}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  setUserToDelete(user.id);
-                                  setAdminPasswordDialogOpen(true);
-                                }}
-                                data-testid={`button-delete-user-${user.id}`}
-                              >
-                                <Trash2 className="w-4 h-4 text-destructive" />
-                              </Button>
-                              </>}
                             </div>
                           </div>
                         </Card>
@@ -4223,7 +4181,7 @@ export default function Settings() {
       </Dialog>
 
       <Dialog open={editUserDialogOpen} onOpenChange={setEditUserDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -4299,9 +4257,67 @@ export default function Settings() {
                   </SelectContent>
                 </Select>
               </div>
+              
+              <div className="border-t pt-4 mt-4 space-y-3">
+                <h4 className="text-sm font-semibold">User Actions</h4>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (userToEdit) {
+                        setResetPasswordUser(userToEdit);
+                        resetPasswordMutation.mutate(userToEdit.id);
+                      }
+                    }}
+                    disabled={resetPasswordMutation.isPending}
+                    className="w-full justify-start"
+                    data-testid={`button-reset-password-${userToEdit?.id}`}
+                  >
+                    <KeyRound className="w-4 h-4 mr-2" />
+                    {resetPasswordMutation.isPending ? "Resetting..." : "Reset Password"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (userToEdit) {
+                        updateUserMutation.mutate({
+                          id: userToEdit.id,
+                          active: userToEdit.active === 1 ? 0 : 1,
+                        });
+                      }
+                    }}
+                    disabled={updateUserMutation.isPending}
+                    className="w-full justify-start"
+                    data-testid={`button-toggle-user-${userToEdit?.id}`}
+                  >
+                    {userToEdit?.active === 1 ? 'Deactivate User' : 'Activate User'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (userToEdit) {
+                        setUserToDelete(userToEdit.id);
+                        setAdminPasswordDialogOpen(true);
+                      }
+                    }}
+                    className="w-full justify-start"
+                    data-testid={`button-delete-user-${userToEdit?.id}`}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete User
+                  </Button>
+                </div>
+              </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="flex gap-2">
               <Button 
+                type="button"
                 variant="outline" 
                 onClick={() => {
                   setEditUserDialogOpen(false);
@@ -4317,7 +4333,7 @@ export default function Settings() {
                 disabled={updateUserMutation.isPending}
                 data-testid="button-save-edit-user"
               >
-                {updateUserMutation.isPending ? "Saving..." : "Save"}
+                {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
               </Button>
             </DialogFooter>
           </form>
