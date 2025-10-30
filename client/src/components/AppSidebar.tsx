@@ -194,6 +194,10 @@ export default function AppSidebar() {
                   <p>Link user accounts to artist profiles. Only users in the "Artist" group can be linked to artist profiles, preventing accidental misassignment.</p>
                 </div>
                 <div className="space-y-1">
+                  <p className="font-medium text-foreground">Archive & Restore</p>
+                  <p>Archive artist profiles and their linked user accounts to remove them from visibility throughout the app while maintaining their data for potential restoration. Archiving is transactional - both the artist and their user account are archived together atomically. View archived artists separately and unarchive when needed.</p>
+                </div>
+                <div className="space-y-1">
                   <p className="font-medium text-foreground">Access Control</p>
                   <p>Stage managers and admins have full access to all features. Artists have access to sign-in and their personal schedule views. User deletion requires admin password confirmation for security.</p>
                 </div>
