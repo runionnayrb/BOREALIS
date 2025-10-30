@@ -1414,7 +1414,7 @@ export default function Settings() {
             </TabsTrigger>
             <TabsTrigger value="acts" data-testid="tab-acts">
               <Theater className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">Acts</span>
+              <span className="hidden md:inline">Show Flow</span>
             </TabsTrigger>
             <TabsTrigger value="departments" data-testid="tab-departments">
               <Briefcase className="w-4 h-4 md:mr-2" />
@@ -1626,7 +1626,7 @@ export default function Settings() {
 
           <TabsContent value="acts" className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Acts</h2>
+              <h2 className="text-lg font-semibold">Show Flow</h2>
               <div className="flex gap-2">
                 <Dialog
                   open={sceneDialogOpen}
