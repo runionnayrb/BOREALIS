@@ -478,14 +478,21 @@ export default function Settings() {
       
       const reorderedItems = arrayMove(items, oldIndex, newIndex);
       
-      const actIds = reorderedItems.filter(i => i.type === 'act').map(i => i.id);
-      const cueIds = reorderedItems.filter(i => i.type === 'cue').map(i => i.id);
+      const actsWithOrder = reorderedItems
+        .map((item, index) => ({ ...item, sortOrder: index }))
+        .filter(i => i.type === 'act')
+        .map(i => ({ id: i.id, sortOrder: i.sortOrder }));
       
-      if (actIds.length > 0) {
-        reorderActsMutation.mutate(actIds);
+      const cuesWithOrder = reorderedItems
+        .map((item, index) => ({ ...item, sortOrder: index }))
+        .filter(i => i.type === 'cue')
+        .map(i => ({ id: i.id, sortOrder: i.sortOrder }));
+      
+      if (actsWithOrder.length > 0) {
+        reorderActsMutation.mutate(actsWithOrder);
       }
-      if (cueIds.length > 0) {
-        reorderCuesMutation.mutate(cueIds);
+      if (cuesWithOrder.length > 0) {
+        reorderCuesMutation.mutate(cuesWithOrder);
       }
     }
   };
@@ -940,19 +947,53 @@ export default function Settings() {
   });
 
   const reorderActsMutation = useMutation({
-    mutationFn: async (actIds: string[]) => {
-      return await apiRequest("POST", "/api/acts/reorder", { actIds });
+    mutationFn: async (actsWithOrder: Array<{id: string; sortOrder: number}>) => {
+      return await apiRequest("POST", "/api/acts/reorder", { acts: actsWithOrder });
     },
-    onSuccess: () => {
+    onMutate: async (actsWithOrder) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/acts"] });
+      const previousActs = queryClient.getQueryData(["/api/acts"]);
+      queryClient.setQueryData(["/api/acts"], (old: Act[] | undefined) => {
+        if (!old) return old;
+        return old.map(act => {
+          const update = actsWithOrder.find(a => a.id === act.id);
+          return update ? { ...act, sortOrder: update.sortOrder } : act;
+        });
+      });
+      return { previousActs };
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousActs) {
+        queryClient.setQueryData(["/api/acts"], context.previousActs);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/acts"] });
     },
   });
 
   const reorderCuesMutation = useMutation({
-    mutationFn: async (cueIds: string[]) => {
-      return await apiRequest("POST", "/api/cues/reorder", { cueIds });
+    mutationFn: async (cuesWithOrder: Array<{id: string; sortOrder: number}>) => {
+      return await apiRequest("POST", "/api/cues/reorder", { cues: cuesWithOrder });
     },
-    onSuccess: () => {
+    onMutate: async (cuesWithOrder) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/cues"] });
+      const previousCues = queryClient.getQueryData(["/api/cues"]);
+      queryClient.setQueryData(["/api/cues"], (old: Cue[] | undefined) => {
+        if (!old) return old;
+        return old.map(cue => {
+          const update = cuesWithOrder.find(c => c.id === cue.id);
+          return update ? { ...cue, sortOrder: update.sortOrder } : cue;
+        });
+      });
+      return { previousCues };
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousCues) {
+        queryClient.setQueryData(["/api/cues"], context.previousCues);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/cues"] });
     },
   });

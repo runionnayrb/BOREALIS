@@ -505,11 +505,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/acts/reorder", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const { actIds } = req.body;
-    if (!Array.isArray(actIds)) {
-      return res.status(400).json({ error: "actIds must be an array" });
+    const { acts } = req.body;
+    if (!Array.isArray(acts)) {
+      return res.status(400).json({ error: "acts must be an array" });
     }
-    await storage.reorderActs(actIds);
+    await storage.reorderActs(acts);
     res.sendStatus(200);
   });
 
@@ -603,11 +603,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/cues/reorder", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const { cueIds } = req.body;
-    if (!Array.isArray(cueIds)) {
-      return res.status(400).json({ error: "cueIds must be an array" });
+    const { cues } = req.body;
+    if (!Array.isArray(cues)) {
+      return res.status(400).json({ error: "cues must be an array" });
     }
-    await storage.reorderCues(cueIds);
+    await storage.reorderCues(cues);
     res.sendStatus(200);
   });
 
