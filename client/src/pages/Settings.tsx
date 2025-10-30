@@ -1879,7 +1879,7 @@ export default function Settings() {
           <TabsContent value="acts" className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Show Flow</h2>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 <Dialog
                   open={sceneDialogOpen}
                   onOpenChange={(open) => {
