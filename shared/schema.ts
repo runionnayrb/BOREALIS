@@ -41,6 +41,7 @@ export const users = pgTable("users", {
   mustChangePassword: integer("must_change_password").notNull().default(0), // 1 = must change on next login, 0 = normal
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
+  archivedAt: timestamp("archived_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -216,12 +217,14 @@ export const artists = pgTable("artists", {
   status: text("status").notNull().default('active'), // active, out, long_term_out
   artistGroupId: varchar("artist_group_id").references(() => artistGroups.id),
   sortOrder: integer("sort_order").notNull().default(0),
+  archivedAt: timestamp("archived_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertArtistSchema = createInsertSchema(artists).omit({
   id: true,
   createdAt: true,
+  archivedAt: true,
 });
 
 export type InsertArtist = z.infer<typeof insertArtistSchema>;
