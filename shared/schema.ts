@@ -96,6 +96,28 @@ export const insertActSchema = createInsertSchema(acts).omit({
 export type InsertAct = z.infer<typeof insertActSchema>;
 export type Act = typeof acts.$inferSelect;
 
+// Cue types
+export const cueTypes = ['Acrobatic Cue', 'Artistic Cue', 'Technical Cue'] as const;
+export type CueType = typeof cueTypes[number];
+
+// Cues
+export const cues = pgTable("cues", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  sceneId: varchar("scene_id").references(() => scenes.id),
+  cueType: text("cue_type").notNull(), // 'Acrobatic Cue', 'Artistic Cue', 'Technical Cue'
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertCueSchema = createInsertSchema(cues).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertCue = z.infer<typeof insertCueSchema>;
+export type Cue = typeof cues.$inferSelect;
+
 // Departments
 export const departments = pgTable("departments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -239,6 +261,54 @@ export const insertActArtistGroupSchema = createInsertSchema(actArtistGroups).om
 
 export type InsertActArtistGroup = z.infer<typeof insertActArtistGroupSchema>;
 export type ActArtistGroup = typeof actArtistGroups.$inferSelect;
+
+// Cue Departments (junction table for many-to-many relationship)
+export const cueDepartments = pgTable("cue_departments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  cueId: varchar("cue_id").notNull().references(() => cues.id),
+  departmentId: varchar("department_id").notNull().references(() => departments.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertCueDepartmentSchema = createInsertSchema(cueDepartments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertCueDepartment = z.infer<typeof insertCueDepartmentSchema>;
+export type CueDepartment = typeof cueDepartments.$inferSelect;
+
+// Cue Artists (junction table for many-to-many relationship)
+export const cueArtists = pgTable("cue_artists", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  cueId: varchar("cue_id").notNull().references(() => cues.id),
+  artistId: varchar("artist_id").notNull().references(() => artists.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertCueArtistSchema = createInsertSchema(cueArtists).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertCueArtist = z.infer<typeof insertCueArtistSchema>;
+export type CueArtist = typeof cueArtists.$inferSelect;
+
+// Cue Artist Groups (junction table for many-to-many relationship)
+export const cueArtistGroups = pgTable("cue_artist_groups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  cueId: varchar("cue_id").notNull().references(() => cues.id),
+  artistGroupId: varchar("artist_group_id").notNull().references(() => artistGroups.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertCueArtistGroupSchema = createInsertSchema(cueArtistGroups).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertCueArtistGroup = z.infer<typeof insertCueArtistGroupSchema>;
+export type CueArtistGroup = typeof cueArtistGroups.$inferSelect;
 
 // Scene Departments (junction table for many-to-many relationship)
 export const sceneDepartments = pgTable("scene_departments", {

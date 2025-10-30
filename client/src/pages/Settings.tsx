@@ -44,8 +44,9 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import type { 
-  Scene, Act, Department, LocationType, Location, ArtistGroup, Artist, Technician, ReportTemplate, SafeUser, UserGroup
+  Scene, Act, Cue, Department, LocationType, Location, ArtistGroup, Artist, Technician, ReportTemplate, SafeUser, UserGroup
 } from "@shared/schema";
+import { cueTypes, type CueType } from "@shared/schema";
 
 type SimpleItem = {
   id: string;
@@ -58,6 +59,7 @@ export default function Settings() {
   const [sceneDialogOpen, setSceneDialogOpen] = useState(false);
   const [sceneFormOpen, setSceneFormOpen] = useState(false);
   const [actDialogOpen, setActDialogOpen] = useState(false);
+  const [cueDialogOpen, setCueDialogOpen] = useState(false);
   const [deptDialogOpen, setDeptDialogOpen] = useState(false);
   const [locationTypeDialogOpen, setLocationTypeDialogOpen] = useState(false);
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
@@ -68,6 +70,11 @@ export default function Settings() {
   const [deleteTarget, setDeleteTarget] = useState<{ type: string; id: string } | null>(null);
   const [editTarget, setEditTarget] = useState<{ type: string; id: string; data: any } | null>(null);
   const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(null);
+  
+  const [selectedCueType, setSelectedCueType] = useState<string | undefined>(undefined);
+  const [selectedCueDepartmentIds, setSelectedCueDepartmentIds] = useState<string[]>([]);
+  const [selectedCueArtistIds, setSelectedCueArtistIds] = useState<string[]>([]);
+  const [selectedCueArtistGroupIds, setSelectedCueArtistGroupIds] = useState<string[]>([]);
   
   // Admin password dialog for user deletion
   const [adminPasswordDialogOpen, setAdminPasswordDialogOpen] = useState(false);
@@ -115,6 +122,7 @@ export default function Settings() {
   // Fetch all settings data
   const { data: scenes = [] } = useQuery<Scene[]>({ queryKey: ["/api/scenes"] });
   const { data: acts = [] } = useQuery<Act[]>({ queryKey: ["/api/acts"] });
+  const { data: cues = [] } = useQuery<Cue[]>({ queryKey: ["/api/cues"] });
   const { data: departments = [] } = useQuery<Department[]>({ queryKey: ["/api/departments"] });
   const { data: locationTypes = [] } = useQuery<LocationType[]>({ queryKey: ["/api/location-types"] });
   const { data: locations = [] } = useQuery<Location[]>({ queryKey: ["/api/locations"] });
@@ -233,6 +241,95 @@ export default function Settings() {
         });
     } else if (!editTarget || editTarget.type !== "act") {
       setSelectedArtistGroupIds([]);
+    }
+  }, [editTarget]);
+
+  // Load cue departments when editing a cue
+  useEffect(() => {
+    if (editTarget?.type === "cue" && editTarget.id) {
+      fetch(`/api/cues/${editTarget.id}/departments`, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        }
+      })
+        .then(async res => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Response is not JSON');
+          }
+          return res.json();
+        })
+        .then(data => {
+          setSelectedCueDepartmentIds(data.map((cd: any) => cd.departmentId));
+        })
+        .catch(err => {
+          console.error("Error loading cue departments:", err);
+          setSelectedCueDepartmentIds([]);
+        });
+    } else if (!editTarget || editTarget.type !== "cue") {
+      setSelectedCueDepartmentIds([]);
+    }
+  }, [editTarget]);
+
+  // Load cue artists when editing a cue
+  useEffect(() => {
+    if (editTarget?.type === "cue" && editTarget.id) {
+      fetch(`/api/cues/${editTarget.id}/artists`, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        }
+      })
+        .then(async res => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Response is not JSON');
+          }
+          return res.json();
+        })
+        .then(data => {
+          setSelectedCueArtistIds(data.map((ca: any) => ca.artistId));
+        })
+        .catch(err => {
+          console.error("Error loading cue artists:", err);
+          setSelectedCueArtistIds([]);
+        });
+    } else if (!editTarget || editTarget.type !== "cue") {
+      setSelectedCueArtistIds([]);
+    }
+  }, [editTarget]);
+
+  // Load cue artist groups when editing a cue
+  useEffect(() => {
+    if (editTarget?.type === "cue" && editTarget.id) {
+      fetch(`/api/cues/${editTarget.id}/artist-groups`, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        }
+      })
+        .then(async res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) throw new Error('Response is not JSON');
+          return res.json();
+        })
+        .then(data => {
+          setSelectedCueArtistGroupIds(data.map((cag: any) => cag.artistGroupId));
+        })
+        .catch(err => {
+          console.error("Error loading cue artist groups:", err);
+          setSelectedCueArtistGroupIds([]);
+        });
+    } else if (!editTarget || editTarget.type !== "cue") {
+      setSelectedCueArtistGroupIds([]);
     }
   }, [editTarget]);
 
@@ -433,6 +530,25 @@ export default function Settings() {
     },
   });
 
+  const createCueMutation = useMutation({
+    mutationFn: async (data: { name: string; cueType: string; sortOrder: number; sceneId?: string; departmentIds: string[]; artistGroupIds: string[]; artistIds: string[] }) => {
+      const cue = await apiRequest("POST", "/api/cues", { name: data.name, cueType: data.cueType, sortOrder: data.sortOrder, sceneId: data.sceneId });
+      await apiRequest("POST", `/api/cues/${cue.id}/departments`, { departmentIds: data.departmentIds });
+      await apiRequest("POST", `/api/cues/${cue.id}/artist-groups`, { artistGroupIds: data.artistGroupIds });
+      await apiRequest("POST", `/api/cues/${cue.id}/artists`, { artistIds: data.artistIds });
+      return cue;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cues"] });
+      setCueDialogOpen(false);
+      setSelectedCueDepartmentIds([]);
+      setSelectedCueArtistGroupIds([]);
+      setSelectedCueArtistIds([]);
+      setSelectedCueType(undefined);
+      toast({ title: "Cue created successfully" });
+    },
+  });
+
   const createDeptMutation = useMutation({
     mutationFn: async (data: { name: string; sortOrder: number }) => {
       return await apiRequest("POST", "/api/departments", data);
@@ -531,6 +647,26 @@ export default function Settings() {
       setSelectedArtistGroupIds([]);
       setSelectedArtistIds([]);
       toast({ title: "Act updated successfully" });
+    },
+  });
+
+  const updateCueMutation = useMutation({
+    mutationFn: async (data: { id: string; name: string; cueType: string; sceneId?: string | null; sortOrder: number; departmentIds: string[]; artistGroupIds: string[]; artistIds: string[] }) => {
+      const cue = await apiRequest("PATCH", `/api/cues/${data.id}`, { name: data.name, cueType: data.cueType, sceneId: data.sceneId, sortOrder: data.sortOrder });
+      await apiRequest("POST", `/api/cues/${data.id}/departments`, { departmentIds: data.departmentIds });
+      await apiRequest("POST", `/api/cues/${data.id}/artist-groups`, { artistGroupIds: data.artistGroupIds });
+      await apiRequest("POST", `/api/cues/${data.id}/artists`, { artistIds: data.artistIds });
+      return cue;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cues"] });
+      setCueDialogOpen(false);
+      setEditTarget(null);
+      setSelectedCueDepartmentIds([]);
+      setSelectedCueArtistGroupIds([]);
+      setSelectedCueArtistIds([]);
+      setSelectedCueType(undefined);
+      toast({ title: "Cue updated successfully" });
     },
   });
 
@@ -687,6 +823,16 @@ export default function Settings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/acts"] });
       toast({ title: "Act deleted successfully" });
+    },
+  });
+
+  const deleteCueMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/cues/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cues"] });
+      toast({ title: "Cue deleted successfully" });
     },
   });
 
@@ -1639,7 +1785,7 @@ export default function Settings() {
                   }}
                 >
                   <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" data-testid="button-scenes">
+                    <Button size="sm" data-testid="button-scenes">
                       Scenes
                     </Button>
                   </DialogTrigger>
@@ -1984,7 +2130,7 @@ export default function Settings() {
                   <DialogTrigger asChild>
                     <Button data-testid="button-add-act">
                       <Plus className="w-4 h-4 mr-2" />
-                      Add Act
+                      Act
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
@@ -2277,11 +2423,26 @@ export default function Settings() {
                         </div>
                       </div>
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="flex justify-between">
+                      {editTarget?.type === "act" && (
+                        <Button 
+                          type="button"
+                          variant="destructive"
+                          onClick={() => {
+                            setDeleteTarget({ type: "act", id: editTarget.id });
+                            setDeleteDialogOpen(true);
+                            setActDialogOpen(false);
+                          }}
+                          data-testid="button-delete-act-modal"
+                        >
+                          Delete
+                        </Button>
+                      )}
                       <Button 
                         type="submit" 
                         disabled={createActMutation.isPending || updateActMutation.isPending} 
                         data-testid="button-save-act"
+                        className={editTarget?.type === "act" ? "" : "ml-auto"}
                       >
                         {(createActMutation.isPending || updateActMutation.isPending) ? "Saving..." : editTarget?.type === "act" ? "Update Act" : "Save Act"}
                       </Button>

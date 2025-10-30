@@ -14,6 +14,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import {
   insertSceneSchema,
   insertActSchema,
+  insertCueSchema,
   insertDepartmentSchema,
   insertLocationTypeSchema,
   insertLocationSchema,
@@ -554,6 +555,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await storage.setActArtistGroups(req.params.id, artistGroupIds);
     const actArtistGroups = await storage.getActArtistGroups(req.params.id);
     res.json(actArtistGroups);
+  });
+
+  // Cues routes
+  app.get("/api/cues", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const cues = await storage.getAllCues();
+    res.json(cues);
+  });
+
+  app.post("/api/cues", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const validation = insertCueSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const cue = await storage.createCue(validation.data);
+    res.json(cue);
+  });
+
+  app.patch("/api/cues/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const validation = insertCueSchema.partial().safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const cue = await storage.updateCue(req.params.id, validation.data);
+    if (!cue) return res.sendStatus(404);
+    res.json(cue);
+  });
+
+  app.delete("/api/cues/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    await storage.deleteCue(req.params.id);
+    res.sendStatus(204);
+  });
+
+  // Cue Departments routes
+  app.get("/api/cues/:id/departments", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const cueDepartments = await storage.getCueDepartments(req.params.id);
+    res.json(cueDepartments);
+  });
+
+  app.post("/api/cues/:id/departments", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const { departmentIds } = req.body;
+    if (!Array.isArray(departmentIds)) {
+      return res.status(400).json({ error: "departmentIds must be an array" });
+    }
+    await storage.setCueDepartments(req.params.id, departmentIds);
+    const cueDepartments = await storage.getCueDepartments(req.params.id);
+    res.json(cueDepartments);
+  });
+
+  // Cue Artists routes
+  app.get("/api/cues/:id/artists", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const cueArtists = await storage.getCueArtists(req.params.id);
+    res.json(cueArtists);
+  });
+
+  app.post("/api/cues/:id/artists", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const { artistIds } = req.body;
+    if (!Array.isArray(artistIds)) {
+      return res.status(400).json({ error: "artistIds must be an array" });
+    }
+    await storage.setCueArtists(req.params.id, artistIds);
+    const cueArtists = await storage.getCueArtists(req.params.id);
+    res.json(cueArtists);
+  });
+
+  // Cue Artist Groups routes
+  app.get("/api/cues/:id/artist-groups", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const cueArtistGroups = await storage.getCueArtistGroups(req.params.id);
+    res.json(cueArtistGroups);
+  });
+
+  app.post("/api/cues/:id/artist-groups", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const { artistGroupIds } = req.body;
+    if (!Array.isArray(artistGroupIds)) {
+      return res.status(400).json({ error: "artistGroupIds must be an array" });
+    }
+    await storage.setCueArtistGroups(req.params.id, artistGroupIds);
+    const cueArtistGroups = await storage.getCueArtistGroups(req.params.id);
+    res.json(cueArtistGroups);
   });
 
   // Departments routes

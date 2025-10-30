@@ -3,14 +3,18 @@ import {
   type UserGroup, type InsertUserGroup, userGroups,
   type Scene, type InsertScene, scenes,
   type Act, type InsertAct, acts,
+  type Cue, type InsertCue, cues,
   type Department, type InsertDepartment, departments,
   type ActDepartment, type InsertActDepartment, actDepartments,
+  type CueDepartment, type InsertCueDepartment, cueDepartments,
   type LocationType, type InsertLocationType, locationTypes,
   type Location, type InsertLocation, locations,
   type ArtistGroup, type InsertArtistGroup, artistGroups,
   type Artist, type InsertArtist, artists,
   type ActArtist, type InsertActArtist, actArtists,
   type ActArtistGroup, type InsertActArtistGroup, actArtistGroups,
+  type CueArtist, type InsertCueArtist, cueArtists,
+  type CueArtistGroup, type InsertCueArtistGroup, cueArtistGroups,
   type SceneDepartment, type InsertSceneDepartment, sceneDepartments,
   type SceneArtistGroup, type InsertSceneArtistGroup, sceneArtistGroups,
   type SceneArtist, type InsertSceneArtist, sceneArtists,
@@ -79,6 +83,25 @@ export interface IStorage {
   // Act Departments
   getActDepartments(actId: string): Promise<ActDepartment[]>;
   setActDepartments(actId: string, departmentIds: string[]): Promise<void>;
+  
+  // Cues
+  getAllCues(): Promise<Cue[]>;
+  getCue(id: string): Promise<Cue | undefined>;
+  createCue(cue: InsertCue): Promise<Cue>;
+  updateCue(id: string, updates: Partial<InsertCue>): Promise<Cue | undefined>;
+  deleteCue(id: string): Promise<void>;
+  
+  // Cue Departments
+  getCueDepartments(cueId: string): Promise<CueDepartment[]>;
+  setCueDepartments(cueId: string, departmentIds: string[]): Promise<void>;
+  
+  // Cue Artists
+  getCueArtists(cueId: string): Promise<CueArtist[]>;
+  setCueArtists(cueId: string, artistIds: string[]): Promise<void>;
+  
+  // Cue Artist Groups
+  getCueArtistGroups(cueId: string): Promise<CueArtistGroup[]>;
+  setCueArtistGroups(cueId: string, artistGroupIds: string[]): Promise<void>;
   
   // Departments
   getAllDepartments(): Promise<Department[]>;
@@ -366,6 +389,72 @@ export class DatabaseStorage implements IStorage {
     if (departmentIds.length > 0) {
       await db.insert(actDepartments).values(
         departmentIds.map(departmentId => ({ actId, departmentId }))
+      );
+    }
+  }
+
+  // Cues
+  async getAllCues(): Promise<Cue[]> {
+    return await db.select().from(cues).orderBy(asc(cues.sortOrder));
+  }
+
+  async getCue(id: string): Promise<Cue | undefined> {
+    const result = await db.select().from(cues).where(eq(cues.id, id));
+    return result[0];
+  }
+
+  async createCue(cue: InsertCue): Promise<Cue> {
+    const result = await db.insert(cues).values(cue).returning();
+    return result[0];
+  }
+
+  async updateCue(id: string, updates: Partial<InsertCue>): Promise<Cue | undefined> {
+    const result = await db.update(cues).set(updates).where(eq(cues.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteCue(id: string): Promise<void> {
+    await db.delete(cues).where(eq(cues.id, id));
+  }
+
+  // Cue Departments
+  async getCueDepartments(cueId: string): Promise<CueDepartment[]> {
+    return await db.select().from(cueDepartments).where(eq(cueDepartments.cueId, cueId));
+  }
+
+  async setCueDepartments(cueId: string, departmentIds: string[]): Promise<void> {
+    await db.delete(cueDepartments).where(eq(cueDepartments.cueId, cueId));
+    if (departmentIds.length > 0) {
+      await db.insert(cueDepartments).values(
+        departmentIds.map(departmentId => ({ cueId, departmentId }))
+      );
+    }
+  }
+
+  // Cue Artists
+  async getCueArtists(cueId: string): Promise<CueArtist[]> {
+    return await db.select().from(cueArtists).where(eq(cueArtists.cueId, cueId));
+  }
+
+  async setCueArtists(cueId: string, artistIds: string[]): Promise<void> {
+    await db.delete(cueArtists).where(eq(cueArtists.cueId, cueId));
+    if (artistIds.length > 0) {
+      await db.insert(cueArtists).values(
+        artistIds.map(artistId => ({ cueId, artistId }))
+      );
+    }
+  }
+
+  // Cue Artist Groups
+  async getCueArtistGroups(cueId: string): Promise<CueArtistGroup[]> {
+    return await db.select().from(cueArtistGroups).where(eq(cueArtistGroups.cueId, cueId));
+  }
+
+  async setCueArtistGroups(cueId: string, artistGroupIds: string[]): Promise<void> {
+    await db.delete(cueArtistGroups).where(eq(cueArtistGroups.cueId, cueId));
+    if (artistGroupIds.length > 0) {
+      await db.insert(cueArtistGroups).values(
+        artistGroupIds.map(artistGroupId => ({ cueId, artistGroupId }))
       );
     }
   }
