@@ -1891,7 +1891,7 @@ export default function Settings() {
                   }}
                 >
                   <DialogTrigger asChild>
-                    <Button size="sm" data-testid="button-scenes">
+                    <Button size="sm" className="hover-elevate" data-testid="button-scenes">
                       Scenes
                     </Button>
                   </DialogTrigger>
@@ -2240,8 +2240,8 @@ export default function Settings() {
                   }}
                 >
                   <DialogTrigger asChild>
-                    <Button data-testid="button-add-cue">
-                      <Plus className="w-4 h-4 mr-2" />
+                    <Button size="sm" className="hover-elevate" data-testid="button-add-cue">
+                      <Plus className="w-4 h-4 mr-1" />
                       Cue
                     </Button>
                   </DialogTrigger>
@@ -2587,8 +2587,8 @@ export default function Settings() {
                   }}
                 >
                   <DialogTrigger asChild>
-                    <Button data-testid="button-add-act">
-                      <Plus className="w-4 h-4 mr-2" />
+                    <Button size="sm" className="hover-elevate" data-testid="button-add-act">
+                      <Plus className="w-4 h-4 mr-1" />
                       Act
                     </Button>
                   </DialogTrigger>
