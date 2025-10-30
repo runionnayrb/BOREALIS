@@ -1282,7 +1282,7 @@ export default function Settings() {
         if (item.cueType === "Acrobatic Cue") {
           return "border-l-4 border-l-orange-500 bg-orange-50 dark:bg-orange-950";
         } else {
-          return "border-l-4 border-l-yellow-500 bg-yellow-50 dark:bg-yellow-950";
+          return "border-l-4 border-l-yellow-400 bg-yellow-100 dark:bg-yellow-900";
         }
       }
       return "";
@@ -2233,6 +2233,7 @@ export default function Settings() {
                     if (!open) {
                       setEditTarget(null);
                       setSelectedCueType(undefined);
+                      setSelectedSceneId(undefined);
                       setSelectedCueDepartmentIds([]);
                       setSelectedCueArtistGroupIds([]);
                       setSelectedCueArtistIds([]);
@@ -2582,7 +2583,13 @@ export default function Settings() {
                   open={actDialogOpen} 
                   onOpenChange={(open) => {
                     setActDialogOpen(open);
-                    if (!open) setEditTarget(null);
+                    if (!open) {
+                      setEditTarget(null);
+                      setSelectedSceneId(undefined);
+                      setSelectedDepartmentIds([]);
+                      setSelectedArtistGroupIds([]);
+                      setSelectedArtistIds([]);
+                    }
                   }}
                 >
                   <DialogTrigger asChild>
