@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UserCircle2, CheckCircle, XCircle, LogOut, Calendar } from "lucide-react";
+import { Loader2, UserCircle2, CheckCircle, XCircle, LogOut, Calendar, ClipboardCheck } from "lucide-react";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, getWeek } from "date-fns";
+import { Link } from "wouter";
 import type { Artist } from "@shared/schema";
 
 interface AttendanceRecord {
@@ -182,16 +183,24 @@ export default function AttendanceDashboard() {
       </div>
 
       <Tabs defaultValue="today" className="space-y-6">
-        <TabsList data-testid="tabs-dashboard">
-          <TabsTrigger value="today" data-testid="tab-today">
-            <CheckCircle className="w-4 h-4 mr-2" />
-            Today
-          </TabsTrigger>
-          <TabsTrigger value="week" data-testid="tab-week">
-            <Calendar className="w-4 h-4 mr-2" />
-            Week View
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <TabsList data-testid="tabs-dashboard">
+            <TabsTrigger value="today" data-testid="tab-today">
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Today
+            </TabsTrigger>
+            <TabsTrigger value="week" data-testid="tab-week">
+              <Calendar className="w-4 h-4 mr-2" />
+              Week View
+            </TabsTrigger>
+          </TabsList>
+          <Button asChild data-testid="button-tick-off">
+            <Link href="/attendance/tickoff" className="flex items-center gap-2">
+              <ClipboardCheck className="w-4 h-4" />
+              Tick Off
+            </Link>
+          </Button>
+        </div>
 
         <TabsContent value="today" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

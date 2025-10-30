@@ -308,7 +308,7 @@ export default function AppSidebar() {
                 </SidebarMenuSub>
               </SidebarMenuItem>
 
-              {/* Attendance with sub-menu */}
+              {/* Attendance */}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={location.startsWith("/attendance")} data-testid="nav-attendance">
                   <Link href="/attendance/dashboard" className="flex items-center gap-3">
@@ -316,22 +316,6 @@ export default function AppSidebar() {
                     <span>Attendance</span>
                   </Link>
                 </SidebarMenuButton>
-                <SidebarMenuSub>
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton asChild isActive={location === "/attendance/dashboard"} data-testid="nav-attendance-dashboard">
-                      <Link href="/attendance/dashboard" className="flex items-center gap-3">
-                        <span>Dashboard</span>
-                      </Link>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton asChild isActive={location === "/attendance/tickoff"} data-testid="nav-attendance-tickoff">
-                      <Link href="/attendance/tickoff" className="flex items-center gap-3">
-                        <span>Tick Off</span>
-                      </Link>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                </SidebarMenuSub>
               </SidebarMenuItem>
 
               {/* Settings */}
