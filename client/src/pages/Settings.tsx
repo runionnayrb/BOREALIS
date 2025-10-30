@@ -112,6 +112,10 @@ export default function Settings() {
 
   // User linking state for artists
   const [selectedLinkedUserId, setSelectedLinkedUserId] = useState<string | null>(null);
+  
+  // Archive artist confirmation dialog
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+  const [artistToArchive, setArtistToArchive] = useState<string | null>(null);
 
   const { toast} = useToast();
   const { user } = useAuth();
@@ -821,6 +825,26 @@ export default function Settings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/artists"] });
       toast({ title: "User unlinked successfully" });
+    },
+  });
+
+  const archiveArtistMutation = useMutation({
+    mutationFn: async (artistId: string) => {
+      return await apiRequest("POST", `/api/artists/${artistId}/archive`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artists"] });
+      setArtistDialogOpen(false);
+      setEditTarget(null);
+      setArchiveDialogOpen(false);
+      setArtistToArchive(null);
+      toast({ title: "Artist archived successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: error.message || "Failed to archive artist", 
+        variant: "destructive" 
+      });
     },
   });
 
@@ -3586,7 +3610,22 @@ export default function Settings() {
                             </div>
                           )}
                         </div>
-                        <DialogFooter>
+                        <DialogFooter className="flex justify-between items-center gap-2">
+                          {editTarget?.type === "artist" && (
+                            <Button 
+                              type="button"
+                              variant="destructive"
+                              onClick={() => {
+                                setArtistToArchive(editTarget.id);
+                                setArchiveDialogOpen(true);
+                              }}
+                              disabled={archiveArtistMutation.isPending}
+                              data-testid="button-archive-artist"
+                            >
+                              Archive Artist
+                            </Button>
+                          )}
+                          <div className="flex-1"></div>
                           <Button 
                             type="submit" 
                             disabled={createArtistMutation.isPending || updateArtistMutation.isPending} 
@@ -4060,6 +4099,31 @@ export default function Settings() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive this artist?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will archive the artist profile and their linked user account, removing them from all lists in the app. You can unarchive them later if needed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-archive">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (artistToArchive) {
+                  archiveArtistMutation.mutate(artistToArchive);
+                }
+              }} 
+              className="bg-destructive hover:bg-destructive/90"
+              data-testid="button-confirm-archive"
+            >
+              Archive
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

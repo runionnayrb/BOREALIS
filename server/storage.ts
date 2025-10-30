@@ -32,7 +32,7 @@ import {
   type TickSheetMark, type InsertTickSheetMark, tickSheetMarks,
 } from "@shared/schema";
 import { db, pool } from "./db";
-import { eq, asc, desc, inArray, and, gte, lte } from "drizzle-orm";
+import { eq, asc, desc, inArray, and, gte, lte, isNull, isNotNull, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import type { Store } from "express-session";
@@ -140,6 +140,9 @@ export interface IStorage {
   createArtist(artist: InsertArtist): Promise<Artist>;
   updateArtist(id: string, updates: Partial<InsertArtist>): Promise<Artist | undefined>;
   deleteArtist(id: string): Promise<void>;
+  archiveArtistWithUser(artistId: string): Promise<void>;
+  unarchiveArtistWithUser(artistId: string): Promise<void>;
+  getAllArchivedArtists(): Promise<Artist[]>;
   
   // Act Artists
   getActArtists(actId: string): Promise<ActArtist[]>;
@@ -274,7 +277,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllUsers(): Promise<User[]> {
-    return await db.select().from(users).orderBy(asc(users.name));
+    return await db.select().from(users).where(isNull(users.archivedAt)).orderBy(asc(users.name));
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -571,16 +574,16 @@ export class DatabaseStorage implements IStorage {
 
   // Artists
   async getAllArtists(): Promise<Artist[]> {
-    return await db.select().from(artists).orderBy(asc(artists.sortOrder));
+    return await db.select().from(artists).where(isNull(artists.archivedAt)).orderBy(asc(artists.sortOrder));
   }
 
   async getArtist(id: string): Promise<Artist | undefined> {
-    const result = await db.select().from(artists).where(eq(artists.id, id));
+    const result = await db.select().from(artists).where(and(eq(artists.id, id), isNull(artists.archivedAt)));
     return result[0];
   }
 
   async getArtistByUserId(userId: string): Promise<Artist | undefined> {
-    const result = await db.select().from(artists).where(eq(artists.userId, userId));
+    const result = await db.select().from(artists).where(and(eq(artists.userId, userId), isNull(artists.archivedAt)));
     return result[0];
   }
 
@@ -596,6 +599,40 @@ export class DatabaseStorage implements IStorage {
 
   async deleteArtist(id: string): Promise<void> {
     await db.delete(artists).where(eq(artists.id, id));
+  }
+
+  async archiveArtistWithUser(artistId: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      const artist = await tx.select().from(artists).where(eq(artists.id, artistId)).limit(1);
+      if (!artist[0]) {
+        throw new Error("Artist not found");
+      }
+
+      await tx.update(artists).set({ archivedAt: sql`now()` }).where(eq(artists.id, artistId));
+
+      if (artist[0].userId) {
+        await tx.update(users).set({ archivedAt: sql`now()` }).where(eq(users.id, artist[0].userId));
+      }
+    });
+  }
+
+  async unarchiveArtistWithUser(artistId: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      const artist = await tx.select().from(artists).where(eq(artists.id, artistId)).limit(1);
+      if (!artist[0]) {
+        throw new Error("Artist not found");
+      }
+
+      await tx.update(artists).set({ archivedAt: null }).where(eq(artists.id, artistId));
+
+      if (artist[0].userId) {
+        await tx.update(users).set({ archivedAt: null }).where(eq(users.id, artist[0].userId));
+      }
+    });
+  }
+
+  async getAllArchivedArtists(): Promise<Artist[]> {
+    return await db.select().from(artists).where(isNotNull(artists.archivedAt)).orderBy(asc(artists.sortOrder));
   }
 
   async reorderArtists(artistIds: string[]): Promise<void> {

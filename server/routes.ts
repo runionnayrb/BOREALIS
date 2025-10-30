@@ -929,6 +929,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(204);
   });
 
+  app.post("/api/artists/:id/archive", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      await storage.archiveArtistWithUser(req.params.id);
+      res.sendStatus(204);
+    } catch (error) {
+      return res.status(404).json({ error: error instanceof Error ? error.message : "Artist not found" });
+    }
+  });
+
+  app.post("/api/artists/:id/unarchive", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      await storage.unarchiveArtistWithUser(req.params.id);
+      res.sendStatus(204);
+    } catch (error) {
+      return res.status(404).json({ error: error instanceof Error ? error.message : "Artist not found" });
+    }
+  });
+
+  app.get("/api/artists/archived", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const archivedArtists = await storage.getAllArchivedArtists();
+    res.json(archivedArtists);
+  });
+
   app.post("/api/artists/reorder", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const { artistIds } = req.body;
