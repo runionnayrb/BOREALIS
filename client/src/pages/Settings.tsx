@@ -457,10 +457,36 @@ export default function Settings() {
       const newIndex = orderedArtists.findIndex((a) => a.id === over.id);
       
       const newArtists = arrayMove(orderedArtists, oldIndex, newIndex);
-      // Optimistically update local state
       setOrderedArtists(newArtists);
-      // Save to backend
       reorderArtistsMutation.mutate(newArtists.map(a => a.id));
+    }
+  };
+
+  const showFlowDragSensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleShowFlowDragEnd = (sceneId: string, items: Array<{id: string; type: 'act' | 'cue'}>) => (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      const oldIndex = items.findIndex((i) => i.id === active.id);
+      const newIndex = items.findIndex((i) => i.id === over.id);
+      
+      const reorderedItems = arrayMove(items, oldIndex, newIndex);
+      
+      const actIds = reorderedItems.filter(i => i.type === 'act').map(i => i.id);
+      const cueIds = reorderedItems.filter(i => i.type === 'cue').map(i => i.id);
+      
+      if (actIds.length > 0) {
+        reorderActsMutation.mutate(actIds);
+      }
+      if (cueIds.length > 0) {
+        reorderCuesMutation.mutate(cueIds);
+      }
     }
   };
 
@@ -913,6 +939,24 @@ export default function Settings() {
     },
   });
 
+  const reorderActsMutation = useMutation({
+    mutationFn: async (actIds: string[]) => {
+      return await apiRequest("POST", "/api/acts/reorder", { actIds });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/acts"] });
+    },
+  });
+
+  const reorderCuesMutation = useMutation({
+    mutationFn: async (cueIds: string[]) => {
+      return await apiRequest("POST", "/api/cues/reorder", { cueIds });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cues"] });
+    },
+  });
+
   const deleteTechMutation = useMutation({
     mutationFn: async (id: string) => {
       return await apiRequest("DELETE", `/api/technicians/${id}`);
@@ -1215,44 +1259,105 @@ export default function Settings() {
     );
   };
 
-  const renderGroupedActs = () => {
-    if (acts.length === 0) {
+  const SortableShowFlowItem = ({ item, data }: { item: { id: string; name: string; type: 'act' | 'cue'; cueType?: string }; data: Act | Cue }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: item.id });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    };
+
+    const getColorClasses = () => {
+      if (item.type === 'act') {
+        return "border-l-4 border-l-green-500 bg-green-50 dark:bg-green-950";
+      } else if (item.type === 'cue') {
+        if (item.cueType === "Acrobatic Cue") {
+          return "border-l-4 border-l-orange-500 bg-orange-50 dark:bg-orange-950";
+        } else {
+          return "border-l-4 border-l-yellow-500 bg-yellow-50 dark:bg-yellow-950";
+        }
+      }
+      return "";
+    };
+
+    return (
+      <Card
+        ref={setNodeRef}
+        style={style}
+        className={`p-3 flex items-center gap-2 cursor-pointer hover-elevate ${getColorClasses()}`}
+        onClick={() => {
+          if (item.type === 'act') {
+            setEditTarget({ type: "act", id: item.id, data });
+            setActDialogOpen(true);
+          } else {
+            setEditTarget({ type: "cue", id: item.id, data });
+            setCueDialogOpen(true);
+          }
+        }}
+        data-testid={`card-${item.type}-${item.id}`}
+      >
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing"
+        >
+          <GripVertical className="w-4 h-4 text-muted-foreground" />
+        </div>
+        <p className="font-medium flex-1">{item.name}</p>
+      </Card>
+    );
+  };
+
+  const renderGroupedShowFlow = () => {
+    const combinedItems = [
+      ...acts.map(act => ({ ...act, type: 'act' as const })),
+      ...cues.map(cue => ({ ...cue, type: 'cue' as const }))
+    ];
+
+    if (combinedItems.length === 0) {
       return (
         <Card className="p-6 text-center text-muted-foreground">
-          <p>No acts yet. Click "Add Act" to create one.</p>
+          <p>No acts or cues yet. Click "Add Cue" or "Add Act" to create one.</p>
         </Card>
       );
     }
 
-    // Group acts by sceneId
-    const grouped = acts.reduce((acc, act) => {
-      const key = act.sceneId || 'no-scene';
+    const grouped = combinedItems.reduce((acc, item) => {
+      const key = item.sceneId || 'no-scene';
       if (!acc[key]) {
         acc[key] = [];
       }
-      acc[key].push(act);
+      acc[key].push(item);
       return acc;
-    }, {} as Record<string, Act[]>);
+    }, {} as Record<string, Array<(Act | Cue) & { type: 'act' | 'cue' }>>);
 
-    // Sort scenes by their sortOrder
+    Object.keys(grouped).forEach(sceneId => {
+      grouped[sceneId].sort((a, b) => a.sortOrder - b.sortOrder);
+    });
+
     const sortedSceneIds = Object.keys(grouped).sort((a, b) => {
-      if (a === 'no-scene') return 1; // Always put "no-scene" last
+      if (a === 'no-scene') return 1;
       if (b === 'no-scene') return -1;
       
       const sceneA = scenes.find(s => s.id === a);
       const sceneB = scenes.find(s => s.id === b);
       
-      // Put FULL SHOW and RESCUE SCENARIOS at the bottom (but before "no-scene")
       const aIsFullShow = sceneA?.name === "FULL SHOW";
       const bIsFullShow = sceneB?.name === "FULL SHOW";
       const aIsRescue = sceneA?.name === "RESCUE SCENARIOS";
       const bIsRescue = sceneB?.name === "RESCUE SCENARIOS";
       
-      // RESCUE SCENARIOS is last (among scenes)
       if (aIsRescue && !bIsRescue) return 1;
       if (!aIsRescue && bIsRescue) return -1;
       
-      // FULL SHOW is second to last
       if (aIsFullShow && !bIsFullShow && !bIsRescue) return 1;
       if (!aIsFullShow && bIsFullShow && !aIsRescue) return -1;
       
@@ -1262,9 +1367,16 @@ export default function Settings() {
     return (
       <div className="space-y-6">
         {sortedSceneIds.map((sceneId) => {
-          const actsInGroup = grouped[sceneId];
+          const itemsInGroup = grouped[sceneId];
           const scene = scenes.find(s => s.id === sceneId);
           const sceneName = sceneId === 'no-scene' ? 'No Scene' : scene?.name || 'Unknown';
+
+          const itemsList = itemsInGroup.map(item => ({
+            id: item.id,
+            name: item.name,
+            type: item.type,
+            cueType: item.type === 'cue' ? (item as Cue).cueType : undefined
+          }));
 
           return (
             <div key={sceneId} className="space-y-2">
@@ -1273,40 +1385,34 @@ export default function Settings() {
                   {sceneName}
                 </h3>
                 <span className="text-xs text-muted-foreground">
-                  ({actsInGroup.length})
+                  ({itemsInGroup.length})
                 </span>
               </div>
-              <div className="space-y-2">
-                {actsInGroup.map((act) => (
-                  <Card key={act.id} className="p-3 flex items-center justify-between hover-elevate" data-testid={`card-act-${act.id}`}>
-                    <p className="font-medium">{act.name}</p>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditTarget({ type: "act", id: act.id, data: act });
-                          setActDialogOpen(true);
+              <DndContext
+                sensors={showFlowDragSensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleShowFlowDragEnd(sceneId, itemsList)}
+              >
+                <SortableContext
+                  items={itemsList.map(i => i.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-2">
+                    {itemsInGroup.map((item) => (
+                      <SortableShowFlowItem
+                        key={item.id}
+                        item={{
+                          id: item.id,
+                          name: item.name,
+                          type: item.type,
+                          cueType: item.type === 'cue' ? (item as Cue).cueType : undefined
                         }}
-                        data-testid={`button-edit-act-${act.id}`}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setDeleteTarget({ type: "act", id: act.id });
-                          setDeleteDialogOpen(true);
-                        }}
-                        data-testid={`button-delete-act-${act.id}`}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
-              </div>
+                        data={item}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
             </div>
           );
         })}
@@ -2121,6 +2227,359 @@ export default function Settings() {
                   </DialogContent>
                 </Dialog>
                 <Dialog 
+                  open={cueDialogOpen} 
+                  onOpenChange={(open) => {
+                    setCueDialogOpen(open);
+                    if (!open) {
+                      setEditTarget(null);
+                      setSelectedCueType(undefined);
+                      setSelectedCueDepartmentIds([]);
+                      setSelectedCueArtistGroupIds([]);
+                      setSelectedCueArtistIds([]);
+                    }
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button data-testid="button-add-cue">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Cue
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.currentTarget);
+                        const name = formData.get("name") as string;
+                        
+                        if (editTarget?.type === "cue") {
+                          updateCueMutation.mutate({
+                            id: editTarget.id,
+                            name,
+                            cueType: editTarget.data.cueType,
+                            sceneId: editTarget.data.sceneId === "none" || !editTarget.data.sceneId ? null : editTarget.data.sceneId,
+                            sortOrder: editTarget.data.sortOrder,
+                            departmentIds: selectedCueDepartmentIds,
+                            artistGroupIds: selectedCueArtistGroupIds,
+                            artistIds: selectedCueArtistIds,
+                          });
+                        } else {
+                          if (!selectedCueType) return;
+                          createCueMutation.mutate({
+                            name,
+                            cueType: selectedCueType,
+                            sceneId: selectedSceneId === "none" || !selectedSceneId ? undefined : selectedSceneId,
+                            sortOrder: cues.length,
+                            departmentIds: selectedCueDepartmentIds,
+                            artistGroupIds: selectedCueArtistGroupIds,
+                            artistIds: selectedCueArtistIds,
+                          });
+                        }
+                      }}
+                    >
+                      <DialogHeader>
+                        <DialogTitle>{editTarget?.type === "cue" ? "Edit Cue" : "Add Cue"}</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="cue-name">Cue Name</Label>
+                          <Input
+                            id="cue-name"
+                            name="name"
+                            placeholder="Enter cue name"
+                            required
+                            defaultValue={editTarget?.type === "cue" ? editTarget.data.name : ""}
+                            data-testid="input-cue-name"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="cue-type-select">Cue Type</Label>
+                          <Select
+                            name="cueType"
+                            required
+                            value={editTarget?.type === "cue" ? editTarget.data.cueType : selectedCueType}
+                            onValueChange={(value) => {
+                              if (editTarget?.type === "cue") {
+                                setEditTarget({ ...editTarget, data: { ...editTarget.data, cueType: value } });
+                              } else {
+                                setSelectedCueType(value);
+                              }
+                            }}
+                          >
+                            <SelectTrigger id="cue-type-select" data-testid="select-cue-type">
+                              <SelectValue placeholder="Select a cue type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {cueTypes.map((type) => (
+                                <SelectItem key={type} value={type}>
+                                  {type}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="cue-scene-select">Scene</Label>
+                          <Select
+                            name="sceneId"
+                            required
+                            value={editTarget?.type === "cue" ? editTarget.data.sceneId : selectedSceneId}
+                            onValueChange={(value) => {
+                              if (editTarget?.type === "cue") {
+                                setEditTarget({ ...editTarget, data: { ...editTarget.data, sceneId: value } });
+                              } else {
+                                setSelectedSceneId(value);
+                              }
+                            }}
+                          >
+                            <SelectTrigger id="cue-scene-select" data-testid="select-cue-scene">
+                              <SelectValue placeholder="Select a scene" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[...scenes].sort((a, b) => {
+                                const aIsBottom = a.name === "RESCUE SCENARIOS" || a.name === "FULL SHOW";
+                                const bIsBottom = b.name === "RESCUE SCENARIOS" || b.name === "FULL SHOW";
+                                
+                                if (aIsBottom && !bIsBottom) return 1;
+                                if (!aIsBottom && bIsBottom) return -1;
+                                
+                                return a.sortOrder - b.sortOrder;
+                              }).map((scene) => (
+                                <SelectItem key={scene.id} value={scene.id}>
+                                  {scene.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Departments</Label>
+                          <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
+                            {departments.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">No departments available</p>
+                            ) : (
+                              <>
+                                <div className="flex items-center space-x-2 pb-2 border-b-2">
+                                  <Checkbox
+                                    id="cue-all-departments"
+                                    checked={departments.every(d => selectedCueDepartmentIds.includes(d.id))}
+                                    data-state={departments.some(d => selectedCueDepartmentIds.includes(d.id)) && !departments.every(d => selectedCueDepartmentIds.includes(d.id)) ? "indeterminate" : undefined}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        setSelectedCueDepartmentIds(departments.map(d => d.id));
+                                      } else {
+                                        setSelectedCueDepartmentIds([]);
+                                      }
+                                    }}
+                                    data-testid="checkbox-cue-all-departments"
+                                  />
+                                  <Label
+                                    htmlFor="cue-all-departments"
+                                    className="text-sm font-bold cursor-pointer flex-1 uppercase"
+                                  >
+                                    All Departments
+                                  </Label>
+                                </div>
+
+                                {[...departments].sort((a, b) => a.name.localeCompare(b.name)).map((dept) => (
+                                  <div key={dept.id} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`cue-dept-${dept.id}`}
+                                      checked={selectedCueDepartmentIds.includes(dept.id)}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          setSelectedCueDepartmentIds([...selectedCueDepartmentIds, dept.id]);
+                                        } else {
+                                          setSelectedCueDepartmentIds(selectedCueDepartmentIds.filter(id => id !== dept.id));
+                                        }
+                                      }}
+                                      data-testid={`checkbox-cue-dept-${dept.id}`}
+                                    />
+                                    <Label
+                                      htmlFor={`cue-dept-${dept.id}`}
+                                      className="text-sm font-normal cursor-pointer flex-1"
+                                    >
+                                      {dept.name}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Artists</Label>
+                          <div className="border rounded-md p-3 space-y-3 max-h-64 overflow-y-auto">
+                            {artists.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">No artists available</p>
+                            ) : (
+                              <>
+                                <div className="flex items-center space-x-2 pb-2 border-b-2">
+                                  <Checkbox
+                                    id="cue-all-artists"
+                                    checked={artists.every(a => selectedCueArtistIds.includes(a.id))}
+                                    data-state={artists.some(a => selectedCueArtistIds.includes(a.id)) && !artists.every(a => selectedCueArtistIds.includes(a.id)) ? "indeterminate" : undefined}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        setSelectedCueArtistIds(artists.map(a => a.id));
+                                        setSelectedCueArtistGroupIds(artistGroups.map(g => g.id));
+                                      } else {
+                                        setSelectedCueArtistIds([]);
+                                        setSelectedCueArtistGroupIds([]);
+                                      }
+                                    }}
+                                    data-testid="checkbox-cue-all-artists"
+                                  />
+                                  <Label
+                                    htmlFor="cue-all-artists"
+                                    className="text-sm font-bold cursor-pointer flex-1 uppercase"
+                                  >
+                                    All Artists
+                                  </Label>
+                                </div>
+                                
+                                {artistGroups.map((group) => {
+                                  const groupArtists = artists.filter(a => a.artistGroupId === group.id);
+                                  if (groupArtists.length === 0) return null;
+                                  
+                                  const allArtistsSelected = groupArtists.every(a => selectedCueArtistIds.includes(a.id));
+                                  const someArtistsSelected = groupArtists.some(a => selectedCueArtistIds.includes(a.id)) && !allArtistsSelected;
+                                  
+                                  return (
+                                    <div key={group.id} className="space-y-2">
+                                      <div className="flex items-center space-x-2 pb-1 border-b">
+                                        <Checkbox
+                                          id={`cue-artist-group-${group.id}`}
+                                          checked={selectedCueArtistGroupIds.includes(group.id) || allArtistsSelected}
+                                          data-state={someArtistsSelected ? "indeterminate" : undefined}
+                                          onCheckedChange={(checked) => {
+                                            if (checked) {
+                                              setSelectedCueArtistGroupIds([...selectedCueArtistGroupIds, group.id]);
+                                              const groupArtistIds = groupArtists.map(a => a.id);
+                                              setSelectedCueArtistIds(Array.from(new Set([...selectedCueArtistIds, ...groupArtistIds])));
+                                            } else {
+                                              setSelectedCueArtistGroupIds(selectedCueArtistGroupIds.filter(id => id !== group.id));
+                                              const groupArtistIds = groupArtists.map(a => a.id);
+                                              setSelectedCueArtistIds(selectedCueArtistIds.filter(id => !groupArtistIds.includes(id)));
+                                            }
+                                          }}
+                                          data-testid={`checkbox-cue-artist-group-${group.id}`}
+                                        />
+                                        <Label
+                                          htmlFor={`cue-artist-group-${group.id}`}
+                                          className="text-sm font-semibold cursor-pointer flex-1"
+                                        >
+                                          {group.name}
+                                        </Label>
+                                      </div>
+                                      
+                                      <div className="pl-6 space-y-2">
+                                        {groupArtists.map((artist) => {
+                                          const displayName = artist.stageName || `${artist.firstName} ${artist.lastName}`;
+                                          return (
+                                            <div key={artist.id} className="flex items-center space-x-2">
+                                              <Checkbox
+                                                id={`cue-artist-${artist.id}`}
+                                                checked={selectedCueArtistIds.includes(artist.id)}
+                                                onCheckedChange={(checked) => {
+                                                  if (checked) {
+                                                    setSelectedCueArtistIds([...selectedCueArtistIds, artist.id]);
+                                                  } else {
+                                                    setSelectedCueArtistIds(selectedCueArtistIds.filter(id => id !== artist.id));
+                                                    setSelectedCueArtistGroupIds(selectedCueArtistGroupIds.filter(id => id !== group.id));
+                                                  }
+                                                }}
+                                                data-testid={`checkbox-cue-artist-${artist.id}`}
+                                              />
+                                              <Label
+                                                htmlFor={`cue-artist-${artist.id}`}
+                                                className="text-sm font-normal cursor-pointer flex-1"
+                                              >
+                                                <div>
+                                                  <div>{displayName}</div>
+                                                  {artist.role && (
+                                                    <div className="text-xs text-muted-foreground">{artist.role}</div>
+                                                  )}
+                                                </div>
+                                              </Label>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                                
+                                {artists.filter(a => !a.artistGroupId).length > 0 && (
+                                  <div className="space-y-2">
+                                    <div className="text-sm font-semibold pb-1 border-b">No Group</div>
+                                    <div className="space-y-2">
+                                      {artists.filter(a => !a.artistGroupId).map((artist) => {
+                                        const displayName = artist.stageName || `${artist.firstName} ${artist.lastName}`;
+                                        return (
+                                          <div key={artist.id} className="flex items-center space-x-2">
+                                            <Checkbox
+                                              id={`cue-artist-${artist.id}`}
+                                              checked={selectedCueArtistIds.includes(artist.id)}
+                                              onCheckedChange={(checked) => {
+                                                if (checked) {
+                                                  setSelectedCueArtistIds([...selectedCueArtistIds, artist.id]);
+                                                } else {
+                                                  setSelectedCueArtistIds(selectedCueArtistIds.filter(id => id !== artist.id));
+                                                }
+                                              }}
+                                              data-testid={`checkbox-cue-artist-${artist.id}`}
+                                            />
+                                            <Label
+                                              htmlFor={`cue-artist-${artist.id}`}
+                                              className="text-sm font-normal cursor-pointer flex-1"
+                                            >
+                                              <div>
+                                                <div>{displayName}</div>
+                                                {artist.role && (
+                                                  <div className="text-xs text-muted-foreground">{artist.role}</div>
+                                                )}
+                                              </div>
+                                            </Label>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <DialogFooter className="flex justify-between">
+                        {editTarget?.type === "cue" && (
+                          <Button 
+                            type="button"
+                            variant="destructive"
+                            onClick={() => {
+                              setDeleteTarget({ type: "cue", id: editTarget.id });
+                              setDeleteDialogOpen(true);
+                              setCueDialogOpen(false);
+                            }}
+                            data-testid="button-delete-cue-modal"
+                          >
+                            Delete
+                          </Button>
+                        )}
+                        <Button 
+                          type="submit" 
+                          disabled={createCueMutation.isPending || updateCueMutation.isPending} 
+                          data-testid="button-save-cue"
+                          className={editTarget?.type === "cue" ? "" : "ml-auto"}
+                        >
+                          {(createCueMutation.isPending || updateCueMutation.isPending) ? "Saving..." : editTarget?.type === "cue" ? "Update Cue" : "Add Cue"}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+                <Dialog 
                   open={actDialogOpen} 
                   onOpenChange={(open) => {
                     setActDialogOpen(open);
@@ -2452,7 +2911,7 @@ export default function Settings() {
               </Dialog>
               </div>
             </div>
-            {renderGroupedActs()}
+            {renderGroupedShowFlow()}
           </TabsContent>
 
           <TabsContent value="departments" className="space-y-4">
