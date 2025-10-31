@@ -37,7 +37,7 @@ La Perle - Borealis is a production-ready, full-stack web application designed t
 
 ### Feature Specifications
 - **Authentication & User Management**: Secure login/signup, profile management, CRUD for users and user groups (admin/SM only), password reset, role-based access, artist account linking.
-- **Settings Management**: Full CRUD for all entities (scenes, acts, departments, locations, artists, technicians, report template) including drag-and-drop artist reordering.
+- **Settings Management**: Full CRUD for all entities (scenes, acts, departments, locations, artists, technicians, report template) including drag-and-drop artist reordering. Artist profile photos support client-side crop adjustment with circular preview, zoom control (1x-3x), and position adjustment before upload.
 - **Reports & Trainings**: CRUD for reports and trainings, multi-location support, per-training artist/department customization, lead technician assignment, custom training names, rich text sections (Goal, Training Notes, Follow-Up), one report per day enforcement, audit trails.
 - **PDF Export**: Customizable header/footer, specific filename formatting.
 - **Email Distribution**: Outlook integration, configurable email templates.
@@ -54,7 +54,7 @@ La Perle - Borealis is a production-ready, full-stack web application designed t
 
 ## External Dependencies
 - **Database**: PostgreSQL
-- **Frontend Libraries**: React, Vite, Wouter, TanStack Query, shadcn/ui, Tiptap.
+- **Frontend Libraries**: React, Vite, Wouter, TanStack Query, shadcn/ui, Tiptap, react-easy-crop.
 - **Backend Libraries**: Express.js, Drizzle ORM, Passport.js, scrypt.
 - **Sanitization**: DOMPurify.
 - **Email Integration**: Replit Outlook connector, Microsoft Graph Client.
