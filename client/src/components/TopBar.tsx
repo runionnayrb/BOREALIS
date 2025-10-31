@@ -1,5 +1,5 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Moon, Sun, User, LogOut } from "lucide-react";
+import { Moon, Sun, User, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -88,6 +88,15 @@ export default function TopBar() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              {user.role === 'admin' && (
+                <>
+                  <DropdownMenuItem onClick={() => setLocation("/admin")} data-testid="menu-admin">
+                    <Shield className="w-4 h-4 mr-2" />
+                    Admin Dashboard
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               <DropdownMenuItem onClick={() => setLocation("/profile")} data-testid="menu-profile">
                 <User className="w-4 h-4 mr-2" />
                 Profile Settings

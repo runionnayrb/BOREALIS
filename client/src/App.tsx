@@ -20,6 +20,7 @@ import LineupBuilder from "@/pages/LineupBuilder";
 import WeeklySchedule from "@/pages/WeeklySchedule";
 import FullSchedule from "@/pages/FullSchedule";
 import ChangePassword from "@/pages/ChangePassword";
+import AdminDashboard from "@/pages/AdminDashboard";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
@@ -72,6 +73,7 @@ function AuthenticatedApp() {
           <main className="flex-1 overflow-auto">
             <Switch>
               <Route path="/change-password" component={ChangePassword} />
+              <Route path="/admin" component={AdminDashboard} />
               <Route path="/" component={ReportsList} />
               <Route path="/new-report" component={ReportEditor} />
               <Route path="/report/:id" component={ReportEditor} />
