@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit, Settings as SettingsIcon, Shield, UserCircle2, GripVertical, KeyRound, Copy, Check } from "lucide-react";
+import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit, Settings as SettingsIcon, Shield, UserCircle2, GripVertical, KeyRound, Copy, Check, Archive } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -116,6 +116,9 @@ export default function Settings() {
   // Archive artist confirmation dialog
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [artistToArchive, setArtistToArchive] = useState<string | null>(null);
+  
+  // View archived artists dialog
+  const [viewArchivedDialogOpen, setViewArchivedDialogOpen] = useState(false);
 
   const { toast} = useToast();
   const { user } = useAuth();
@@ -132,6 +135,10 @@ export default function Settings() {
   const { data: locations = [] } = useQuery<Location[]>({ queryKey: ["/api/locations"] });
   const { data: artistGroups = [] } = useQuery<ArtistGroup[]>({ queryKey: ["/api/artist-groups"] });
   const artistsQuery = useQuery<Artist[]>({ queryKey: ["/api/artists"] });
+  const archivedArtistsQuery = useQuery<Artist[]>({ 
+    queryKey: ["/api/artists/archived"],
+    enabled: viewArchivedDialogOpen,
+  });
   const artists = artistsQuery.data || [];
   const { data: technicians = [] } = useQuery<Technician[]>({ queryKey: ["/api/technicians"] });
   const { data: reportTemplate } = useQuery<ReportTemplate | null>({ queryKey: ["/api/report-template"] });
@@ -834,6 +841,7 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/artists"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/artists/archived"] });
       setArtistDialogOpen(false);
       setEditTarget(null);
       setArchiveDialogOpen(false);
@@ -843,6 +851,23 @@ export default function Settings() {
     onError: (error: any) => {
       toast({ 
         title: error.message || "Failed to archive artist", 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const unarchiveArtistMutation = useMutation({
+    mutationFn: async (artistId: string) => {
+      return await apiRequest("POST", `/api/artists/${artistId}/unarchive`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artists"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/artists/archived"] });
+      toast({ title: "Artist unarchived successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: error.message || "Failed to unarchive artist", 
         variant: "destructive" 
       });
     },
@@ -3640,6 +3665,16 @@ export default function Settings() {
                 </div>
               </div>
               {renderGroupedArtists()}
+              <div className="mt-6 flex justify-center">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setViewArchivedDialogOpen(true)}
+                  data-testid="button-view-archived-artists"
+                >
+                  <Archive className="w-4 h-4 mr-2" />
+                  View Archived Artists
+                </Button>
+              </div>
               </TabsContent>
               <TabsContent value="technicians" className="space-y-4 mt-4">
                 <div className="flex items-center justify-between">
@@ -4128,6 +4163,71 @@ export default function Settings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={viewArchivedDialogOpen} onOpenChange={setViewArchivedDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Archived Artists</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 overflow-y-auto max-h-[calc(80vh-8rem)] pr-2">
+            {archivedArtistsQuery.isLoading && (
+              <div className="text-center py-8 text-muted-foreground">
+                Loading archived artists...
+              </div>
+            )}
+            {archivedArtistsQuery.isError && (
+              <div className="text-center py-8 text-destructive">
+                Failed to load archived artists
+              </div>
+            )}
+            {archivedArtistsQuery.data && archivedArtistsQuery.data.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No archived artists
+              </div>
+            )}
+            {archivedArtistsQuery.data && archivedArtistsQuery.data.length > 0 && (
+              <div className="space-y-2">
+                {archivedArtistsQuery.data.map((artist) => (
+                  <Card key={artist.id} className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="w-12 h-12">
+                          <AvatarImage src={artist.photoUrl || undefined} />
+                          <AvatarFallback>
+                            {artist.firstName[0]}{artist.lastName[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">
+                            {artist.firstName} {artist.lastName}
+                            {artist.stageName && ` (${artist.stageName})`}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {artist.role || "No role specified"}
+                          </p>
+                          {artist.archivedAt && (
+                            <p className="text-xs text-muted-foreground">
+                              Archived on {new Date(artist.archivedAt).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => unarchiveArtistMutation.mutate(artist.id)}
+                        disabled={unarchiveArtistMutation.isPending}
+                        data-testid={`button-unarchive-${artist.id}`}
+                      >
+                        Unarchive
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={adminPasswordDialogOpen} onOpenChange={setAdminPasswordDialogOpen}>
         <DialogContent>
