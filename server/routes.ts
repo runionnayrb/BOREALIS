@@ -27,6 +27,10 @@ import {
   insertTrainingSchema,
   updateTrainingSchema,
   insertDepartmentAssignmentSchema,
+  insertUserPermissionSchema,
+  updateUserPermissionSchema,
+  insertSystemSettingSchema,
+  featureNames,
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -2152,6 +2156,210 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: "Failed to send email", 
         message: error.message || "Unknown error" 
       });
+    }
+  });
+
+  // User Permissions Routes (Admin only)
+  app.get("/api/permissions", requireRole('admin'), async (req, res) => {
+    try {
+      const permissions = await storage.getAllUserPermissions();
+      res.json(permissions);
+    } catch (error: any) {
+      console.error("Error fetching permissions:", error);
+      res.status(500).json({ error: "Failed to fetch permissions" });
+    }
+  });
+
+  app.get("/api/permissions/:userId", requireRole('admin'), async (req, res) => {
+    try {
+      const permissions = await storage.getUserPermissions(req.params.userId);
+      res.json(permissions);
+    } catch (error: any) {
+      console.error("Error fetching user permissions:", error);
+      res.status(500).json({ error: "Failed to fetch user permissions" });
+    }
+  });
+
+  app.get("/api/permissions/user/:userId/feature/:feature", requireRole('admin'), async (req, res) => {
+    try {
+      const permission = await storage.getUserPermissionByFeature(req.params.userId, req.params.feature);
+      if (!permission) {
+        return res.status(404).json({ error: "Permission not found" });
+      }
+      res.json(permission);
+    } catch (error: any) {
+      console.error("Error fetching permission:", error);
+      res.status(500).json({ error: "Failed to fetch permission" });
+    }
+  });
+
+  app.post("/api/permissions", requireRole('admin'), async (req, res) => {
+    try {
+      const validation = insertUserPermissionSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: validation.error.issues,
+        });
+      }
+      
+      const permission = await storage.createUserPermission(validation.data);
+      res.status(201).json(permission);
+    } catch (error: any) {
+      console.error("Error creating permission:", error);
+      res.status(500).json({ error: "Failed to create permission" });
+    }
+  });
+
+  app.patch("/api/permissions/:id", requireRole('admin'), async (req, res) => {
+    try {
+      const validation = updateUserPermissionSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: validation.error.issues,
+        });
+      }
+      
+      const permission = await storage.updateUserPermission(req.params.id, validation.data);
+      if (!permission) {
+        return res.status(404).json({ error: "Permission not found" });
+      }
+      res.json(permission);
+    } catch (error: any) {
+      console.error("Error updating permission:", error);
+      res.status(500).json({ error: "Failed to update permission" });
+    }
+  });
+
+  app.delete("/api/permissions/:id", requireRole('admin'), async (req, res) => {
+    try {
+      await storage.deleteUserPermission(req.params.id);
+      res.sendStatus(204);
+    } catch (error: any) {
+      console.error("Error deleting permission:", error);
+      res.status(500).json({ error: "Failed to delete permission" });
+    }
+  });
+
+  // Bulk update permissions for a user
+  app.post("/api/permissions/bulk/:userId", requireRole('admin'), async (req, res) => {
+    try {
+      const { permissions } = req.body;
+      if (!Array.isArray(permissions)) {
+        return res.status(400).json({ error: "Permissions must be an array" });
+      }
+      
+      // Validate each permission in the array
+      const permissionSchema = z.object({
+        feature: z.enum(featureNames),
+        canView: z.number().min(0).max(1),
+        canCreate: z.number().min(0).max(1),
+        canEdit: z.number().min(0).max(1),
+      });
+      
+      for (const perm of permissions) {
+        const validation = permissionSchema.safeParse(perm);
+        if (!validation.success) {
+          return res.status(400).json({
+            error: "Invalid permission data",
+            details: validation.error.issues,
+          });
+        }
+      }
+      
+      await storage.bulkUpsertUserPermissions(req.params.userId, permissions);
+      res.json({ success: true, message: "Permissions updated successfully" });
+    } catch (error: any) {
+      console.error("Error bulk updating permissions:", error);
+      res.status(500).json({ error: "Failed to bulk update permissions" });
+    }
+  });
+
+  // System Settings Routes (Admin only)
+  app.get("/api/settings", requireRole('admin'), async (req, res) => {
+    try {
+      const settings = await storage.getAllSystemSettings();
+      res.json(settings);
+    } catch (error: any) {
+      console.error("Error fetching settings:", error);
+      res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
+  app.get("/api/settings/category/:category", requireRole('admin'), async (req, res) => {
+    try {
+      const settings = await storage.getSystemSettingsByCategory(req.params.category);
+      res.json(settings);
+    } catch (error: any) {
+      console.error("Error fetching settings by category:", error);
+      res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
+  app.get("/api/settings/:key", requireRole('admin'), async (req, res) => {
+    try {
+      const setting = await storage.getSystemSetting(req.params.key);
+      if (!setting) {
+        return res.status(404).json({ error: "Setting not found" });
+      }
+      res.json(setting);
+    } catch (error: any) {
+      console.error("Error fetching setting:", error);
+      res.status(500).json({ error: "Failed to fetch setting" });
+    }
+  });
+
+  app.post("/api/settings", requireRole('admin'), async (req, res) => {
+    try {
+      const validation = insertSystemSettingSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: validation.error.issues,
+        });
+      }
+      
+      const setting = await storage.createSystemSetting(validation.data);
+      res.status(201).json(setting);
+    } catch (error: any) {
+      console.error("Error creating setting:", error);
+      res.status(500).json({ error: "Failed to create setting" });
+    }
+  });
+
+  app.patch("/api/settings/:key", requireRole('admin'), async (req, res) => {
+    try {
+      const { value } = req.body;
+      const updatedBy = req.user?.id;
+      const setting = await storage.updateSystemSetting(req.params.key, value, updatedBy);
+      if (!setting) {
+        return res.status(404).json({ error: "Setting not found" });
+      }
+      res.json(setting);
+    } catch (error: any) {
+      console.error("Error updating setting:", error);
+      res.status(500).json({ error: "Failed to update setting" });
+    }
+  });
+
+  app.delete("/api/settings/:key", requireRole('admin'), async (req, res) => {
+    try {
+      await storage.deleteSystemSetting(req.params.key);
+      res.sendStatus(204);
+    } catch (error: any) {
+      console.error("Error deleting setting:", error);
+      res.status(500).json({ error: "Failed to delete setting" });
+    }
+  });
+
+  // Get feature names for permission management
+  app.get("/api/features", requireRole('admin'), async (req, res) => {
+    try {
+      res.json(featureNames);
+    } catch (error: any) {
+      console.error("Error fetching features:", error);
+      res.status(500).json({ error: "Failed to fetch features" });
     }
   });
 

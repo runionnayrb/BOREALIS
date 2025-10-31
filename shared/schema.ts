@@ -794,3 +794,72 @@ export const insertScheduleCallSchema = createInsertSchema(scheduleCalls).omit({
 
 export type InsertScheduleCall = z.infer<typeof insertScheduleCallSchema>;
 export type ScheduleCall = typeof scheduleCalls.$inferSelect;
+
+// Feature names for permission system
+export const featureNames = [
+  'reports',
+  'schedules', 
+  'lineups',
+  'attendance_dashboard',
+  'attendance_ticksheet',
+  'attendance_signin',
+  'settings_artists',
+  'settings_departments',
+  'settings_locations',
+  'settings_technicians',
+  'settings_acts',
+  'settings_users',
+  'settings_report_template',
+] as const;
+export type FeatureName = typeof featureNames[number];
+
+// User Permissions - granular access control
+export const userPermissions = pgTable("user_permissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  feature: text("feature").notNull(), // e.g., 'reports', 'schedules', 'lineups', 'attendance_dashboard', etc.
+  canView: integer("can_view").notNull().default(0), // 0 = no, 1 = yes
+  canCreate: integer("can_create").notNull().default(0), // 0 = no, 1 = yes
+  canEdit: integer("can_edit").notNull().default(0), // 0 = no, 1 = yes
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  userFeatureUnique: sql`UNIQUE (user_id, feature)`,
+}));
+
+export const insertUserPermissionSchema = createInsertSchema(userPermissions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  feature: z.enum(featureNames),
+  canView: z.number().min(0).max(1),
+  canCreate: z.number().min(0).max(1),
+  canEdit: z.number().min(0).max(1),
+});
+
+export const updateUserPermissionSchema = insertUserPermissionSchema.partial();
+
+export type InsertUserPermission = z.infer<typeof insertUserPermissionSchema>;
+export type UpdateUserPermission = z.infer<typeof updateUserPermissionSchema>;
+export type UserPermission = typeof userPermissions.$inferSelect;
+
+// System Settings - configurable application settings
+export const systemSettings = pgTable("system_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  settingKey: text("setting_key").notNull().unique(), // e.g., 'geofence_latitude', 'pdf_margin_top', 'pagination_limit'
+  settingValue: text("setting_value").notNull(), // JSON string for complex values
+  settingType: text("setting_type").notNull(), // 'string', 'number', 'boolean', 'json'
+  category: text("category").notNull(), // 'geofence', 'pdf', 'performance', 'security', 'features'
+  description: text("description"), // Human-readable description
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  updatedBy: varchar("updated_by").references(() => users.id),
+});
+
+export const insertSystemSettingSchema = createInsertSchema(systemSettings).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
+export type SystemSetting = typeof systemSettings.$inferSelect;

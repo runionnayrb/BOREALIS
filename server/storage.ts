@@ -30,6 +30,8 @@ import {
   type GeofenceSession, type InsertGeofenceSession, geofenceSessions,
   type TickSheet, type InsertTickSheet, tickSheets,
   type TickSheetMark, type InsertTickSheetMark, tickSheetMarks,
+  type UserPermission, type InsertUserPermission, userPermissions,
+  type SystemSetting, type InsertSystemSetting, systemSettings,
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq, asc, desc, inArray, and, gte, lte, isNull, isNotNull, sql } from "drizzle-orm";
@@ -226,6 +228,27 @@ export interface IStorage {
   createTickSheetMark(mark: InsertTickSheetMark): Promise<TickSheetMark>;
   deleteTickSheetMark(id: string): Promise<void>;
   deleteTickSheetMarksByArtist(tickSheetId: string, artistId: string): Promise<void>;
+  
+  // User Permissions
+  getUserPermissions(userId: string): Promise<UserPermission[]>;
+  getAllUserPermissions(): Promise<UserPermission[]>;
+  getUserPermissionByFeature(userId: string, feature: string): Promise<UserPermission | undefined>;
+  createUserPermission(permission: InsertUserPermission): Promise<UserPermission>;
+  updateUserPermission(id: string, updates: Partial<InsertUserPermission>): Promise<UserPermission | undefined>;
+  upsertUserPermission(userId: string, feature: string, canView: number, canCreate: number, canEdit: number): Promise<UserPermission>;
+  deleteUserPermission(id: string): Promise<void>;
+  deleteUserPermissions(userId: string): Promise<void>;
+  bulkUpsertUserPermissions(userId: string, permissions: Array<{feature: string; canView: number; canCreate: number; canEdit: number}>): Promise<void>;
+  
+  // System Settings
+  getAllSystemSettings(): Promise<SystemSetting[]>;
+  getSystemSettingsByCategory(category: string): Promise<SystemSetting[]>;
+  getSystemSetting(key: string): Promise<SystemSetting | undefined>;
+  getSystemSettingValue(key: string): Promise<string | undefined>;
+  createSystemSetting(setting: InsertSystemSetting): Promise<SystemSetting>;
+  updateSystemSetting(key: string, value: string, updatedBy?: string): Promise<SystemSetting | undefined>;
+  upsertSystemSetting(key: string, value: string, type: string, category: string, description?: string, updatedBy?: string): Promise<SystemSetting>;
+  deleteSystemSetting(key: string): Promise<void>;
   
   sessionStore: Store;
 }
@@ -1065,6 +1088,126 @@ export class DatabaseStorage implements IStorage {
       eq(tickSheetMarks.tickSheetId, tickSheetId),
       eq(tickSheetMarks.artistId, artistId)
     ));
+  }
+
+  // User Permissions
+  async getUserPermissions(userId: string): Promise<UserPermission[]> {
+    return await db.select().from(userPermissions).where(eq(userPermissions.userId, userId));
+  }
+
+  async getAllUserPermissions(): Promise<UserPermission[]> {
+    return await db.select().from(userPermissions);
+  }
+
+  async getUserPermissionByFeature(userId: string, feature: string): Promise<UserPermission | undefined> {
+    const result = await db.select().from(userPermissions)
+      .where(and(
+        eq(userPermissions.userId, userId),
+        eq(userPermissions.feature, feature)
+      ));
+    return result[0];
+  }
+
+  async createUserPermission(permission: InsertUserPermission): Promise<UserPermission> {
+    const result = await db.insert(userPermissions).values(permission).returning();
+    return result[0];
+  }
+
+  async updateUserPermission(id: string, updates: Partial<InsertUserPermission>): Promise<UserPermission | undefined> {
+    const result = await db.update(userPermissions)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(userPermissions.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async upsertUserPermission(userId: string, feature: string, canView: number, canCreate: number, canEdit: number): Promise<UserPermission> {
+    const result = await db.insert(userPermissions)
+      .values({ userId, feature, canView, canCreate, canEdit })
+      .onConflictDoUpdate({
+        target: [userPermissions.userId, userPermissions.feature],
+        set: { canView, canCreate, canEdit, updatedAt: new Date() }
+      })
+      .returning();
+    return result[0];
+  }
+
+  async deleteUserPermission(id: string): Promise<void> {
+    await db.delete(userPermissions).where(eq(userPermissions.id, id));
+  }
+
+  async deleteUserPermissions(userId: string): Promise<void> {
+    await db.delete(userPermissions).where(eq(userPermissions.userId, userId));
+  }
+
+  async bulkUpsertUserPermissions(userId: string, permissions: Array<{feature: string; canView: number; canCreate: number; canEdit: number}>): Promise<void> {
+    if (permissions.length === 0) return;
+    
+    await db.transaction(async (tx) => {
+      for (const perm of permissions) {
+        await tx.insert(userPermissions)
+          .values({ userId, feature: perm.feature, canView: perm.canView, canCreate: perm.canCreate, canEdit: perm.canEdit })
+          .onConflictDoUpdate({
+            target: [userPermissions.userId, userPermissions.feature],
+            set: { canView: perm.canView, canCreate: perm.canCreate, canEdit: perm.canEdit, updatedAt: new Date() }
+          });
+      }
+    });
+  }
+
+  // System Settings
+  async getAllSystemSettings(): Promise<SystemSetting[]> {
+    return await db.select().from(systemSettings).orderBy(asc(systemSettings.category), asc(systemSettings.settingKey));
+  }
+
+  async getSystemSettingsByCategory(category: string): Promise<SystemSetting[]> {
+    return await db.select().from(systemSettings)
+      .where(eq(systemSettings.category, category))
+      .orderBy(asc(systemSettings.settingKey));
+  }
+
+  async getSystemSetting(key: string): Promise<SystemSetting | undefined> {
+    const result = await db.select().from(systemSettings).where(eq(systemSettings.settingKey, key));
+    return result[0];
+  }
+
+  async getSystemSettingValue(key: string): Promise<string | undefined> {
+    const setting = await this.getSystemSetting(key);
+    return setting?.settingValue;
+  }
+
+  async createSystemSetting(setting: InsertSystemSetting): Promise<SystemSetting> {
+    const result = await db.insert(systemSettings).values(setting).returning();
+    return result[0];
+  }
+
+  async updateSystemSetting(key: string, value: string, updatedBy?: string): Promise<SystemSetting | undefined> {
+    const result = await db.update(systemSettings)
+      .set({ settingValue: value, updatedAt: new Date(), updatedBy })
+      .where(eq(systemSettings.settingKey, key))
+      .returning();
+    return result[0];
+  }
+
+  async upsertSystemSetting(key: string, value: string, type: string, category: string, description?: string, updatedBy?: string): Promise<SystemSetting> {
+    const existing = await this.getSystemSetting(key);
+    
+    if (existing) {
+      const result = await db.update(systemSettings)
+        .set({ settingValue: value, updatedAt: new Date(), updatedBy })
+        .where(eq(systemSettings.settingKey, key))
+        .returning();
+      return result[0];
+    } else {
+      const result = await db.insert(systemSettings)
+        .values({ settingKey: key, settingValue: value, settingType: type, category, description, updatedBy })
+        .returning();
+      return result[0];
+    }
+  }
+
+  async deleteSystemSetting(key: string): Promise<void> {
+    await db.delete(systemSettings).where(eq(systemSettings.settingKey, key));
   }
 }
 
