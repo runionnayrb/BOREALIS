@@ -2180,6 +2180,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all permissions for a specific user (for frontend sidebar filtering)
+  app.get("/api/permissions/user/:userId", async (req, res) => {
+    try {
+      // Users can only fetch their own permissions unless they're admin
+      if (!req.isAuthenticated()) {
+        return res.sendStatus(401);
+      }
+      
+      // Validate and normalize the userId parameter to prevent path traversal and case bypasses
+      const userIdSchema = z.string().uuid();
+      const validation = userIdSchema.safeParse(req.params.userId);
+      
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid user ID format" });
+      }
+      
+      const requestedUserId = validation.data.toLowerCase();
+      const currentUserId = req.user!.id.toLowerCase();
+      
+      // Non-admin users can only access their own permissions
+      if (currentUserId !== requestedUserId && req.user!.role !== 'admin') {
+        return res.status(403).json({ error: "Cannot access other users' permissions" });
+      }
+      
+      const permissions = await storage.getUserPermissions(requestedUserId);
+      res.json(permissions);
+    } catch (error: any) {
+      console.error("Error fetching user permissions:", error);
+      res.status(500).json({ error: "Failed to fetch user permissions" });
+    }
+  });
+
   app.get("/api/permissions/user/:userId/feature/:feature", requireRole('admin'), async (req, res) => {
     try {
       const permission = await storage.getUserPermissionByFeature(req.params.userId, req.params.feature);

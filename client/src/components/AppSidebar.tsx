@@ -4,6 +4,15 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import type { UserGroup } from "@shared/schema";
+
+type UserPermission = {
+  id: string;
+  userId: string;
+  feature: string;
+  canView: number;
+  canCreate: number;
+  canEdit: number;
+};
 import {
   Sidebar,
   SidebarContent,
@@ -30,6 +39,12 @@ export default function AppSidebar() {
   const { user } = useAuth();
   const [changelogOpen, setChangelogOpen] = useState(false);
   
+  // Fetch user permissions from database
+  const { data: permissions, isLoading: isLoadingPermissions } = useQuery<UserPermission[]>({
+    queryKey: ["/api/permissions/user", user?.id],
+    enabled: !!user?.id && user?.role !== 'admin',
+  });
+  
   // Fetch user group to determine permissions
   const { data: userGroup, isLoading: isLoadingGroup } = useQuery<UserGroup>({
     queryKey: ["/api/user-groups", user?.userGroupId],
@@ -45,6 +60,16 @@ export default function AppSidebar() {
 
   // Check if user is an artist (case-insensitive)
   const isArtist = userGroup?.name?.toLowerCase() === "artist";
+  
+  // Helper function to check if user has permission to view a feature
+  const canView = (feature: string): boolean => {
+    // Admins can see everything
+    if (user?.role === 'admin') return true;
+    
+    // Check database permissions
+    const permission = permissions?.find(p => p.feature === feature);
+    return permission?.canView === 1;
+  };
 
   // Render version footer (shared across all states)
   const versionFooter = (
@@ -213,8 +238,8 @@ export default function AppSidebar() {
     </Dialog>
   );
 
-  // Show loading state while fetching user group to prevent artists from seeing restricted menu
-  if (isLoadingGroup) {
+  // Show loading state while fetching permissions
+  if (isLoadingGroup || (isLoadingPermissions && user?.role !== 'admin')) {
     return (
       <>
         <Sidebar>
@@ -262,76 +287,88 @@ export default function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {/* Reports */}
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location === "/"} data-testid="nav-reports">
-                  <Link href="/" className="flex items-center gap-3">
-                    <FileText className="w-4 h-4" />
-                    <span>Reports</span>
-                    {location === "/" && <ChevronRight className="w-4 h-4 ml-auto" />}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {/* Reports - only show if user has permission */}
+              {canView('reports') && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={location === "/"} data-testid="nav-reports">
+                    <Link href="/" className="flex items-center gap-3">
+                      <FileText className="w-4 h-4" />
+                      <span>Reports</span>
+                      {location === "/" && <ChevronRight className="w-4 h-4 ml-auto" />}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
 
-              {/* Lineups */}
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.startsWith("/lineups")} data-testid="nav-lineups">
-                  <Link href="/lineups" className="flex items-center gap-3">
-                    <Users className="w-4 h-4" />
-                    <span>Lineups</span>
-                    <span className="text-xs text-muted-foreground">(Coming Soon)</span>
-                    {location.startsWith("/lineups") && <ChevronRight className="w-4 h-4 ml-auto" />}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {/* Lineups - only show if user has permission */}
+              {canView('lineups') && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={location.startsWith("/lineups")} data-testid="nav-lineups">
+                    <Link href="/lineups" className="flex items-center gap-3">
+                      <Users className="w-4 h-4" />
+                      <span>Lineups</span>
+                      <span className="text-xs text-muted-foreground">(Coming Soon)</span>
+                      {location.startsWith("/lineups") && <ChevronRight className="w-4 h-4 ml-auto" />}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
 
-              {/* Schedule with sub-menu */}
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.startsWith("/schedule")} data-testid="nav-schedule">
-                  <Link href="/schedule/full" className="flex items-center gap-3">
-                    <CalendarDays className="w-4 h-4" />
-                    <span>Schedule</span>
-                    <span className="text-xs text-muted-foreground">(Coming Soon)</span>
-                  </Link>
-                </SidebarMenuButton>
-                <SidebarMenuSub>
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton asChild isActive={location === "/schedule/full"} data-testid="nav-schedule-full">
-                      <Link href="/schedule/full" className="flex items-center gap-3">
-                        <span>Full Schedule</span>
-                      </Link>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton asChild isActive={location === "/schedule/artists"} data-testid="nav-schedule-artists">
-                      <Link href="/schedule/artists" className="flex items-center gap-3">
-                        <span>By Artist</span>
-                      </Link>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                </SidebarMenuSub>
-              </SidebarMenuItem>
+              {/* Schedule with sub-menu - only show if user has permission */}
+              {canView('schedules') && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={location.startsWith("/schedule")} data-testid="nav-schedule">
+                    <Link href="/schedule/full" className="flex items-center gap-3">
+                      <CalendarDays className="w-4 h-4" />
+                      <span>Schedule</span>
+                      <span className="text-xs text-muted-foreground">(Coming Soon)</span>
+                    </Link>
+                  </SidebarMenuButton>
+                  <SidebarMenuSub>
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton asChild isActive={location === "/schedule/full"} data-testid="nav-schedule-full">
+                        <Link href="/schedule/full" className="flex items-center gap-3">
+                          <span>Full Schedule</span>
+                        </Link>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton asChild isActive={location === "/schedule/artists"} data-testid="nav-schedule-artists">
+                        <Link href="/schedule/artists" className="flex items-center gap-3">
+                          <span>By Artist</span>
+                        </Link>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  </SidebarMenuSub>
+                </SidebarMenuItem>
+              )}
 
-              {/* Attendance */}
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.startsWith("/attendance")} data-testid="nav-attendance">
-                  <Link href="/attendance/dashboard" className="flex items-center gap-3">
-                    <ClipboardCheck className="w-4 h-4" />
-                    <span>Attendance</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {/* Attendance - only show if user has permission */}
+              {canView('attendance_dashboard') && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={location.startsWith("/attendance")} data-testid="nav-attendance">
+                    <Link href="/attendance/dashboard" className="flex items-center gap-3">
+                      <ClipboardCheck className="w-4 h-4" />
+                      <span>Attendance</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
 
-              {/* Settings */}
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.startsWith("/settings")} data-testid="nav-settings">
-                  <Link href="/settings" className="flex items-center gap-3">
-                    <Settings className="w-4 h-4" />
-                    <span>Settings</span>
-                    {location.startsWith("/settings") && <ChevronRight className="w-4 h-4 ml-auto" />}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {/* Settings - show if user has any settings permission */}
+              {(canView('settings_artists') || canView('settings_departments') || canView('settings_locations') || 
+                canView('settings_technicians') || canView('settings_acts') || canView('settings_users') || 
+                canView('settings_report_template')) && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={location.startsWith("/settings")} data-testid="nav-settings">
+                    <Link href="/settings" className="flex items-center gap-3">
+                      <Settings className="w-4 h-4" />
+                      <span>Settings</span>
+                      {location.startsWith("/settings") && <ChevronRight className="w-4 h-4 ml-auto" />}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
