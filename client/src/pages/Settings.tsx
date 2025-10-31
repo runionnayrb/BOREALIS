@@ -1537,6 +1537,12 @@ export default function Settings() {
           <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
             <GripVertical className="w-4 h-4 text-muted-foreground" />
           </div>
+          <Avatar className="w-10 h-10">
+            {artist.photoUrl && <AvatarImage src={artist.photoUrl} alt={artist.stageName || `${artist.firstName} ${artist.lastName}`} />}
+            <AvatarFallback className="bg-primary/10 text-primary text-sm">
+              {(artist.stageName || artist.firstName).charAt(0)}{(artist.stageName ? '' : artist.lastName).charAt(0)}
+            </AvatarFallback>
+          </Avatar>
           <div>
             <p className="font-medium">{artist.stageName || `${artist.firstName} ${artist.lastName}`}</p>
             {artist.role && <p className="text-sm text-muted-foreground">{artist.role}</p>}
