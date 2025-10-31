@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, sanitizeUser, hashPassword, toTitleCase } from "./auth";
+import { setupAuth, sanitizeUser, hashPassword, toTitleCase, comparePasswords } from "./auth";
 import { z } from "zod";
 import { db } from "./db";
 import { trainings, actDepartments, departmentAssignments, technicians, technicianDepartments } from "@shared/schema";
@@ -195,6 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     name: z.string().optional(),
     email: z.string().email().optional(),
     position: z.string().optional(),
+    role: z.string().optional(),
   });
 
   app.patch("/api/users/:id", requireRole('stage_management', 'admin'), async (req, res) => {
@@ -204,6 +205,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({
         error: "Validation failed",
         details: validation.error.issues,
+      });
+    }
+
+    // Get the target user to check if this is Bryan Runion
+    const targetUser = await storage.getUser(req.params.id);
+    if (!targetUser) {
+      return res.status(404).send("User not found");
+    }
+
+    // Special protection for Bryan Runion's admin status
+    if (targetUser.email === 'bryan.runion@laperle.com' && 
+        validation.data.role && 
+        validation.data.role !== 'admin' &&
+        targetUser.role === 'admin') {
+      return res.status(403).json({
+        error: "Protected account",
+        message: "Cannot remove admin status from Bryan Runion's account. This account is protected.",
+        requiresAdminAuth: true,
       });
     }
 
@@ -229,6 +248,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     res.json(sanitizeUser(updated));
+  });
+
+  // Special route to remove Bryan Runion's admin status with credential verification
+  app.post("/api/users/:id/remove-admin-protected", requireRole('admin'), async (req, res) => {
+    try {
+      const { username, password, newRole } = req.body;
+
+      if (!username || !password || !newRole) {
+        return res.status(400).json({ error: "Admin credentials and new role required" });
+      }
+
+      // Get the target user
+      const targetUser = await storage.getUser(req.params.id);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // This route is only for Bryan Runion's account
+      if (targetUser.email !== 'bryan.runion@laperle.com') {
+        return res.status(403).json({ error: "This route is only for protected accounts" });
+      }
+
+      // Verify the provided credentials match Bryan Runion's account
+      const authenticatedUser = await storage.getUserByEmail(username.toLowerCase());
+      if (!authenticatedUser || authenticatedUser.email !== 'bryan.runion@laperle.com') {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      // Verify password
+      const isValid = await comparePasswords(password, authenticatedUser.password);
+      if (!isValid) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      // Allow the role change
+      const updated = await storage.updateUser(req.params.id, { role: newRole });
+      if (!updated) {
+        return res.status(500).json({ error: "Failed to update user" });
+      }
+
+      res.json({ success: true, user: sanitizeUser(updated) });
+    } catch (error) {
+      console.error("Error in remove-admin-protected:", error);
+      res.status(500).json({ error: "Failed to update protected account" });
+    }
   });
 
   const deleteUserSchema = z.object({
