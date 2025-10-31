@@ -4,7 +4,9 @@
 La Perle - Borealis is a production-ready, full-stack web application designed to streamline theatrical production management. It empowers Stage Managers to efficiently handle daily training reports, show lineup management, comprehensive scheduling, and real-time attendance tracking. The application supports rich text notes, tracking by various criteria (act, department, artist, location), technician lead assignments, and PDF report exports. Key features include visual stage position layouts for lineups, detailed schedule views, and an Attendance System with geofencing and PIN-based artist sign-in/sign-out. The overarching goal is to professionalize and simplify administrative tasks for theatrical productions.
 
 ## User Preferences
-- All Stage Managers see the same interface (no user-based filtering).
+- Administrators use a comprehensive Admin Dashboard to configure permissions, system settings, and features without coding.
+- The permission system controls sidebar visibility - users can only access features visible in their sidebar based on database permissions.
+- New users start with all permissions unchecked; existing users keep their current access.
 - I prefer a linear-inspired professional dark mode UI with Inter/JetBrains Mono fonts and cyan accent.
 - I expect mobile-first responsive design.
 - I prefer robust XSS protection in rich text editors: Two-layer defense with Tiptap escaping and DOMPurify sanitization.
@@ -37,6 +39,8 @@ La Perle - Borealis is a production-ready, full-stack web application designed t
 
 ### Feature Specifications
 - **Authentication & User Management**: Secure login/signup, profile management, CRUD for users and user groups (admin/SM only), password reset, role-based access, artist account linking.
+- **Admin Dashboard (Admin-only)**: Comprehensive control panel at `/admin` accessible only to admin role users via profile dropdown. Five-tab interface: (1) Permission Matrix - table view of all users × all features with view/create/edit checkboxes for granular access control, (2) System Configuration - geofence settings, PDF margins/page size, file upload limits, email templates, (3) Performance Settings - pagination limits, default date ranges, cache policies, archive thresholds (configurable instead of hardcoded), (4) Security - secure admin credential management, password policies, (5) Feature Toggles - enable/disable entire features across the application.
+- **Permission System**: Database-driven permission enforcement with `user_permissions` table (userId, feature, canView, canCreate, canEdit). Middleware validates permissions on every API route using HTTP method mapping (GET→canView, POST→canCreate, PUT/PATCH/DELETE→canEdit). Frontend sidebar dynamically filters menu items based on user's database permissions - if a feature is not in the sidebar, it's inaccessible. Admin users bypass permission checks but still require proper role validation. All UUID parameters are validated with Zod schema and normalized to lowercase to prevent path traversal attacks.
 - **Settings Management**: Full CRUD for all entities (scenes, acts, departments, locations, artists, technicians, report template) including drag-and-drop artist reordering. Artist profile photos support client-side crop adjustment with circular preview, zoom control (1x-3x), and position adjustment before upload.
 - **Reports & Trainings**: CRUD for reports and trainings, multi-location support, per-training artist/department customization, lead technician assignment, custom training names, rich text sections (Goal, Training Notes, Follow-Up), one report per day enforcement, audit trails.
 - **PDF Export**: Customizable header/footer, specific filename formatting.
@@ -46,9 +50,10 @@ La Perle - Borealis is a production-ready, full-stack web application designed t
 - **Attendance System**: Public sign-in page with photo grid and PIN, geofencing, real-time SM dashboard with manual sign-out, Tick Sheets with optimistic UI and WebSocket sync, artist PIN management.
 
 ### System Design Choices
-- **Database Schema**: Comprehensive PostgreSQL schema for all application entities.
+- **Database Schema**: Comprehensive PostgreSQL schema for all application entities including `user_permissions` table (unique constraint on userId+feature) and `system_settings` table (key-value pairs for all configurable settings).
+- **Permission Architecture**: Two-level structure - Admin Dashboard (system configuration, admin-only) vs Settings Page (operational data, stage managers). Permission enforcement uses atomic ON CONFLICT operations to prevent race conditions. All permission routes validate UUID parameters to prevent security bypasses.
 - **Data Models**: Reusable lineup templates, show-specific lineups, and structured schedule containers.
-- **API**: RESTful API for all functionalities.
+- **API**: RESTful API for all functionalities with permission enforcement middleware (`requirePermission`, `requirePermissionByMethod`).
 - **Session Management**: Session-based authentication using PostgreSQL.
 - **WebSocket**: Dedicated server for real-time communication.
 

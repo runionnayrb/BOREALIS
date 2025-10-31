@@ -124,7 +124,41 @@ export const canCreateLineups = requirePermission('lineups', 'canCreate');
 export const canEditLineups = requirePermission('lineups', 'canEdit');
 
 export const canViewAttendanceDashboard = requirePermission('attendance_dashboard', 'canView');
+export const canCreateAttendanceDashboard = requirePermission('attendance_dashboard', 'canCreate');
+export const canEditAttendanceDashboard = requirePermission('attendance_dashboard', 'canEdit');
+
 export const canViewAttendanceTicksheet = requirePermission('attendance_ticksheet', 'canView');
+export const canCreateAttendanceTicksheet = requirePermission('attendance_ticksheet', 'canCreate');
+export const canEditAttendanceTicksheet = requirePermission('attendance_ticksheet', 'canEdit');
+
+export const canViewAttendanceSignin = requirePermission('attendance_signin', 'canView');
+export const canCreateAttendanceSignin = requirePermission('attendance_signin', 'canCreate');
+export const canEditAttendanceSignin = requirePermission('attendance_signin', 'canEdit');
 
 export const canViewSettingsArtists = requirePermission('settings_artists', 'canView');
+export const canCreateSettingsArtists = requirePermission('settings_artists', 'canCreate');
 export const canEditSettingsArtists = requirePermission('settings_artists', 'canEdit');
+
+export const canViewSettingsTechnicians = requirePermission('settings_technicians', 'canView');
+export const canCreateSettingsTechnicians = requirePermission('settings_technicians', 'canCreate');
+export const canEditSettingsTechnicians = requirePermission('settings_technicians', 'canEdit');
+
+export const canViewSettingsDepartments = requirePermission('settings_departments', 'canView');
+export const canCreateSettingsDepartments = requirePermission('settings_departments', 'canCreate');
+export const canEditSettingsDepartments = requirePermission('settings_departments', 'canEdit');
+
+export const canViewSettingsLocations = requirePermission('settings_locations', 'canView');
+export const canCreateSettingsLocations = requirePermission('settings_locations', 'canCreate');
+export const canEditSettingsLocations = requirePermission('settings_locations', 'canEdit');
+
+export const canViewSettingsActs = requirePermission('settings_acts', 'canView');
+export const canCreateSettingsActs = requirePermission('settings_acts', 'canCreate');
+export const canEditSettingsActs = requirePermission('settings_acts', 'canEdit');
+
+export const canViewSettingsUsers = requirePermission('settings_users', 'canView');
+export const canCreateSettingsUsers = requirePermission('settings_users', 'canCreate');
+export const canEditSettingsUsers = requirePermission('settings_users', 'canEdit');
+
+export const canViewSettingsReportTemplate = requirePermission('settings_report_template', 'canView');
+export const canCreateSettingsReportTemplate = requirePermission('settings_report_template', 'canCreate');
+export const canEditSettingsReportTemplate = requirePermission('settings_report_template', 'canEdit');
