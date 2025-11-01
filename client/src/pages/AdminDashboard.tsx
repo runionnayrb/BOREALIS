@@ -339,8 +339,8 @@ export default function AdminDashboard() {
                     <Label htmlFor="venue-lat">Venue Latitude</Label>
                     <Input
                       id="venue-lat"
-                      value={getSettingValue('venue_latitude')}
-                      onChange={(e) => handleSettingChange(getSettingId('venue_latitude'), e.target.value)}
+                      value={getSettingValue('geofence_latitude')}
+                      onChange={(e) => handleSettingChange(getSettingId('geofence_latitude'), e.target.value)}
                       data-testid="input-venue-lat"
                     />
                   </div>
@@ -348,8 +348,8 @@ export default function AdminDashboard() {
                     <Label htmlFor="venue-lng">Venue Longitude</Label>
                     <Input
                       id="venue-lng"
-                      value={getSettingValue('venue_longitude')}
-                      onChange={(e) => handleSettingChange(getSettingId('venue_longitude'), e.target.value)}
+                      value={getSettingValue('geofence_longitude')}
+                      onChange={(e) => handleSettingChange(getSettingId('geofence_longitude'), e.target.value)}
                       data-testid="input-venue-lng"
                     />
                   </div>
@@ -363,22 +363,53 @@ export default function AdminDashboard() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="pdf-margin">PDF Margin (mm)</Label>
+                    <Label htmlFor="pdf-page-format">PDF Page Format</Label>
                     <Input
-                      id="pdf-margin"
-                      type="number"
-                      value={getSettingValue('pdf_margin_mm')}
-                      onChange={(e) => handleSettingChange(getSettingId('pdf_margin_mm'), e.target.value)}
-                      data-testid="input-pdf-margin"
+                      id="pdf-page-format"
+                      value={getSettingValue('pdf_page_format')}
+                      onChange={(e) => handleSettingChange(getSettingId('pdf_page_format'), e.target.value)}
+                      placeholder="A4, Letter, etc."
+                      data-testid="input-pdf-page-format"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="pdf-page-size">PDF Page Size</Label>
+                    <Label htmlFor="pdf-margin-top">Top Margin</Label>
                     <Input
-                      id="pdf-page-size"
-                      value={getSettingValue('pdf_page_size')}
-                      onChange={(e) => handleSettingChange(getSettingId('pdf_page_size'), e.target.value)}
-                      data-testid="input-pdf-page-size"
+                      id="pdf-margin-top"
+                      value={getSettingValue('pdf_margin_top')}
+                      onChange={(e) => handleSettingChange(getSettingId('pdf_margin_top'), e.target.value)}
+                      placeholder="20mm"
+                      data-testid="input-pdf-margin-top"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pdf-margin-bottom">Bottom Margin</Label>
+                    <Input
+                      id="pdf-margin-bottom"
+                      value={getSettingValue('pdf_margin_bottom')}
+                      onChange={(e) => handleSettingChange(getSettingId('pdf_margin_bottom'), e.target.value)}
+                      placeholder="20mm"
+                      data-testid="input-pdf-margin-bottom"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pdf-margin-left">Left Margin</Label>
+                    <Input
+                      id="pdf-margin-left"
+                      value={getSettingValue('pdf_margin_left')}
+                      onChange={(e) => handleSettingChange(getSettingId('pdf_margin_left'), e.target.value)}
+                      placeholder="15mm"
+                      data-testid="input-pdf-margin-left"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pdf-margin-right">Right Margin</Label>
+                    <Input
+                      id="pdf-margin-right"
+                      value={getSettingValue('pdf_margin_right')}
+                      onChange={(e) => handleSettingChange(getSettingId('pdf_margin_right'), e.target.value)}
+                      placeholder="15mm"
+                      data-testid="input-pdf-margin-right"
                     />
                   </div>
                 </CardContent>
@@ -400,36 +431,6 @@ export default function AdminDashboard() {
                       data-testid="input-max-file-size"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="allowed-types">Allowed File Types</Label>
-                    <Input
-                      id="allowed-types"
-                      value={getSettingValue('allowed_file_types')}
-                      onChange={(e) => handleSettingChange(getSettingId('allowed_file_types'), e.target.value)}
-                      placeholder="image/jpeg,image/png,application/pdf"
-                      data-testid="input-allowed-types"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Email Settings</CardTitle>
-                  <CardDescription>Configure email notifications</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email-template">Email Template</Label>
-                    <Textarea
-                      id="email-template"
-                      value={getSettingValue('email_template_default')}
-                      onChange={(e) => handleSettingChange(getSettingId('email_template_default'), e.target.value)}
-                      placeholder="Email template content..."
-                      rows={4}
-                      data-testid="input-email-template"
-                    />
-                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -444,23 +445,13 @@ export default function AdminDashboard() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="reports-per-page">Reports Per Page</Label>
+                    <Label htmlFor="pagination-limit">Default Items Per Page</Label>
                     <Input
-                      id="reports-per-page"
+                      id="pagination-limit"
                       type="number"
-                      value={getSettingValue('pagination_reports_per_page')}
-                      onChange={(e) => handleSettingChange(getSettingId('pagination_reports_per_page'), e.target.value)}
-                      data-testid="input-reports-per-page"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="artists-per-page">Artists Per Page</Label>
-                    <Input
-                      id="artists-per-page"
-                      type="number"
-                      value={getSettingValue('pagination_artists_per_page')}
-                      onChange={(e) => handleSettingChange(getSettingId('pagination_artists_per_page'), e.target.value)}
-                      data-testid="input-artists-per-page"
+                      value={getSettingValue('pagination_default_limit')}
+                      onChange={(e) => handleSettingChange(getSettingId('pagination_default_limit'), e.target.value)}
+                      data-testid="input-pagination-limit"
                     />
                   </div>
                 </CardContent>
@@ -468,28 +459,28 @@ export default function AdminDashboard() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Date Ranges</CardTitle>
-                  <CardDescription>Default date range filters</CardDescription>
+                  <CardTitle>Default Views</CardTitle>
+                  <CardDescription>Default date range filters for different features</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="reports-default-range">Reports Default Range (days)</Label>
+                    <Label htmlFor="reports-default-view">Reports Default View</Label>
                     <Input
-                      id="reports-default-range"
-                      type="number"
-                      value={getSettingValue('default_reports_date_range_days')}
-                      onChange={(e) => handleSettingChange(getSettingId('default_reports_date_range_days'), e.target.value)}
-                      data-testid="input-reports-date-range"
+                      id="reports-default-view"
+                      value={getSettingValue('reports_default_view')}
+                      onChange={(e) => handleSettingChange(getSettingId('reports_default_view'), e.target.value)}
+                      placeholder="current_month, current_week, all"
+                      data-testid="input-reports-default-view"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="attendance-default-range">Attendance Default Range (days)</Label>
+                    <Label htmlFor="attendance-default-view">Attendance Default View</Label>
                     <Input
-                      id="attendance-default-range"
-                      type="number"
-                      value={getSettingValue('default_attendance_date_range_days')}
-                      onChange={(e) => handleSettingChange(getSettingId('default_attendance_date_range_days'), e.target.value)}
-                      data-testid="input-attendance-date-range"
+                      id="attendance-default-view"
+                      value={getSettingValue('attendance_default_view')}
+                      onChange={(e) => handleSettingChange(getSettingId('attendance_default_view'), e.target.value)}
+                      placeholder="current_week, current_month, all"
+                      data-testid="input-attendance-default-view"
                     />
                   </div>
                 </CardContent>
@@ -535,47 +526,6 @@ export default function AdminDashboard() {
             </div>
           </TabsContent>
 
-          <TabsContent value="security" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Password Policies</CardTitle>
-                <CardDescription>Configure password requirements and security policies</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="min-password-length">Minimum Password Length</Label>
-                  <Input
-                    id="min-password-length"
-                    type="number"
-                    value={getSettingValue('password_min_length')}
-                    onChange={(e) => handleSettingChange(getSettingId('password_min_length'), e.target.value)}
-                    data-testid="input-password-min-length"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password-expiry">Password Expiry (days)</Label>
-                  <Input
-                    id="password-expiry"
-                    type="number"
-                    value={getSettingValue('password_expiry_days')}
-                    onChange={(e) => handleSettingChange(getSettingId('password_expiry_days'), e.target.value)}
-                    data-testid="input-password-expiry"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="session-timeout">Session Timeout (minutes)</Label>
-                  <Input
-                    id="session-timeout"
-                    type="number"
-                    value={getSettingValue('session_timeout_minutes')}
-                    onChange={(e) => handleSettingChange(getSettingId('session_timeout_minutes'), e.target.value)}
-                    data-testid="input-session-timeout"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="features" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <Card>
@@ -586,13 +536,13 @@ export default function AdminDashboard() {
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label htmlFor="enable-geofencing">Geofencing</Label>
+                      <Label htmlFor="enable-geofencing">Geofencing Required</Label>
                       <p className="text-xs text-muted-foreground">Require location verification for attendance</p>
                     </div>
                     <Checkbox
                       id="enable-geofencing"
-                      checked={getSettingValue('feature_enable_geofencing') === '1'}
-                      onCheckedChange={(checked) => handleSettingChange(getSettingId('feature_enable_geofencing'), checked ? '1' : '0')}
+                      checked={getSettingValue('feature_geofencing_required') === 'true'}
+                      onCheckedChange={(checked) => handleSettingChange(getSettingId('feature_geofencing_required'), checked ? 'true' : 'false')}
                       data-testid="checkbox-enable-geofencing"
                     />
                   </div>
@@ -603,21 +553,21 @@ export default function AdminDashboard() {
                     </div>
                     <Checkbox
                       id="enable-email"
-                      checked={getSettingValue('feature_enable_email_notifications') === '1'}
-                      onCheckedChange={(checked) => handleSettingChange(getSettingId('feature_enable_email_notifications'), checked ? '1' : '0')}
+                      checked={getSettingValue('feature_email_enabled') === 'true'}
+                      onCheckedChange={(checked) => handleSettingChange(getSettingId('feature_email_enabled'), checked ? 'true' : 'false')}
                       data-testid="checkbox-enable-email"
                     />
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label htmlFor="enable-pdf">PDF Export</Label>
-                      <p className="text-xs text-muted-foreground">Allow exporting reports to PDF</p>
+                      <Label htmlFor="enable-geofence">Geofence Enabled</Label>
+                      <p className="text-xs text-muted-foreground">Enable/disable geofence validation globally</p>
                     </div>
                     <Checkbox
-                      id="enable-pdf"
-                      checked={getSettingValue('feature_enable_pdf_export') === '1'}
-                      onCheckedChange={(checked) => handleSettingChange(getSettingId('feature_enable_pdf_export'), checked ? '1' : '0')}
-                      data-testid="checkbox-enable-pdf"
+                      id="enable-geofence"
+                      checked={getSettingValue('geofence_enabled') === 'true'}
+                      onCheckedChange={(checked) => handleSettingChange(getSettingId('geofence_enabled'), checked ? 'true' : 'false')}
+                      data-testid="checkbox-enable-geofence"
                     />
                   </div>
                 </CardContent>
@@ -625,36 +575,38 @@ export default function AdminDashboard() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Maintenance Mode</CardTitle>
-                  <CardDescription>Control application availability</CardDescription>
+                  <CardTitle>Security Settings</CardTitle>
+                  <CardDescription>Configure security and file upload limits</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="maintenance-mode">Maintenance Mode</Label>
-                      <p className="text-xs text-muted-foreground">Disable access for non-admin users</p>
-                    </div>
-                    <Checkbox
-                      id="maintenance-mode"
-                      checked={getSettingValue('feature_maintenance_mode') === '1'}
-                      onCheckedChange={(checked) => handleSettingChange(getSettingId('feature_maintenance_mode'), checked ? '1' : '0')}
-                      data-testid="checkbox-maintenance-mode"
-                    />
-                  </div>
                   <div className="space-y-2">
-                    <Label htmlFor="maintenance-message">Maintenance Message</Label>
-                    <Textarea
-                      id="maintenance-message"
-                      value={getSettingValue('maintenance_message')}
-                      onChange={(e) => handleSettingChange(getSettingId('maintenance_message'), e.target.value)}
-                      placeholder="System is currently under maintenance..."
-                      rows={3}
-                      data-testid="input-maintenance-message"
+                    <Label htmlFor="security-max-file-size">Max File Size (MB)</Label>
+                    <Input
+                      id="security-max-file-size"
+                      type="number"
+                      value={getSettingValue('max_file_size_mb')}
+                      onChange={(e) => handleSettingChange(getSettingId('max_file_size_mb'), e.target.value)}
+                      data-testid="input-security-max-file-size"
                     />
                   </div>
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+          
+          <TabsContent value="security" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Security & Performance</CardTitle>
+                <CardDescription>Additional cache and performance settings are configured in the Performance tab</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Security settings like password policies and session timeouts can be configured here in future releases.
+                  Currently, the system uses default secure settings.
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
