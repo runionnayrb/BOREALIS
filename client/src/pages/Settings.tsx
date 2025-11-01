@@ -110,6 +110,9 @@ export default function Settings() {
   // Local state for artist ordering
   const [orderedArtists, setOrderedArtists] = useState<Artist[]>([]);
 
+  // Local state for technician ordering
+  const [orderedTechnicians, setOrderedTechnicians] = useState<Technician[]>([]);
+
   // User linking state for artists
   const [selectedLinkedUserId, setSelectedLinkedUserId] = useState<string | null>(null);
   
@@ -452,6 +455,12 @@ export default function Settings() {
     }
   }, [artistsQuery.data]);
 
+  useEffect(() => {
+    if (technicians) {
+      setOrderedTechnicians([...technicians].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)));
+    }
+  }, [technicians]);
+
   // Drag-and-drop sensors for artist reordering
   const artistDragSensors = useSensors(
     useSensor(PointerSensor),
@@ -470,6 +479,27 @@ export default function Settings() {
       const newArtists = arrayMove(orderedArtists, oldIndex, newIndex);
       setOrderedArtists(newArtists);
       reorderArtistsMutation.mutate(newArtists.map(a => a.id));
+    }
+  };
+
+  // Drag-and-drop sensors for technician reordering
+  const technicianDragSensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleTechnicianDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      const oldIndex = orderedTechnicians.findIndex((t) => t.id === active.id);
+      const newIndex = orderedTechnicians.findIndex((t) => t.id === over.id);
+      
+      const newTechs = arrayMove(orderedTechnicians, oldIndex, newIndex);
+      setOrderedTechnicians(newTechs);
+      reorderTechniciansMutation.mutate(newTechs.map(t => t.id));
     }
   };
 
@@ -992,6 +1022,15 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/artists"] });
+    },
+  });
+
+  const reorderTechniciansMutation = useMutation({
+    mutationFn: async (technicianIds: string[]) => {
+      return await apiRequest("PUT", "/api/technicians/reorder", { technicianIds });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/technicians"] });
     },
   });
 
@@ -1576,6 +1615,66 @@ export default function Settings() {
     );
   };
 
+  const SortableTechnicianCard = ({ technician }: { technician: Technician }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: technician.id });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+      <Card
+        ref={setNodeRef}
+        style={style}
+        className="p-3 flex items-center justify-between hover-elevate"
+        data-testid={`card-technician-${technician.id}`}
+      >
+        <div className="flex items-center gap-3 flex-1">
+          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+            <GripVertical className="w-4 h-4 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="font-medium">{technician.technicianName || `${technician.firstName} ${technician.lastName}`}</p>
+            {technician.role && <p className="text-sm text-muted-foreground">{technician.role}</p>}
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setEditTarget({ type: "technician", id: technician.id, data: technician });
+              setTechDialogOpen(true);
+            }}
+            data-testid={`button-edit-technician-${technician.id}`}
+          >
+            <Edit className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setDeleteTarget({ type: "technician", id: technician.id });
+              setDeleteDialogOpen(true);
+            }}
+            data-testid={`button-delete-technician-${technician.id}`}
+          >
+            <Trash2 className="w-4 h-4 text-destructive" />
+          </Button>
+        </div>
+      </Card>
+    );
+  };
+
   const renderGroupedArtists = () => {
     if (orderedArtists.length === 0) {
       return (
@@ -1639,7 +1738,7 @@ export default function Settings() {
   };
 
   const renderGroupedTechnicians = () => {
-    if (technicians.length === 0) {
+    if (orderedTechnicians.length === 0) {
       return (
         <Card className="p-6 text-center text-muted-foreground">
           <p>No technicians yet. Click "Add Technician" to create one.</p>
@@ -1647,100 +1746,16 @@ export default function Settings() {
       );
     }
 
-    // Group technicians by department
-    const grouped = new Map<string, Technician[]>();
-    
-    // Add "No Department" group for technicians without any department
-    const techniciansWithDepts = new Set<string>();
-    
-    allTechnicianDepartments.forEach(({ technicianId, departmentId }) => {
-      techniciansWithDepts.add(technicianId);
-      const tech = technicians.find(t => t.id === technicianId);
-      if (!tech) return;
-      
-      if (!grouped.has(departmentId)) {
-        grouped.set(departmentId, []);
-      }
-      grouped.get(departmentId)!.push(tech);
-    });
-    
-    // Add technicians with no departments to "No Department" group
-    const noDeptTechs = technicians.filter(t => !techniciansWithDepts.has(t.id));
-    if (noDeptTechs.length > 0) {
-      grouped.set('no-department', noDeptTechs);
-    }
-    
-    // Sort departments alphabetically, with "no-department" first
-    const sortedDeptIds = Array.from(grouped.keys()).sort((a, b) => {
-      if (a === 'no-department') return -1;
-      if (b === 'no-department') return 1;
-      const deptA = departments.find(d => d.id === a);
-      const deptB = departments.find(d => d.id === b);
-      return (deptA?.name || '').localeCompare(deptB?.name || '');
-    });
-    
     return (
-      <div className="space-y-6">
-        {sortedDeptIds.map((deptId) => {
-          const techsInDept = grouped.get(deptId) || [];
-          const dept = departments.find(d => d.id === deptId);
-          const isNoDept = deptId === 'no-department';
-          
-          // Sort technicians alphabetically within department
-          const sortedTechs = [...techsInDept].sort((a, b) => {
-            const nameA = a.technicianName || `${a.firstName} ${a.lastName}`;
-            const nameB = b.technicianName || `${b.firstName} ${b.lastName}`;
-            return nameA.localeCompare(nameB);
-          });
-          
-          return (
-            <div key={deptId} className="space-y-2">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  {isNoDept ? 'No Department' : dept?.name || 'Unknown'}
-                </h3>
-                <span className="text-xs text-muted-foreground">
-                  ({techsInDept.length})
-                </span>
-              </div>
-              <div className="space-y-2">
-                {sortedTechs.map((tech) => (
-                  <Card key={`${deptId}-${tech.id}`} className="p-3 flex items-center justify-between hover-elevate" data-testid={`card-technician-${tech.id}`}>
-                    <div>
-                      <p className="font-medium">{tech.technicianName || `${tech.firstName} ${tech.lastName}`}</p>
-                      {tech.role && <p className="text-sm text-muted-foreground">{tech.role}</p>}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditTarget({ type: "technician", id: tech.id, data: tech });
-                          setTechDialogOpen(true);
-                        }}
-                        data-testid={`button-edit-technician-${tech.id}`}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setDeleteTarget({ type: "technician", id: tech.id });
-                          setDeleteDialogOpen(true);
-                        }}
-                        data-testid={`button-delete-technician-${tech.id}`}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <DndContext sensors={technicianDragSensors} collisionDetection={closestCenter} onDragEnd={handleTechnicianDragEnd}>
+        <SortableContext items={orderedTechnicians.map(t => t.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-2">
+            {orderedTechnicians.map((tech) => (
+              <SortableTechnicianCard key={tech.id} technician={tech} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     );
   };
 

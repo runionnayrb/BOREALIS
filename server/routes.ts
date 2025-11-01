@@ -1074,6 +1074,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(204);
   });
 
+  app.put("/api/technicians/reorder", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const validation = z.object({
+      technicianIds: z.array(z.string()),
+    }).safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    await storage.reorderTechnicians(validation.data.technicianIds);
+    res.sendStatus(204);
+  });
+
   // Technician Departments routes
   app.get("/api/technicians/:id/departments", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

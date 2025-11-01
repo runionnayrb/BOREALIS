@@ -368,12 +368,14 @@ export const technicians = pgTable("technicians", {
   lastName: text("last_name").notNull(),
   technicianName: text("technician_name"),
   role: text("role"),
+  sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertTechnicianSchema = createInsertSchema(technicians).omit({
   id: true,
   createdAt: true,
+  sortOrder: true,
 });
 
 export type InsertTechnician = z.infer<typeof insertTechnicianSchema>;

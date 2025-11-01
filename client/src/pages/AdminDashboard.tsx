@@ -297,58 +297,56 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedGroupIds.map(groupId => {
+                      {sortedGroupIds.flatMap(groupId => {
                         const group = userGroups?.find(g => g.id === groupId);
                         const groupUsers = groupedUsers[groupId] || [];
                         const groupName = group?.name || 'No Group';
                         
-                        return (
-                          <React.Fragment key={groupId}>
-                            {/* Group header row */}
-                            <tr className="bg-muted/50">
-                              <td colSpan={FEATURES.length + 1} className="p-2 px-3">
-                                <span className="font-semibold text-sm">{groupName}</span>
+                        return [
+                          /* Group header row */
+                          <tr key={`group-${groupId}`} className="bg-muted/50">
+                            <td colSpan={FEATURES.length + 1} className="p-2 px-3">
+                              <span className="font-semibold text-sm">{groupName}</span>
+                            </td>
+                          </tr>,
+                          /* Users in this group */
+                          ...groupUsers.map(u => (
+                            <tr key={u.id} className="border-b hover-elevate" data-testid={`permission-row-${u.id}`}>
+                              <td className="p-3 sticky left-0 bg-card z-10">
+                                <div className="flex flex-col min-w-[150px]">
+                                  <span className="font-medium text-sm">{u.name}</span>
+                                  <span className="text-xs text-muted-foreground capitalize">{u.role.replace(/_/g, ' ')}</span>
+                                </div>
                               </td>
-                            </tr>
-                            {/* Users in this group */}
-                            {groupUsers.map(u => (
-                              <tr key={u.id} className="border-b hover-elevate" data-testid={`permission-row-${u.id}`}>
-                                <td className="p-3 sticky left-0 bg-card z-10">
-                                  <div className="flex flex-col min-w-[150px]">
-                                    <span className="font-medium text-sm">{u.name}</span>
-                                    <span className="text-xs text-muted-foreground capitalize">{u.role.replace(/_/g, ' ')}</span>
-                                  </div>
-                                </td>
-                                {FEATURES.map(feature => {
-                                  const level = getPermissionLevel(u.id, feature);
-                                  
-                                  return (
-                                    <td key={feature} className="p-3 text-center">
-                                      <Select
-                                        value={level}
-                                        onValueChange={(value) => handlePermissionLevelChange(u.id, feature, value)}
-                                        disabled={savingUser === u.id}
+                              {FEATURES.map(feature => {
+                                const level = getPermissionLevel(u.id, feature);
+                                
+                                return (
+                                  <td key={feature} className="p-3 text-center">
+                                    <Select
+                                      value={level}
+                                      onValueChange={(value) => handlePermissionLevelChange(u.id, feature, value)}
+                                      disabled={savingUser === u.id}
+                                    >
+                                      <SelectTrigger 
+                                        className="w-full text-xs h-8"
+                                        data-testid={`select-permission-${u.id}-${feature}`}
                                       >
-                                        <SelectTrigger 
-                                          className="w-full text-xs h-8"
-                                          data-testid={`select-permission-${u.id}-${feature}`}
-                                        >
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="none">None</SelectItem>
-                                          <SelectItem value="view">View</SelectItem>
-                                          <SelectItem value="edit">Edit</SelectItem>
-                                          <SelectItem value="create">Create</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </td>
-                                  );
-                                })}
-                              </tr>
-                            ))}
-                          </React.Fragment>
-                        );
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="none">None</SelectItem>
+                                        <SelectItem value="view">View</SelectItem>
+                                        <SelectItem value="edit">Edit</SelectItem>
+                                        <SelectItem value="create">Create</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))
+                        ];
                       })}
                     </tbody>
                   </table>

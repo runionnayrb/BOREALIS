@@ -160,6 +160,7 @@ export interface IStorage {
   createTechnician(technician: InsertTechnician): Promise<Technician>;
   updateTechnician(id: string, updates: Partial<InsertTechnician>): Promise<Technician | undefined>;
   deleteTechnician(id: string): Promise<void>;
+  reorderTechnicians(technicianIds: string[]): Promise<void>;
   
   // Technician Departments
   getTechnicianDepartments(technicianId: string): Promise<TechnicianDepartment[]>;
@@ -719,6 +720,14 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTechnician(id: string): Promise<void> {
     await db.delete(technicians).where(eq(technicians.id, id));
+  }
+
+  async reorderTechnicians(technicianIds: string[]): Promise<void> {
+    await db.transaction(async (tx) => {
+      for (let i = 0; i < technicianIds.length; i++) {
+        await tx.update(technicians).set({ sortOrder: i }).where(eq(technicians.id, technicianIds[i]));
+      }
+    });
   }
 
   // Technician Departments
