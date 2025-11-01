@@ -9,8 +9,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Settings, Shield, Zap, Users, Lock, ToggleLeft } from "lucide-react";
+import { Loader2, Settings, Shield, Zap, Users, Lock, ToggleLeft, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 
 type User = {
@@ -238,13 +239,6 @@ export default function AdminDashboard() {
                     <thead>
                       <tr className="border-b">
                         <th className="text-left p-3 font-semibold sticky left-0 bg-card z-10">User</th>
-                        <th className="text-center p-3 font-semibold sticky left-[150px] bg-card z-10 min-w-[80px]">
-                          <div className="flex items-center justify-center gap-2 text-xs">
-                            <span>V</span>
-                            <span>C</span>
-                            <span>E</span>
-                          </div>
-                        </th>
                         {FEATURES.map(feature => (
                           <th key={feature} className="text-center p-3 font-semibold min-w-[100px]">
                             <div className="text-xs">{FEATURE_LABELS[feature]}</div>
@@ -262,40 +256,73 @@ export default function AdminDashboard() {
                               <span className="text-xs text-muted-foreground capitalize">{u.role}</span>
                             </div>
                           </td>
-                          <td className="p-3 sticky left-[150px] bg-card z-10">
-                            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                              <span>View</span>
-                              <span>Create</span>
-                              <span>Edit</span>
-                            </div>
-                          </td>
-                          {FEATURES.map(feature => (
-                            <td key={feature} className="p-3 text-center">
-                              <div className="flex items-center justify-center gap-2">
-                                <Checkbox
-                                  checked={getUserPermission(u.id, feature, 'canView')}
-                                  onCheckedChange={(checked) => handlePermissionToggle(u.id, feature, 'canView', checked as boolean)}
-                                  disabled={savingUser === u.id}
-                                  data-testid={`checkbox-${u.id}-${feature}-view`}
-                                  className="w-3 h-3"
-                                />
-                                <Checkbox
-                                  checked={getUserPermission(u.id, feature, 'canCreate')}
-                                  onCheckedChange={(checked) => handlePermissionToggle(u.id, feature, 'canCreate', checked as boolean)}
-                                  disabled={savingUser === u.id}
-                                  data-testid={`checkbox-${u.id}-${feature}-create`}
-                                  className="w-3 h-3"
-                                />
-                                <Checkbox
-                                  checked={getUserPermission(u.id, feature, 'canEdit')}
-                                  onCheckedChange={(checked) => handlePermissionToggle(u.id, feature, 'canEdit', checked as boolean)}
-                                  disabled={savingUser === u.id}
-                                  data-testid={`checkbox-${u.id}-${feature}-edit`}
-                                  className="w-3 h-3"
-                                />
-                              </div>
-                            </td>
-                          ))}
+                          {FEATURES.map(feature => {
+                            const hasView = getUserPermission(u.id, feature, 'canView');
+                            const hasCreate = getUserPermission(u.id, feature, 'canCreate');
+                            const hasEdit = getUserPermission(u.id, feature, 'canEdit');
+                            const activePerms = [
+                              hasView && 'View',
+                              hasCreate && 'Create',
+                              hasEdit && 'Edit'
+                            ].filter(Boolean);
+                            const displayText = activePerms.length > 0 ? activePerms.join(', ') : 'None';
+                            
+                            return (
+                              <td key={feature} className="p-3 text-center">
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      disabled={savingUser === u.id}
+                                      className="w-full justify-between text-xs h-8"
+                                      data-testid={`button-permission-${u.id}-${feature}`}
+                                    >
+                                      <span className="truncate">{displayText}</span>
+                                      <ChevronDown className="h-3 w-3 ml-1 flex-shrink-0" />
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-48 p-3" align="start">
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2">
+                                        <Checkbox
+                                          id={`${u.id}-${feature}-view`}
+                                          checked={hasView}
+                                          onCheckedChange={(checked) => handlePermissionToggle(u.id, feature, 'canView', checked as boolean)}
+                                          data-testid={`checkbox-${u.id}-${feature}-view`}
+                                        />
+                                        <Label htmlFor={`${u.id}-${feature}-view`} className="text-sm cursor-pointer">
+                                          View
+                                        </Label>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <Checkbox
+                                          id={`${u.id}-${feature}-create`}
+                                          checked={hasCreate}
+                                          onCheckedChange={(checked) => handlePermissionToggle(u.id, feature, 'canCreate', checked as boolean)}
+                                          data-testid={`checkbox-${u.id}-${feature}-create`}
+                                        />
+                                        <Label htmlFor={`${u.id}-${feature}-create`} className="text-sm cursor-pointer">
+                                          Create
+                                        </Label>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <Checkbox
+                                          id={`${u.id}-${feature}-edit`}
+                                          checked={hasEdit}
+                                          onCheckedChange={(checked) => handlePermissionToggle(u.id, feature, 'canEdit', checked as boolean)}
+                                          data-testid={`checkbox-${u.id}-${feature}-edit`}
+                                        />
+                                        <Label htmlFor={`${u.id}-${feature}-edit`} className="text-sm cursor-pointer">
+                                          Edit
+                                        </Label>
+                                      </div>
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                              </td>
+                            );
+                          })}
                         </tr>
                       ))}
                     </tbody>
