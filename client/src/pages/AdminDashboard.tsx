@@ -9,9 +9,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Settings, Shield, Zap, Users, Lock, ToggleLeft, ChevronDown } from "lucide-react";
+import { Loader2, Settings, Shield, Zap, Users, Lock, ToggleLeft } from "lucide-react";
 import { useState, useEffect } from "react";
 
 type User = {
@@ -140,24 +140,44 @@ export default function AdminDashboard() {
     },
   });
 
-  const getUserPermission = (userId: string, feature: string, type: 'canView' | 'canCreate' | 'canEdit') => {
+  const getPermissionLevel = (userId: string, feature: string): 'none' | 'view' | 'edit' | 'create' => {
     const perm = permissions?.find(p => p.userId === userId && p.feature === feature);
-    return perm ? perm[type] === 1 : false;
+    if (!perm) return 'none';
+    
+    if (perm.canCreate === 1) return 'create';
+    if (perm.canEdit === 1) return 'edit';
+    if (perm.canView === 1) return 'view';
+    return 'none';
   };
 
-  const handlePermissionToggle = async (userId: string, feature: string, type: 'canView' | 'canCreate' | 'canEdit', checked: boolean) => {
+  const handlePermissionLevelChange = async (userId: string, feature: string, level: string) => {
     if (!permissions) return;
 
     setSavingUser(userId);
+
+    let canView = 0;
+    let canEdit = 0;
+    let canCreate = 0;
+
+    if (level === 'view') {
+      canView = 1;
+    } else if (level === 'edit') {
+      canView = 1;
+      canEdit = 1;
+    } else if (level === 'create') {
+      canView = 1;
+      canEdit = 1;
+      canCreate = 1;
+    }
 
     const userPermissions = FEATURES.map(feat => {
       const existing = permissions.find(p => p.userId === userId && p.feature === feat);
       if (feat === feature) {
         return {
           feature: feat,
-          canView: type === 'canView' ? (checked ? 1 : 0) : (existing?.canView || 0),
-          canCreate: type === 'canCreate' ? (checked ? 1 : 0) : (existing?.canCreate || 0),
-          canEdit: type === 'canEdit' ? (checked ? 1 : 0) : (existing?.canEdit || 0),
+          canView,
+          canCreate,
+          canEdit,
         };
       }
       return {
@@ -230,7 +250,7 @@ export default function AdminDashboard() {
               <CardHeader>
                 <CardTitle>Permission</CardTitle>
                 <CardDescription>
-                  Control what each user can view, create, and edit. Unchecked permissions hide features from the sidebar.
+                  Select a permission level for each feature. Create = full access, Edit = can view and edit, View = read-only. Unchecked permissions hide features from the sidebar.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -240,7 +260,7 @@ export default function AdminDashboard() {
                       <tr className="border-b">
                         <th className="text-left p-3 font-semibold sticky left-0 bg-card z-10">User</th>
                         {FEATURES.map(feature => (
-                          <th key={feature} className="text-center p-3 font-semibold min-w-[100px]">
+                          <th key={feature} className="text-center p-3 font-semibold min-w-[120px]">
                             <div className="text-xs">{FEATURE_LABELS[feature]}</div>
                           </th>
                         ))}
@@ -257,69 +277,28 @@ export default function AdminDashboard() {
                             </div>
                           </td>
                           {FEATURES.map(feature => {
-                            const hasView = getUserPermission(u.id, feature, 'canView');
-                            const hasCreate = getUserPermission(u.id, feature, 'canCreate');
-                            const hasEdit = getUserPermission(u.id, feature, 'canEdit');
-                            const activePerms = [
-                              hasView && 'View',
-                              hasCreate && 'Create',
-                              hasEdit && 'Edit'
-                            ].filter(Boolean);
-                            const displayText = activePerms.length > 0 ? activePerms.join(', ') : 'None';
+                            const level = getPermissionLevel(u.id, feature);
                             
                             return (
                               <td key={feature} className="p-3 text-center">
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      disabled={savingUser === u.id}
-                                      className="w-full justify-between text-xs h-8"
-                                      data-testid={`button-permission-${u.id}-${feature}`}
-                                    >
-                                      <span className="truncate">{displayText}</span>
-                                      <ChevronDown className="h-3 w-3 ml-1 flex-shrink-0" />
-                                    </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-48 p-3" align="start">
-                                    <div className="space-y-2">
-                                      <div className="flex items-center gap-2">
-                                        <Checkbox
-                                          id={`${u.id}-${feature}-view`}
-                                          checked={hasView}
-                                          onCheckedChange={(checked) => handlePermissionToggle(u.id, feature, 'canView', checked as boolean)}
-                                          data-testid={`checkbox-${u.id}-${feature}-view`}
-                                        />
-                                        <Label htmlFor={`${u.id}-${feature}-view`} className="text-sm cursor-pointer">
-                                          View
-                                        </Label>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <Checkbox
-                                          id={`${u.id}-${feature}-create`}
-                                          checked={hasCreate}
-                                          onCheckedChange={(checked) => handlePermissionToggle(u.id, feature, 'canCreate', checked as boolean)}
-                                          data-testid={`checkbox-${u.id}-${feature}-create`}
-                                        />
-                                        <Label htmlFor={`${u.id}-${feature}-create`} className="text-sm cursor-pointer">
-                                          Create
-                                        </Label>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <Checkbox
-                                          id={`${u.id}-${feature}-edit`}
-                                          checked={hasEdit}
-                                          onCheckedChange={(checked) => handlePermissionToggle(u.id, feature, 'canEdit', checked as boolean)}
-                                          data-testid={`checkbox-${u.id}-${feature}-edit`}
-                                        />
-                                        <Label htmlFor={`${u.id}-${feature}-edit`} className="text-sm cursor-pointer">
-                                          Edit
-                                        </Label>
-                                      </div>
-                                    </div>
-                                  </PopoverContent>
-                                </Popover>
+                                <Select
+                                  value={level}
+                                  onValueChange={(value) => handlePermissionLevelChange(u.id, feature, value)}
+                                  disabled={savingUser === u.id}
+                                >
+                                  <SelectTrigger 
+                                    className="w-full text-xs h-8"
+                                    data-testid={`select-permission-${u.id}-${feature}`}
+                                  >
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">None</SelectItem>
+                                    <SelectItem value="view">View</SelectItem>
+                                    <SelectItem value="edit">Edit</SelectItem>
+                                    <SelectItem value="create">Create</SelectItem>
+                                  </SelectContent>
+                                </Select>
                               </td>
                             );
                           })}
