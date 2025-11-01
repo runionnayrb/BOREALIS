@@ -50,9 +50,6 @@ export default function LineupsList() {
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Show Lineups</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage stage positions and artist assignments for shows
-            </p>
           </div>
           <Button onClick={() => setLocation("/lineups/new")} data-testid="button-create-lineup">
             <Plus className="w-4 h-4 mr-2" />
