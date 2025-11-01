@@ -60,9 +60,16 @@ export default function AuthPage() {
 
   useEffect(() => {
     const originalBg = document.body.style.backgroundColor;
+    const hadDarkClass = document.documentElement.classList.contains('dark');
+    
     document.body.style.backgroundColor = '#ffffff';
+    document.documentElement.classList.remove('dark');
+    
     return () => {
       document.body.style.backgroundColor = originalBg;
+      if (hadDarkClass) {
+        document.documentElement.classList.add('dark');
+      }
     };
   }, []);
 
@@ -119,11 +126,11 @@ export default function AuthPage() {
           <h1 className="text-3xl font-bold mb-2 text-black">Borealis</h1>
         </div>
 
-        <Card className="p-6 bg-white border-gray-200">
+        <Card className="p-6 bg-white border-gray-200 text-black">
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "login" | "register")}>
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="login" data-testid="tab-login">Login</TabsTrigger>
-                <TabsTrigger value="register" data-testid="tab-register">Register</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 mb-6 bg-gray-100 text-gray-700">
+                <TabsTrigger value="login" data-testid="tab-login" className="data-[state=active]:bg-white data-[state=active]:text-black">Login</TabsTrigger>
+                <TabsTrigger value="register" data-testid="tab-register" className="data-[state=active]:bg-white data-[state=active]:text-black">Register</TabsTrigger>
               </TabsList>
 
               <TabsContent value="login">
@@ -134,9 +141,9 @@ export default function AuthPage() {
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel className="text-black">Email</FormLabel>
                           <FormControl>
-                            <Input type="email" {...field} data-testid="input-login-email" />
+                            <Input type="email" {...field} data-testid="input-login-email" className="bg-blue-50 border-gray-300 text-black" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -147,9 +154,9 @@ export default function AuthPage() {
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Password</FormLabel>
+                          <FormLabel className="text-black">Password</FormLabel>
                           <FormControl>
-                            <Input type="password" {...field} data-testid="input-login-password" />
+                            <Input type="password" {...field} data-testid="input-login-password" className="bg-blue-50 border-gray-300 text-black" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -184,9 +191,9 @@ export default function AuthPage() {
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel className="text-black">Email</FormLabel>
                           <FormControl>
-                            <Input type="email" {...field} data-testid="input-register-email" />
+                            <Input type="email" {...field} data-testid="input-register-email" className="bg-blue-50 border-gray-300 text-black" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -197,9 +204,9 @@ export default function AuthPage() {
                       name="artistName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Artist Name</FormLabel>
+                          <FormLabel className="text-black">Artist Name</FormLabel>
                           <FormControl>
-                            <Input {...field} data-testid="input-register-artist-name" />
+                            <Input {...field} data-testid="input-register-artist-name" className="bg-blue-50 border-gray-300 text-black" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -210,9 +217,9 @@ export default function AuthPage() {
                       name="firstName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>First Name</FormLabel>
+                          <FormLabel className="text-black">First Name</FormLabel>
                           <FormControl>
-                            <Input {...field} data-testid="input-register-first-name" />
+                            <Input {...field} data-testid="input-register-first-name" className="bg-blue-50 border-gray-300 text-black" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -223,9 +230,9 @@ export default function AuthPage() {
                       name="lastName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Last Name</FormLabel>
+                          <FormLabel className="text-black">Last Name</FormLabel>
                           <FormControl>
-                            <Input {...field} data-testid="input-register-last-name" />
+                            <Input {...field} data-testid="input-register-last-name" className="bg-blue-50 border-gray-300 text-black" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -236,16 +243,16 @@ export default function AuthPage() {
                       name="userGroupId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Department</FormLabel>
+                          <FormLabel className="text-black">Department</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                              <SelectTrigger data-testid="select-register-department">
+                              <SelectTrigger data-testid="select-register-department" className="bg-blue-50 border-gray-300 text-black">
                                 <SelectValue placeholder="Select department" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent className="bg-white border-gray-300">
                               {userGroups.map((group) => (
-                                <SelectItem key={group.id} value={group.id} data-testid={`option-department-${group.id}`}>
+                                <SelectItem key={group.id} value={group.id} data-testid={`option-department-${group.id}`} className="text-black">
                                   {group.name}
                                 </SelectItem>
                               ))}
@@ -260,9 +267,9 @@ export default function AuthPage() {
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Password</FormLabel>
+                          <FormLabel className="text-black">Password</FormLabel>
                           <FormControl>
-                            <Input type="password" {...field} data-testid="input-register-password" />
+                            <Input type="password" {...field} data-testid="input-register-password" className="bg-blue-50 border-gray-300 text-black" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
