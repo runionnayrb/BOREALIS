@@ -680,12 +680,13 @@ export default function Settings() {
   });
 
   const createTechMutation = useMutation({
-    mutationFn: async (data: { firstName: string; lastName: string; technicianName?: string; role?: string; departmentIds: string[] }) => {
+    mutationFn: async (data: { firstName: string; lastName: string; technicianName?: string; role?: string; photoUrl?: string; departmentIds: string[] }) => {
       const technician: any = await apiRequest("POST", "/api/technicians", {
         firstName: data.firstName,
         lastName: data.lastName,
         technicianName: data.technicianName,
         role: data.role,
+        photoUrl: data.photoUrl,
       });
       // Set department assignments
       if (data.departmentIds.length > 0) {
@@ -700,6 +701,7 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ["/api/technician-departments/all"] });
       setTechDialogOpen(false);
       setSelectedTechnicianDepartmentIds([]);
+      setUploadedPhotoUrl(null);
       toast({ title: "Technician created successfully" });
     },
   });
@@ -904,12 +906,13 @@ export default function Settings() {
   });
 
   const updateTechMutation = useMutation({
-    mutationFn: async (data: { id: string; firstName: string; lastName: string; technicianName?: string; role?: string; departmentIds: string[] }) => {
+    mutationFn: async (data: { id: string; firstName: string; lastName: string; technicianName?: string; role?: string; photoUrl?: string; departmentIds: string[] }) => {
       const technician = await apiRequest("PATCH", `/api/technicians/${data.id}`, {
         firstName: data.firstName,
         lastName: data.lastName,
         technicianName: data.technicianName,
         role: data.role,
+        photoUrl: data.photoUrl,
       });
       // Set department assignments
       await apiRequest("PUT", `/api/technicians/${data.id}/departments`, {
@@ -923,6 +926,7 @@ export default function Settings() {
       setTechDialogOpen(false);
       setEditTarget(null);
       setSelectedTechnicianDepartmentIds([]);
+      setUploadedPhotoUrl(null);
       toast({ title: "Technician updated successfully" });
     },
   });
@@ -1569,47 +1573,25 @@ export default function Settings() {
       <Card
         ref={setNodeRef}
         style={style}
-        className="p-3 flex items-center justify-between hover-elevate"
+        className="p-3 flex items-center gap-3 cursor-pointer hover-elevate active-elevate-2"
+        onClick={() => {
+          setEditTarget({ type: "artist", id: artist.id, data: artist });
+          setArtistDialogOpen(true);
+        }}
         data-testid={`card-artist-${artist.id}`}
       >
-        <div className="flex items-center gap-3 flex-1">
-          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
-            <GripVertical className="w-4 h-4 text-muted-foreground" />
-          </div>
-          <Avatar className="w-10 h-10">
-            {artist.photoUrl && <AvatarImage src={artist.photoUrl} alt={artist.stageName || `${artist.firstName} ${artist.lastName}`} />}
-            <AvatarFallback className="bg-primary/10 text-primary text-sm">
-              {(artist.stageName || artist.firstName).charAt(0)}{(artist.stageName ? '' : artist.lastName).charAt(0)}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="font-medium">{artist.stageName || `${artist.firstName} ${artist.lastName}`}</p>
-            {artist.role && <p className="text-sm text-muted-foreground">{artist.role}</p>}
-          </div>
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing" onClick={(e) => e.stopPropagation()}>
+          <GripVertical className="w-4 h-4 text-muted-foreground" />
         </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setEditTarget({ type: "artist", id: artist.id, data: artist });
-              setArtistDialogOpen(true);
-            }}
-            data-testid={`button-edit-artist-${artist.id}`}
-          >
-            <Edit className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setDeleteTarget({ type: "artist", id: artist.id });
-              setDeleteDialogOpen(true);
-            }}
-            data-testid={`button-delete-artist-${artist.id}`}
-          >
-            <Trash2 className="w-4 h-4 text-destructive" />
-          </Button>
+        <Avatar className="w-10 h-10">
+          {artist.photoUrl && <AvatarImage src={artist.photoUrl} alt={artist.stageName || `${artist.firstName} ${artist.lastName}`} />}
+          <AvatarFallback className="bg-primary/10 text-primary text-sm">
+            {(artist.stageName || artist.firstName).charAt(0)}{(artist.stageName ? '' : artist.lastName).charAt(0)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1">
+          <p className="font-medium">{artist.stageName || `${artist.firstName} ${artist.lastName}`}</p>
+          {artist.role && <p className="text-sm text-muted-foreground">{artist.role}</p>}
         </div>
       </Card>
     );
@@ -1635,41 +1617,25 @@ export default function Settings() {
       <Card
         ref={setNodeRef}
         style={style}
-        className="p-3 flex items-center justify-between hover-elevate"
+        className="p-3 flex items-center gap-3 cursor-pointer hover-elevate active-elevate-2"
+        onClick={() => {
+          setEditTarget({ type: "technician", id: technician.id, data: technician });
+          setTechDialogOpen(true);
+        }}
         data-testid={`card-technician-${technician.id}`}
       >
-        <div className="flex items-center gap-3 flex-1">
-          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
-            <GripVertical className="w-4 h-4 text-muted-foreground" />
-          </div>
-          <div>
-            <p className="font-medium">{technician.technicianName || `${technician.firstName} ${technician.lastName}`}</p>
-            {technician.role && <p className="text-sm text-muted-foreground">{technician.role}</p>}
-          </div>
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing" onClick={(e) => e.stopPropagation()}>
+          <GripVertical className="w-4 h-4 text-muted-foreground" />
         </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setEditTarget({ type: "technician", id: technician.id, data: technician });
-              setTechDialogOpen(true);
-            }}
-            data-testid={`button-edit-technician-${technician.id}`}
-          >
-            <Edit className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setDeleteTarget({ type: "technician", id: technician.id });
-              setDeleteDialogOpen(true);
-            }}
-            data-testid={`button-delete-technician-${technician.id}`}
-          >
-            <Trash2 className="w-4 h-4 text-destructive" />
-          </Button>
+        <Avatar className="w-10 h-10">
+          {technician.photoUrl && <AvatarImage src={technician.photoUrl} alt={technician.technicianName || `${technician.firstName} ${technician.lastName}`} />}
+          <AvatarFallback className="bg-primary/10 text-primary text-sm">
+            {(technician.technicianName || technician.firstName).charAt(0)}{(technician.technicianName ? '' : technician.lastName).charAt(0)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1">
+          <p className="font-medium">{technician.technicianName || `${technician.firstName} ${technician.lastName}`}</p>
+          {technician.role && <p className="text-sm text-muted-foreground">{technician.role}</p>}
         </div>
       </Card>
     );
@@ -1746,13 +1712,63 @@ export default function Settings() {
       );
     }
 
+    // Group technicians by department
+    const grouped = new Map<string, Technician[]>();
+    const techniciansWithDepts = new Set<string>();
+    
+    allTechnicianDepartments.forEach(({ technicianId, departmentId }) => {
+      techniciansWithDepts.add(technicianId);
+      const tech = orderedTechnicians.find(t => t.id === technicianId);
+      if (!tech) return;
+      
+      if (!grouped.has(departmentId)) {
+        grouped.set(departmentId, []);
+      }
+      grouped.get(departmentId)!.push(tech);
+    });
+    
+    // Add technicians with no departments to "No Department" group
+    const noDeptTechs = orderedTechnicians.filter(t => !techniciansWithDepts.has(t.id));
+    if (noDeptTechs.length > 0) {
+      grouped.set('no-department', noDeptTechs);
+    }
+    
+    // Sort departments alphabetically, with "no-department" last
+    const sortedDeptIds = Array.from(grouped.keys()).sort((a, b) => {
+      if (a === 'no-department') return 1;
+      if (b === 'no-department') return -1;
+      const deptA = departments.find(d => d.id === a);
+      const deptB = departments.find(d => d.id === b);
+      return (deptA?.name || '').localeCompare(deptB?.name || '');
+    });
+
     return (
       <DndContext sensors={technicianDragSensors} collisionDetection={closestCenter} onDragEnd={handleTechnicianDragEnd}>
         <SortableContext items={orderedTechnicians.map(t => t.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-2">
-            {orderedTechnicians.map((tech) => (
-              <SortableTechnicianCard key={tech.id} technician={tech} />
-            ))}
+          <div className="space-y-6">
+            {sortedDeptIds.map((deptId) => {
+              const techsInDept = grouped.get(deptId) || [];
+              const dept = departments.find(d => d.id === deptId);
+              const isNoDept = deptId === 'no-department';
+              
+              return (
+                <div key={deptId} className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      {isNoDept ? 'No Department' : dept?.name || 'Unknown'}
+                    </h3>
+                    <span className="text-xs text-muted-foreground">
+                      ({techsInDept.length})
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {techsInDept.map((tech) => (
+                      <SortableTechnicianCard key={tech.id} technician={tech} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </SortableContext>
       </DndContext>
@@ -3701,7 +3717,10 @@ export default function Settings() {
                     open={techDialogOpen} 
                     onOpenChange={(open) => {
                       setTechDialogOpen(open);
-                      if (!open) setEditTarget(null);
+                      if (!open) {
+                        setEditTarget(null);
+                        setUploadedPhotoUrl(null);
+                      }
                     }}
                   >
                     <DialogTrigger asChild>
@@ -3719,6 +3738,7 @@ export default function Settings() {
                           const lastName = formData.get("lastName") as string;
                           const technicianName = (formData.get("technicianName") as string) || undefined;
                           const role = (formData.get("role") as string) || undefined;
+                          const photoUrl = (formData.get("photoUrl") as string) || undefined;
 
                           if (editTarget?.type === "technician") {
                             updateTechMutation.mutate({
@@ -3727,6 +3747,7 @@ export default function Settings() {
                               lastName,
                               technicianName,
                               role,
+                              photoUrl,
                               departmentIds: selectedTechnicianDepartmentIds,
                             });
                           } else {
@@ -3735,6 +3756,7 @@ export default function Settings() {
                               lastName,
                               technicianName,
                               role,
+                              photoUrl,
                               departmentIds: selectedTechnicianDepartmentIds,
                             });
                           }
@@ -3785,6 +3807,34 @@ export default function Settings() {
                             />
                           </div>
                           <div className="space-y-2">
+                            <Label>Photo</Label>
+                            <div className="flex items-center gap-4">
+                              {(uploadedPhotoUrl || (editTarget?.type === "technician" && editTarget.data.photoUrl)) && (
+                                <Avatar className="w-16 h-16">
+                                  <AvatarImage 
+                                    src={uploadedPhotoUrl || (editTarget?.type === "technician" ? editTarget.data.photoUrl : undefined)} 
+                                    alt="Technician photo" 
+                                  />
+                                  <AvatarFallback>
+                                    <UserCircle2 className="w-8 h-8" />
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
+                              <div className="flex flex-col gap-2">
+                                <PhotoUploader
+                                  onUploadComplete={(url) => setUploadedPhotoUrl(url)}
+                                  currentPhotoUrl={uploadedPhotoUrl || (editTarget?.type === "technician" ? editTarget.data.photoUrl : null)}
+                                />
+                                {(uploadedPhotoUrl || (editTarget?.type === "technician" && editTarget.data.photoUrl)) && (
+                                  <span className="text-xs text-muted-foreground">
+                                    Photo {uploadedPhotoUrl ? "uploaded" : "set"}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <input type="hidden" name="photoUrl" value={uploadedPhotoUrl || (editTarget?.type === "technician" ? editTarget.data.photoUrl || "" : "")} />
+                          </div>
+                          <div className="space-y-2">
                             <Label>Departments (Multiple)</Label>
                             <Popover>
                               <PopoverTrigger asChild>
@@ -3827,7 +3877,21 @@ export default function Settings() {
                             </Popover>
                           </div>
                         </div>
-                        <DialogFooter>
+                        <DialogFooter className="flex justify-between items-center gap-2">
+                          {editTarget?.type === "technician" && (
+                            <Button 
+                              type="button"
+                              variant="destructive"
+                              onClick={() => {
+                                setDeleteTarget({ type: "technician", id: editTarget.id });
+                                setDeleteDialogOpen(true);
+                              }}
+                              data-testid="button-delete-technician"
+                            >
+                              Delete Technician
+                            </Button>
+                          )}
+                          <div className="flex-1"></div>
                           <Button 
                             type="submit" 
                             disabled={createTechMutation.isPending || updateTechMutation.isPending} 

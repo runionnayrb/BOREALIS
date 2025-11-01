@@ -368,6 +368,7 @@ export const technicians = pgTable("technicians", {
   lastName: text("last_name").notNull(),
   technicianName: text("technician_name"),
   role: text("role"),
+  photoUrl: text("photo_url"),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
