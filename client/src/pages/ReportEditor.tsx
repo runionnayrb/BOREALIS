@@ -872,19 +872,6 @@ export default function ReportEditor() {
           
           {/* Action buttons row */}
           <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
-            <Button
-              onClick={handleSaveReport}
-              disabled={createReportMutation.isPending || updateReportMutation.isPending}
-              data-testid="button-save-report"
-              className="flex-1 sm:flex-none"
-            >
-              {(createReportMutation.isPending || updateReportMutation.isPending) ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2 text-primary-foreground" />
-              ) : (
-                <Save className="h-4 w-4 mr-2 text-primary-foreground" />
-              )}
-              {reportId ? "Save" : "Create Report"}
-            </Button>
             {reportId && user?.outlookConnected && (
               <Button 
                 variant="outline" 
@@ -917,46 +904,63 @@ export default function ReportEditor() {
               <span className="hidden sm:inline">Export PDF</span>
               <span className="sm:hidden">Export</span>
             </Button>
-            {reportId && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    data-testid="button-delete-report"
-                    className="flex-1 sm:flex-none text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Delete Report</span>
-                    <span className="sm:hidden">Delete</span>
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Report?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to delete this report? This will permanently delete the report and all associated training sessions. This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel data-testid="button-cancel-delete-report">Cancel</AlertDialogCancel>
-                    <AlertDialogAction 
-                      asChild
-                      data-testid="button-confirm-delete-report"
-                    >
-                      <Button
-                        onClick={() => deleteReportMutation.mutate()}
-                        disabled={deleteReportMutation.isPending}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        {deleteReportMutation.isPending ? "Deleting..." : "Delete"}
-                      </Button>
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
+            <Button
+              onClick={handleSaveReport}
+              disabled={createReportMutation.isPending || updateReportMutation.isPending}
+              data-testid="button-save-report"
+              className="flex-1 sm:flex-none"
+            >
+              {(createReportMutation.isPending || updateReportMutation.isPending) ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2 text-primary-foreground" />
+              ) : (
+                <Save className="h-4 w-4 mr-2 text-primary-foreground" />
+              )}
+              {reportId ? "Save" : "Create Report"}
+            </Button>
           </div>
         </div>
+        
+        {/* Delete button at bottom - outside md:flex-row container */}
+        {reportId && (
+          <div className="flex justify-end mt-3">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  data-testid="button-delete-report"
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Delete Report</span>
+                  <span className="sm:hidden">Delete</span>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Report?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete this report? This will permanently delete the report and all associated training sessions. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel data-testid="button-cancel-delete-report">Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    asChild
+                    data-testid="button-confirm-delete-report"
+                  >
+                    <Button
+                      onClick={() => deleteReportMutation.mutate()}
+                      disabled={deleteReportMutation.isPending}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {deleteReportMutation.isPending ? "Deleting..." : "Delete"}
+                    </Button>
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )}
       </header>
 
       <main className="flex-1 overflow-y-auto">
