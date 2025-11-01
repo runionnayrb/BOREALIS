@@ -1749,9 +1749,6 @@ export default function Settings() {
       <div className="max-w-6xl mx-auto p-4 md:p-8">
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-bold mb-2">Settings</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage acts, departments, artists, technicians, locations, and report template
-          </p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
