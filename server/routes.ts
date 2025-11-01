@@ -10,6 +10,13 @@ import { setupWebSocket, broadcastAttendanceUpdate, broadcastArtistStatusUpdate,
 import { isWithinVenue, getDistanceFromVenue, validateGeofence } from "./geofencing";
 import { insertAttendanceRecordSchema, insertTickSheetSchema, insertTickSheetMarkSchema } from "@shared/schema";
 import { requireRole } from "./middleware/roleAuth";
+import {
+  canViewReports,
+  canCreateReports,
+  canEditReports,
+  canViewSettingsReportTemplate,
+  canEditSettingsReportTemplate,
+} from "./middleware/permissionAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import {
   insertSceneSchema,
@@ -1652,14 +1659,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Report Template routes
-  app.get("/api/report-template", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/report-template", canViewSettingsReportTemplate, async (req, res) => {
     const template = await storage.getReportTemplate();
     res.json(template || null);
   });
 
-  app.put("/api/report-template", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.put("/api/report-template", canEditSettingsReportTemplate, async (req, res) => {
     const validation = insertReportTemplateSchema.partial().safeParse(req.body);
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
@@ -1669,27 +1674,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Reports routes
-  app.get("/api/reports", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/reports", canViewReports, async (req, res) => {
     const reports = await storage.getAllReports();
     res.json(reports);
   });
 
-  app.get("/api/reports/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/reports/:id", canViewReports, async (req, res) => {
     const report = await storage.getReport(req.params.id);
     if (!report) return res.sendStatus(404);
     res.json(report);
   });
 
-  app.get("/api/reports/date/:date", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/reports/date/:date", canViewReports, async (req, res) => {
     const report = await storage.getReportByDate(req.params.date);
     res.json(report || null);
   });
 
-  app.post("/api/reports", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.post("/api/reports", canCreateReports, async (req, res) => {
     const validation = insertReportSchema.safeParse(req.body);
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
@@ -1698,8 +1699,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(report);
   });
 
-  app.patch("/api/reports/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.patch("/api/reports/:id", canEditReports, async (req, res) => {
     const validation = insertReportSchema.partial().omit({ createdBy: true }).safeParse(req.body);
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
@@ -1709,15 +1709,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(report);
   });
 
-  app.delete("/api/reports/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.delete("/api/reports/:id", canEditReports, async (req, res) => {
     await storage.deleteReport(req.params.id);
     res.sendStatus(204);
   });
 
   // Trainings routes
-  app.get("/api/trainings/all", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/trainings/all", canViewReports, async (req, res) => {
     const allTrainings = await db
       .select()
       .from(trainings)
@@ -1725,21 +1723,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(allTrainings);
   });
 
-  app.get("/api/reports/:reportId/trainings", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/reports/:reportId/trainings", canViewReports, async (req, res) => {
     const trainings = await storage.getTrainingsByReportId(req.params.reportId);
     res.json(trainings);
   });
 
-  app.get("/api/trainings/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/trainings/:id", canViewReports, async (req, res) => {
     const training = await storage.getTraining(req.params.id);
     if (!training) return res.sendStatus(404);
     res.json(training);
   });
 
-  app.post("/api/trainings", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.post("/api/trainings", canCreateReports, async (req, res) => {
     const { locationIds, artistIds, ...trainingData } = req.body;
     const validation = insertTrainingSchema.safeParse(trainingData);
     if (!validation.success) {
@@ -1760,8 +1755,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(training);
   });
 
-  app.patch("/api/trainings/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.patch("/api/trainings/:id", canEditReports, async (req, res) => {
     const { locationIds, artistIds, ...trainingData } = req.body;
     const validation = updateTrainingSchema.safeParse(trainingData);
     if (!validation.success) {
@@ -1783,33 +1777,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(training);
   });
 
-  app.delete("/api/trainings/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.delete("/api/trainings/:id", canEditReports, async (req, res) => {
     await storage.deleteTraining(req.params.id);
     res.sendStatus(204);
   });
 
-  app.get("/api/trainings/:trainingId/locations", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/trainings/:trainingId/locations", canViewReports, async (req, res) => {
     const locations = await storage.getTrainingLocations(req.params.trainingId);
     res.json(locations);
   });
 
-  app.get("/api/trainings/:trainingId/artists", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/trainings/:trainingId/artists", canViewReports, async (req, res) => {
     const trainingArtists = await storage.getTrainingArtists(req.params.trainingId);
     res.json(trainingArtists);
   });
 
   // Department Assignments routes
-  app.get("/api/trainings/:trainingId/assignments", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/trainings/:trainingId/assignments", canViewReports, async (req, res) => {
     const assignments = await storage.getAssignmentsByTrainingId(req.params.trainingId);
     res.json(assignments);
   });
 
-  app.post("/api/assignments", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.post("/api/assignments", canCreateReports, async (req, res) => {
     const validation = insertDepartmentAssignmentSchema.safeParse(req.body);
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
@@ -1818,8 +1807,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(assignment);
   });
 
-  app.patch("/api/assignments/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.patch("/api/assignments/:id", canEditReports, async (req, res) => {
     const validation = insertDepartmentAssignmentSchema.partial().safeParse(req.body);
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
@@ -1829,34 +1817,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(assignment);
   });
 
-  app.delete("/api/assignments/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.delete("/api/assignments/:id", canEditReports, async (req, res) => {
     await storage.deleteAssignment(req.params.id);
     res.sendStatus(204);
   });
 
   // Get all junction table data for search
-  app.get("/api/training-locations/all", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/training-locations/all", canViewReports, async (req, res) => {
     const trainingLocations = await storage.getAllTrainingLocations();
     res.json(trainingLocations);
   });
 
-  app.get("/api/training-artists/all", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/training-artists/all", canViewReports, async (req, res) => {
     const trainingArtists = await storage.getAllTrainingArtists();
     res.json(trainingArtists);
   });
 
-  app.get("/api/assignments/all", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/assignments/all", canViewReports, async (req, res) => {
     const assignments = await storage.getAllAssignments();
     res.json(assignments);
   });
 
   // Email preview endpoint
-  app.get("/api/reports/:reportId/email-preview", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/reports/:reportId/email-preview", canViewReports, async (req, res) => {
 
     try {
       const { formatEmailBody, replaceDateVariable } = await import("./emailFormatter");
@@ -1951,8 +1934,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PDF generation endpoint
-  app.get("/api/reports/:reportId/pdf", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/reports/:reportId/pdf", canViewReports, async (req, res) => {
 
     try {
       const { formatPdfBody } = await import("./emailFormatter");
@@ -2057,8 +2039,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Email sending endpoint
-  app.post("/api/reports/:reportId/send-email", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.post("/api/reports/:reportId/send-email", canEditReports, async (req, res) => {
 
     try {
       const { getUncachableOutlookClient } = await import("./outlook");

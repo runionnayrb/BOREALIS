@@ -19,6 +19,13 @@ type User = {
   name: string;
   email: string;
   role: string;
+  userGroupId: string | null;
+};
+
+type UserGroup = {
+  id: string;
+  name: string;
+  sortOrder: number;
 };
 
 type UserPermission = {
@@ -88,6 +95,10 @@ export default function AdminDashboard() {
 
   const { data: users, isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ['/api/users'],
+  });
+
+  const { data: userGroups, isLoading: userGroupsLoading } = useQuery<UserGroup[]>({
+    queryKey: ['/api/user-groups'],
   });
 
   const { data: permissions, isLoading: permissionsLoading } = useQuery<UserPermission[]>({
@@ -203,7 +214,26 @@ export default function AdminDashboard() {
     return settings?.find(s => s.settingKey === key)?.id || '';
   };
 
-  if (usersLoading || permissionsLoading || settingsLoading) {
+  // Group users by user group
+  const groupedUsers = users?.reduce((acc, user) => {
+    const groupId = user.userGroupId || 'ungrouped';
+    if (!acc[groupId]) {
+      acc[groupId] = [];
+    }
+    acc[groupId].push(user);
+    return acc;
+  }, {} as Record<string, User[]>) || {};
+
+  // Sort groups by sortOrder
+  const sortedGroupIds = Object.keys(groupedUsers).sort((a, b) => {
+    if (a === 'ungrouped') return 1;
+    if (b === 'ungrouped') return -1;
+    const groupA = userGroups?.find(g => g.id === a);
+    const groupB = userGroups?.find(g => g.id === b);
+    return (groupA?.sortOrder || 0) - (groupB?.sortOrder || 0);
+  });
+
+  if (usersLoading || permissionsLoading || settingsLoading || userGroupsLoading) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -267,43 +297,59 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {users?.map(u => (
-                        <tr key={u.id} className="border-b hover-elevate" data-testid={`permission-row-${u.id}`}>
-                          <td className="p-3 sticky left-0 bg-card z-10">
-                            <div className="flex flex-col min-w-[150px]">
-                              <span className="font-medium text-sm">{u.name}</span>
-                              <span className="text-xs text-muted-foreground">{u.email}</span>
-                              <span className="text-xs text-muted-foreground capitalize">{u.role}</span>
-                            </div>
-                          </td>
-                          {FEATURES.map(feature => {
-                            const level = getPermissionLevel(u.id, feature);
-                            
-                            return (
-                              <td key={feature} className="p-3 text-center">
-                                <Select
-                                  value={level}
-                                  onValueChange={(value) => handlePermissionLevelChange(u.id, feature, value)}
-                                  disabled={savingUser === u.id}
-                                >
-                                  <SelectTrigger 
-                                    className="w-full text-xs h-8"
-                                    data-testid={`select-permission-${u.id}-${feature}`}
-                                  >
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="none">None</SelectItem>
-                                    <SelectItem value="view">View</SelectItem>
-                                    <SelectItem value="edit">Edit</SelectItem>
-                                    <SelectItem value="create">Create</SelectItem>
-                                  </SelectContent>
-                                </Select>
+                      {sortedGroupIds.map(groupId => {
+                        const group = userGroups?.find(g => g.id === groupId);
+                        const groupUsers = groupedUsers[groupId] || [];
+                        const groupName = group?.name || 'No Group';
+                        
+                        return (
+                          <>
+                            {/* Group header row */}
+                            <tr key={`group-${groupId}`} className="bg-muted/50">
+                              <td colSpan={FEATURES.length + 1} className="p-2 px-3">
+                                <span className="font-semibold text-sm">{groupName}</span>
                               </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
+                            </tr>
+                            {/* Users in this group */}
+                            {groupUsers.map(u => (
+                              <tr key={u.id} className="border-b hover-elevate" data-testid={`permission-row-${u.id}`}>
+                                <td className="p-3 sticky left-0 bg-card z-10">
+                                  <div className="flex flex-col min-w-[150px]">
+                                    <span className="font-medium text-sm">{u.name}</span>
+                                    <span className="text-xs text-muted-foreground capitalize">{u.role.replace(/_/g, ' ')}</span>
+                                  </div>
+                                </td>
+                                {FEATURES.map(feature => {
+                                  const level = getPermissionLevel(u.id, feature);
+                                  
+                                  return (
+                                    <td key={feature} className="p-3 text-center">
+                                      <Select
+                                        value={level}
+                                        onValueChange={(value) => handlePermissionLevelChange(u.id, feature, value)}
+                                        disabled={savingUser === u.id}
+                                      >
+                                        <SelectTrigger 
+                                          className="w-full text-xs h-8"
+                                          data-testid={`select-permission-${u.id}-${feature}`}
+                                        >
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="none">None</SelectItem>
+                                          <SelectItem value="view">View</SelectItem>
+                                          <SelectItem value="edit">Edit</SelectItem>
+                                          <SelectItem value="create">Create</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </>
+                        );
+                      })}
                     </tbody>
                   </table>
                   {savingUser && (
