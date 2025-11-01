@@ -29,7 +29,7 @@ La Perle - Borealis is a production-ready, full-stack web application designed t
 ### Technical Implementations
 - **Frontend**: React + Vite, Wouter for routing, TanStack Query for data management, shadcn/ui for components.
 - **Backend**: Express.js.
-- **Database**: PostgreSQL with Drizzle ORM.
+- **Database**: PostgreSQL with Drizzle ORM. Automatic initialization on server startup ensures admin account (bryan.runion@laperle.com) exists in both development and production with admin role.
 - **Authentication**: Passport.js (local strategy, scrypt hashing, session-based).
 - **Security**: Two-layer XSS protection (Tiptap + DOMPurify), role-based access control.
 - **Real-time**: WebSocket server for live updates (attendance, tick sheets).
