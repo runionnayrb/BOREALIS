@@ -41,7 +41,7 @@ export default function AppSidebar() {
   
   // Fetch user permissions from database
   const { data: permissions, isLoading: isLoadingPermissions } = useQuery<UserPermission[]>({
-    queryKey: ["/api/permissions/user", user?.id],
+    queryKey: [`/api/permissions/user/${user?.id}`],
     enabled: !!user?.id && user?.role !== 'admin',
   });
   

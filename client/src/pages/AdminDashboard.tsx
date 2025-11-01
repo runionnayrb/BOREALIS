@@ -303,9 +303,9 @@ export default function AdminDashboard() {
                         const groupName = group?.name || 'No Group';
                         
                         return (
-                          <>
+                          <React.Fragment key={groupId}>
                             {/* Group header row */}
-                            <tr key={`group-${groupId}`} className="bg-muted/50">
+                            <tr className="bg-muted/50">
                               <td colSpan={FEATURES.length + 1} className="p-2 px-3">
                                 <span className="font-semibold text-sm">{groupName}</span>
                               </td>
@@ -347,7 +347,7 @@ export default function AdminDashboard() {
                                 })}
                               </tr>
                             ))}
-                          </>
+                          </React.Fragment>
                         );
                       })}
                     </tbody>
