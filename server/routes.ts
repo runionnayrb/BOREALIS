@@ -1074,6 +1074,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(204);
   });
 
+  app.post("/api/technicians/:id/archive", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      await storage.archiveTechnicianWithUser(req.params.id);
+      res.sendStatus(204);
+    } catch (error) {
+      return res.status(404).json({ error: error instanceof Error ? error.message : "Technician not found" });
+    }
+  });
+
+  app.post("/api/technicians/:id/unarchive", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      await storage.unarchiveTechnicianWithUser(req.params.id);
+      res.sendStatus(204);
+    } catch (error) {
+      return res.status(404).json({ error: error instanceof Error ? error.message : "Technician not found" });
+    }
+  });
+
+  app.get("/api/technicians/archived", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const archivedTechnicians = await storage.getAllArchivedTechnicians();
+    res.json(archivedTechnicians);
+  });
+
+  app.post("/api/technicians/:id/link-user", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const validation = z.object({ userId: z.string() }).safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    try {
+      await storage.linkUserToTechnician(req.params.id, validation.data.userId);
+      res.sendStatus(204);
+    } catch (error) {
+      return res.status(400).json({ error: error instanceof Error ? error.message : "Failed to link user" });
+    }
+  });
+
+  app.post("/api/technicians/:id/unlink-user", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      await storage.unlinkUserFromTechnician(req.params.id);
+      res.sendStatus(204);
+    } catch (error) {
+      return res.status(404).json({ error: error instanceof Error ? error.message : "Technician not found" });
+    }
+  });
+
   app.put("/api/technicians/reorder", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const validation = z.object({

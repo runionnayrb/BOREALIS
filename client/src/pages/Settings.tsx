@@ -3945,6 +3945,8 @@ export default function Settings() {
                       if (!open) {
                         setEditTarget(null);
                         setUploadedPhotoUrl(null);
+                        setSelectedTechnicianStatus("active");
+                        setSelectedLinkedTechUserId(null);
                       }
                     }}
                   >
@@ -3964,6 +3966,7 @@ export default function Settings() {
                           const technicianName = (formData.get("technicianName") as string) || undefined;
                           const role = (formData.get("role") as string) || undefined;
                           const photoUrl = (formData.get("photoUrl") as string) || undefined;
+                          const status = selectedTechnicianStatus as "active" | "inactive" | "on_leave";
 
                           if (editTarget?.type === "technician") {
                             updateTechMutation.mutate({
@@ -3973,6 +3976,7 @@ export default function Settings() {
                               technicianName,
                               role,
                               photoUrl,
+                              status,
                               departmentIds: selectedTechnicianDepartmentIds,
                             });
                           } else {
@@ -3982,6 +3986,7 @@ export default function Settings() {
                               technicianName,
                               role,
                               photoUrl,
+                              status,
                               departmentIds: selectedTechnicianDepartmentIds,
                             });
                           }
@@ -4255,6 +4260,8 @@ export default function Settings() {
                       if (!open) {
                         setEditTarget(null);
                         setUploadedPhotoUrl(null);
+                        setSelectedTechnicianStatus("active");
+                        setSelectedLinkedTechUserId(null);
                       }
                     }}
                   >
@@ -4274,6 +4281,7 @@ export default function Settings() {
                           const technicianName = (formData.get("technicianName") as string) || undefined;
                           const role = (formData.get("role") as string) || undefined;
                           const photoUrl = (formData.get("photoUrl") as string) || undefined;
+                          const status = selectedTechnicianStatus as "active" | "inactive" | "on_leave";
 
                           if (editTarget?.type === "technician") {
                             updateTechMutation.mutate({
@@ -4283,6 +4291,7 @@ export default function Settings() {
                               technicianName,
                               role,
                               photoUrl,
+                              status,
                               departmentIds: selectedTechnicianDepartmentIds,
                             });
                           } else {
@@ -4292,6 +4301,7 @@ export default function Settings() {
                               technicianName,
                               role,
                               photoUrl,
+                              status,
                               departmentIds: selectedTechnicianDepartmentIds,
                             });
                           }
