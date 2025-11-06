@@ -505,7 +505,7 @@ export default function Settings() {
         const newMap = new Map(prev);
         let hasChanges = false;
         
-        for (const [deptId, optimisticIds] of prev.entries()) {
+        for (const [deptId, optimisticIds] of Array.from(prev.entries())) {
           const serverIds = serverOrders.get(deptId);
           if (serverIds && JSON.stringify(optimisticIds) === JSON.stringify(serverIds)) {
             newMap.delete(deptId);
@@ -1800,7 +1800,7 @@ export default function Settings() {
     );
   };
 
-  const renderGroupedTechnicians = () => {
+  const renderGroupedTechnicians = (departmentType?: 'technical' | 'artistic') => {
     if (orderedTechnicians.length === 0) {
       return (
         <Card className="p-6 text-center text-muted-foreground">
@@ -1814,6 +1814,14 @@ export default function Settings() {
     const techniciansWithDepts = new Set<string>();
     
     allTechnicianDepartments.forEach(({ technicianId, departmentId, sortOrder }) => {
+      // Filter by department type if specified
+      if (departmentType) {
+        const dept = departments.find(d => d.id === departmentId);
+        if (dept && dept.type !== departmentType) {
+          return; // Skip this department if it doesn't match the filter
+        }
+      }
+      
       techniciansWithDepts.add(technicianId);
       const tech = orderedTechnicians.find(t => t.id === technicianId);
       if (!tech) return;
@@ -1852,10 +1860,12 @@ export default function Settings() {
       }
     });
     
-    // Add technicians with no departments to "No Department" group
-    const noDeptTechs = orderedTechnicians.filter(t => !techniciansWithDepts.has(t.id));
-    if (noDeptTechs.length > 0) {
-      grouped.set('no-department', { technicians: noDeptTechs, sortOrders: new Map() });
+    // If no department type filter, add technicians with no departments to "No Department" group
+    if (!departmentType) {
+      const noDeptTechs = orderedTechnicians.filter(t => !techniciansWithDepts.has(t.id));
+      if (noDeptTechs.length > 0) {
+        grouped.set('no-department', { technicians: noDeptTechs, sortOrders: new Map() });
+      }
     }
     
     // Sort departments alphabetically, with "no-department" last
@@ -1866,6 +1876,15 @@ export default function Settings() {
       const deptB = departments.find(d => d.id === b);
       return (deptA?.name || '').localeCompare(deptB?.name || '');
     });
+    
+    // Show empty state if no departments match the filter
+    if (sortedDeptIds.length === 0) {
+      return (
+        <Card className="p-6 text-center text-muted-foreground">
+          <p>No {departmentType} departments with technicians yet.</p>
+        </Card>
+      );
+    }
 
     return (
       <div className="space-y-6">
@@ -3485,9 +3504,10 @@ export default function Settings() {
 
           <TabsContent value="people" className="space-y-4">
             <Tabs defaultValue="artists">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="artists">Artists</TabsTrigger>
-                <TabsTrigger value="technicians">Technicians</TabsTrigger>
+                <TabsTrigger value="artistic">Artistic</TabsTrigger>
+                <TabsTrigger value="technical">Technical</TabsTrigger>
               </TabsList>
               <TabsContent value="artists" className="space-y-4 mt-4">
                 <div className="flex items-center justify-between">
@@ -3889,9 +3909,180 @@ export default function Settings() {
                 </Button>
               </div>
               </TabsContent>
-              <TabsContent value="technicians" className="space-y-4 mt-4">
+              <TabsContent value="artistic" className="space-y-4 mt-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">Technicians</h2>
+                  <h2 className="text-lg font-semibold">Artistic Technicians</h2>
+                  <Dialog 
+                    open={techDialogOpen} 
+                    onOpenChange={(open) => {
+                      setTechDialogOpen(open);
+                      if (!open) {
+                        setEditTarget(null);
+                        setUploadedPhotoUrl(null);
+                      }
+                    }}
+                  >
+                    <DialogTrigger asChild>
+                      <Button data-testid="button-add-technician">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Technician
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const formData = new FormData(e.currentTarget);
+                          const firstName = formData.get("firstName") as string;
+                          const lastName = formData.get("lastName") as string;
+                          const technicianName = (formData.get("technicianName") as string) || undefined;
+                          const role = (formData.get("role") as string) || undefined;
+                          const photoUrl = (formData.get("photoUrl") as string) || undefined;
+
+                          if (editTarget?.type === "technician") {
+                            updateTechMutation.mutate({
+                              id: editTarget.id,
+                              firstName,
+                              lastName,
+                              technicianName,
+                              role,
+                              photoUrl,
+                              departmentIds: selectedTechnicianDepartmentIds,
+                            });
+                          } else {
+                            createTechMutation.mutate({
+                              firstName,
+                              lastName,
+                              technicianName,
+                              role,
+                              photoUrl,
+                              departmentIds: selectedTechnicianDepartmentIds,
+                            });
+                          }
+                        }}
+                      >
+                        <DialogHeader>
+                          <DialogTitle>{editTarget?.type === "technician" ? "Edit Technician" : "Add Technician"}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="tech-firstName">First Name</Label>
+                              <Input
+                                id="tech-firstName"
+                                name="firstName"
+                                placeholder="First name"
+                                required
+                                defaultValue={editTarget?.type === "technician" ? editTarget.data.firstName : ""}
+                                data-testid="input-technician-firstName"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="tech-lastName">Last Name</Label>
+                              <Input
+                                id="tech-lastName"
+                                name="lastName"
+                                placeholder="Last name"
+                                required
+                                defaultValue={editTarget?.type === "technician" ? editTarget.data.lastName : ""}
+                                data-testid="input-technician-lastName"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="tech-technicianName">Technician Name (Optional)</Label>
+                            <Input
+                              id="tech-technicianName"
+                              name="technicianName"
+                              placeholder="Preferred name or nickname"
+                              defaultValue={editTarget?.type === "technician" ? editTarget.data.technicianName || "" : ""}
+                              data-testid="input-technician-technicianName"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="tech-role">Role</Label>
+                            <Input
+                              id="tech-role"
+                              name="role"
+                              placeholder="e.g., Automation Operator"
+                              defaultValue={editTarget?.type === "technician" ? editTarget.data.role || "" : ""}
+                              data-testid="input-technician-role"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="tech-departments">Departments</Label>
+                            <div className="space-y-2">
+                              {departments.filter(d => d.type === 'artistic').map((dept) => (
+                                <div key={dept.id} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`dept-${dept.id}`}
+                                    checked={selectedTechnicianDepartmentIds.includes(dept.id)}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        setSelectedTechnicianDepartmentIds([...selectedTechnicianDepartmentIds, dept.id]);
+                                      } else {
+                                        setSelectedTechnicianDepartmentIds(selectedTechnicianDepartmentIds.filter(id => id !== dept.id));
+                                      }
+                                    }}
+                                  />
+                                  <Label htmlFor={`dept-${dept.id}`} className="font-normal">
+                                    {dept.name}
+                                  </Label>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          {editTarget?.type === "technician" && editTarget.data.photoUrl && !uploadedPhotoUrl && (
+                            <div className="space-y-2">
+                              <Label>Current Photo</Label>
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-16 w-16">
+                                  <AvatarImage src={editTarget.data.photoUrl} alt="Current photo" />
+                                  <AvatarFallback>
+                                    {editTarget.data.firstName[0]}{editTarget.data.lastName[0]}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="text-sm text-muted-foreground">Current photo will be kept unless you upload a new one</span>
+                              </div>
+                            </div>
+                          )}
+                          {uploadedPhotoUrl && (
+                            <div className="space-y-2">
+                              <Label>New Photo Preview</Label>
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-16 w-16">
+                                  <AvatarImage src={uploadedPhotoUrl} alt="New photo" />
+                                  <AvatarFallback>
+                                    {editTarget?.type === "technician" ? editTarget.data.firstName[0] + editTarget.data.lastName[0] : "??"}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="text-sm text-muted-foreground">This photo will be uploaded</span>
+                              </div>
+                            </div>
+                          )}
+                          <input type="hidden" name="photoUrl" value={uploadedPhotoUrl || (editTarget?.type === "technician" ? editTarget.data.photoUrl || "" : "")} />
+                          <PhotoUploader
+                            onPhotoReady={(url) => {
+                              setUploadedPhotoUrl(url);
+                            }}
+                            circular={true}
+                            label="Upload Photo (Optional)"
+                          />
+                        </div>
+                        <DialogFooter>
+                          <Button type="submit" disabled={createTechMutation.isPending || updateTechMutation.isPending} data-testid="button-save-technician">
+                            {(createTechMutation.isPending || updateTechMutation.isPending) ? "Saving..." : editTarget?.type === "technician" ? "Update Technician" : "Save Technician"}
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                {renderGroupedTechnicians('artistic')}
+              </TabsContent>
+              <TabsContent value="technical" className="space-y-4 mt-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">Technical Technicians</h2>
                   <Dialog 
                     open={techDialogOpen} 
                     onOpenChange={(open) => {
@@ -4032,7 +4223,7 @@ export default function Settings() {
                               </PopoverTrigger>
                               <PopoverContent className="w-80 p-0" align="start">
                                 <div className="max-h-96 overflow-y-auto p-4 space-y-2">
-                                  {[...departments].sort((a, b) => a.name.localeCompare(b.name)).map((dept) => (
+                                  {[...departments].filter(d => d.type === 'technical').sort((a, b) => a.name.localeCompare(b.name)).map((dept) => (
                                     <div key={dept.id} className="flex items-center space-x-2">
                                       <Checkbox
                                         id={`tech-dept-${dept.id}`}
@@ -4083,7 +4274,7 @@ export default function Settings() {
                     </DialogContent>
                   </Dialog>
                 </div>
-                {renderGroupedTechnicians()}
+                {renderGroupedTechnicians('technical')}
               </TabsContent>
             </Tabs>
           </TabsContent>
