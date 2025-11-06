@@ -3911,7 +3911,7 @@ export default function Settings() {
               </TabsContent>
               <TabsContent value="artistic" className="space-y-4 mt-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">Artistic Technicians</h2>
+                  <h2 className="text-lg font-semibold">Artistic Staff</h2>
                   <Dialog 
                     open={techDialogOpen} 
                     onOpenChange={(open) => {
@@ -3925,7 +3925,7 @@ export default function Settings() {
                     <DialogTrigger asChild>
                       <Button data-testid="button-add-technician">
                         <Plus className="w-4 h-4 mr-2" />
-                        Add Technician
+                        Artistic Staff
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
@@ -4082,7 +4082,7 @@ export default function Settings() {
               </TabsContent>
               <TabsContent value="technical" className="space-y-4 mt-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">Technical Technicians</h2>
+                  <h2 className="text-lg font-semibold">Technical Staff</h2>
                   <Dialog 
                     open={techDialogOpen} 
                     onOpenChange={(open) => {
@@ -4096,7 +4096,7 @@ export default function Settings() {
                     <DialogTrigger asChild>
                       <Button data-testid="button-add-technician">
                         <Plus className="w-4 h-4 mr-2" />
-                        Add Technician
+                        Technical Staff
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
