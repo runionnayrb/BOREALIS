@@ -1714,63 +1714,15 @@ export default function Settings() {
       );
     }
 
-    // Group technicians by department
-    const grouped = new Map<string, Technician[]>();
-    const techniciansWithDepts = new Set<string>();
-    
-    allTechnicianDepartments.forEach(({ technicianId, departmentId }) => {
-      techniciansWithDepts.add(technicianId);
-      const tech = orderedTechnicians.find(t => t.id === technicianId);
-      if (!tech) return;
-      
-      if (!grouped.has(departmentId)) {
-        grouped.set(departmentId, []);
-      }
-      grouped.get(departmentId)!.push(tech);
-    });
-    
-    // Add technicians with no departments to "No Department" group
-    const noDeptTechs = orderedTechnicians.filter(t => !techniciansWithDepts.has(t.id));
-    if (noDeptTechs.length > 0) {
-      grouped.set('no-department', noDeptTechs);
-    }
-    
-    // Sort departments alphabetically, with "no-department" last
-    const sortedDeptIds = Array.from(grouped.keys()).sort((a, b) => {
-      if (a === 'no-department') return 1;
-      if (b === 'no-department') return -1;
-      const deptA = departments.find(d => d.id === a);
-      const deptB = departments.find(d => d.id === b);
-      return (deptA?.name || '').localeCompare(deptB?.name || '');
-    });
-
+    // Simple flat list for drag-and-drop reordering
+    // Each technician appears exactly once, preventing duplicate IDs in DndContext
     return (
       <DndContext sensors={technicianDragSensors} collisionDetection={closestCenter} onDragEnd={handleTechnicianDragEnd}>
         <SortableContext items={orderedTechnicians.map(t => t.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-6">
-            {sortedDeptIds.map((deptId) => {
-              const techsInDept = grouped.get(deptId) || [];
-              const dept = departments.find(d => d.id === deptId);
-              const isNoDept = deptId === 'no-department';
-              
-              return (
-                <div key={deptId} className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                      {isNoDept ? 'No Department' : dept?.name || 'Unknown'}
-                    </h3>
-                    <span className="text-xs text-muted-foreground">
-                      ({techsInDept.length})
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {techsInDept.map((tech) => (
-                      <SortableTechnicianCard key={tech.id} technician={tech} />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="space-y-2">
+            {orderedTechnicians.map((tech) => (
+              <SortableTechnicianCard key={tech.id} technician={tech} />
+            ))}
           </div>
         </SortableContext>
       </DndContext>
