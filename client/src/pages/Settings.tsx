@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit, Settings as SettingsIcon, Shield, UserCircle2, GripVertical, KeyRound, Copy, Check, Archive } from "lucide-react";
+import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit, Settings as SettingsIcon, Shield, UserCircle2, GripVertical, KeyRound, Copy, Check, Archive, Info } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -44,7 +44,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import type { 
-  Scene, Act, Cue, Department, LocationType, Location, ArtistGroup, Artist, Technician, ReportTemplate, SafeUser, UserGroup
+  Scene, Act, Cue, Department, LocationType, Location, ArtistGroup, Artist, Technician, ReportTemplate, SafeUser, UserGroup, DepartmentRole
 } from "@shared/schema";
 import { cueTypes, type CueType } from "@shared/schema";
 
@@ -142,6 +142,11 @@ export default function Settings() {
   
   // View archived technicians dialog
   const [viewArchivedTechniciansDialogOpen, setViewArchivedTechniciansDialogOpen] = useState(false);
+  
+  // Department roles management
+  const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
+  const [selectedDepartmentForRoles, setSelectedDepartmentForRoles] = useState<Department | null>(null);
+  const [roleToEdit, setRoleToEdit] = useState<any | null>(null);
 
   const { toast} = useToast();
   const { user } = useAuth();
@@ -192,6 +197,19 @@ export default function Settings() {
       return assignments.flat();
     },
     enabled: technicians.length > 0
+  });
+  
+  // Fetch department roles for the selected department
+  const { data: departmentRoles = [], isLoading: isLoadingRoles } = useQuery<DepartmentRole[]>({
+    queryKey: ["/api/departments", selectedDepartmentForRoles?.id, "roles"],
+    queryFn: async () => {
+      const response = await fetch(`/api/departments/${selectedDepartmentForRoles!.id}/roles`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch department roles");
+      return response.json();
+    },
+    enabled: !!selectedDepartmentForRoles?.id && rolesDialogOpen,
   });
 
   // Load technician status when editing a technician
@@ -850,6 +868,50 @@ export default function Settings() {
       setDeptDialogOpen(false);
       setEditTarget(null);
       toast({ title: "Department updated successfully" });
+    },
+  });
+  
+  // Department role mutations
+  const createDepartmentRoleMutation = useMutation({
+    mutationFn: async (data: { departmentId: string; technicianId: string; roleType: string }) => {
+      return await apiRequest("POST", `/api/departments/${data.departmentId}/roles`, {
+        technicianId: data.technicianId,
+        roleType: data.roleType,
+      });
+    },
+    onSuccess: () => {
+      if (selectedDepartmentForRoles?.id) {
+        queryClient.invalidateQueries({ queryKey: ["/api/departments", selectedDepartmentForRoles.id, "roles"] });
+      }
+      setRoleToEdit(null);
+      toast({ title: "Role assigned successfully" });
+    },
+  });
+  
+  const updateDepartmentRoleMutation = useMutation({
+    mutationFn: async (data: { id: string; departmentId: string; roleType: string }) => {
+      return await apiRequest("PATCH", `/api/department-roles/${data.id}`, {
+        roleType: data.roleType,
+      });
+    },
+    onSuccess: () => {
+      if (selectedDepartmentForRoles?.id) {
+        queryClient.invalidateQueries({ queryKey: ["/api/departments", selectedDepartmentForRoles.id, "roles"] });
+      }
+      setRoleToEdit(null);
+      toast({ title: "Role updated successfully" });
+    },
+  });
+  
+  const deleteDepartmentRoleMutation = useMutation({
+    mutationFn: async (roleId: string) => {
+      return await apiRequest("DELETE", `/api/department-roles/${roleId}`);
+    },
+    onSuccess: () => {
+      if (selectedDepartmentForRoles?.id) {
+        queryClient.invalidateQueries({ queryKey: ["/api/departments", selectedDepartmentForRoles.id, "roles"] });
+      }
+      toast({ title: "Role removed successfully" });
     },
   });
 
@@ -1518,6 +1580,58 @@ export default function Settings() {
                   setDeleteDialogOpen(true);
                 }}
                 data-testid={`button-delete-${type}-${item.id}`}
+              >
+                <Trash2 className="w-4 h-4 text-destructive" />
+              </Button>
+            </div>
+          </Card>
+        ))
+      )}
+    </div>
+  );
+  
+  const renderDepartmentList = (items: Department[]) => (
+    <div className="space-y-2">
+      {items.length === 0 ? (
+        <Card className="p-6 text-center text-muted-foreground">
+          <p>No items yet. Click "Add" to create one.</p>
+        </Card>
+      ) : (
+        items.map((item) => (
+          <Card key={item.id} className="p-3 flex items-center justify-between hover-elevate" data-testid={`card-department-${item.id}`}>
+            <p className="font-medium">{item.name}</p>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedDepartmentForRoles(item);
+                  setRolesDialogOpen(true);
+                }}
+                data-testid={`button-manage-roles-${item.id}`}
+              >
+                <UserCircle2 className="w-4 h-4 mr-1" />
+                Manage Roles
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setEditTarget({ type: "department", id: item.id, data: item });
+                  setDeptDialogOpen(true);
+                }}
+                data-testid={`button-edit-department-${item.id}`}
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setDeleteTarget({ type: "department", id: item.id });
+                  setDeleteDialogOpen(true);
+                }}
+                data-testid={`button-delete-department-${item.id}`}
               >
                 <Trash2 className="w-4 h-4 text-destructive" />
               </Button>
@@ -3363,19 +3477,20 @@ export default function Settings() {
           <TabsContent value="departments" className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Departments</h2>
-              <Dialog 
-                open={deptDialogOpen} 
-                onOpenChange={(open) => {
-                  setDeptDialogOpen(open);
-                  if (!open) setEditTarget(null);
-                }}
-              >
-                <DialogTrigger asChild>
-                  <Button data-testid="button-add-department">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Department
-                  </Button>
-                </DialogTrigger>
+              <div className="flex items-center gap-2">
+                <Dialog 
+                  open={deptDialogOpen} 
+                  onOpenChange={(open) => {
+                    setDeptDialogOpen(open);
+                    if (!open) setEditTarget(null);
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button data-testid="button-add-department">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Department
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent>
                   <form
                     onSubmit={(e) => {
@@ -3442,8 +3557,135 @@ export default function Settings() {
                   </form>
                 </DialogContent>
               </Dialog>
+              </div>
             </div>
-            {renderSimpleList([...departments].sort((a, b) => a.name.localeCompare(b.name)), "department")}
+            {renderDepartmentList([...departments].sort((a, b) => a.name.localeCompare(b.name)))}
+            
+            {/* Department Roles Management Dialog */}
+            <Dialog open={rolesDialogOpen} onOpenChange={(open) => {
+              setRolesDialogOpen(open);
+              if (!open) {
+                setSelectedDepartmentForRoles(null);
+                setRoleToEdit(null);
+              }
+            }}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Manage Department Roles - {selectedDepartmentForRoles?.name}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <h3 className="font-medium">Current Roles</h3>
+                    {isLoadingRoles ? (
+                      <p className="text-sm text-muted-foreground">Loading roles...</p>
+                    ) : departmentRoles.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No roles assigned yet</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {departmentRoles.map((role) => {
+                          const tech = technicians.find(t => t.id === role.technicianId);
+                          return (
+                            <Card key={role.id} className="p-3 flex items-center justify-between" data-testid={`role-${role.id}`}>
+                              <div>
+                                <p className="font-medium">{tech?.firstName} {tech?.lastName}</p>
+                                <p className="text-sm text-muted-foreground">{role.roleType}</p>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setRoleToEdit(role)}
+                                  data-testid={`button-edit-role-${role.id}`}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => deleteDepartmentRoleMutation.mutate(role.id)}
+                                  data-testid={`button-delete-role-${role.id}`}
+                                >
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h3 className="font-medium">{roleToEdit ? "Edit Role" : "Assign New Role"}</h3>
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.currentTarget);
+                      const technicianId = formData.get("technicianId") as string;
+                      const roleType = formData.get("roleType") as string;
+                      
+                      if (roleToEdit) {
+                        updateDepartmentRoleMutation.mutate({
+                          id: roleToEdit.id,
+                          departmentId: selectedDepartmentForRoles!.id,
+                          roleType,
+                        });
+                      } else {
+                        createDepartmentRoleMutation.mutate({
+                          departmentId: selectedDepartmentForRoles!.id,
+                          technicianId,
+                          roleType,
+                        });
+                      }
+                      e.currentTarget.reset();
+                    }}>
+                      <div className="flex gap-2">
+                        {!roleToEdit && (
+                          <Select name="technicianId" required>
+                            <SelectTrigger data-testid="select-technician">
+                              <SelectValue placeholder="Select technician" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {technicians.filter(t => t.status === 'active').map((tech) => (
+                                <SelectItem key={tech.id} value={tech.id} data-testid={`option-tech-${tech.id}`}>
+                                  {tech.firstName} {tech.lastName}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                        <Select name="roleType" required defaultValue={roleToEdit?.roleType}>
+                          <SelectTrigger data-testid="select-role-type">
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="HOD" data-testid="option-hod">HOD (Head of Department)</SelectItem>
+                            <SelectItem value="AHOD" data-testid="option-ahod">AHOD (Assistant HOD)</SelectItem>
+                            <SelectItem value="Lead" data-testid="option-lead">Lead</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button 
+                          type="submit" 
+                          disabled={createDepartmentRoleMutation.isPending || updateDepartmentRoleMutation.isPending}
+                          data-testid="button-save-role"
+                        >
+                          {roleToEdit ? "Update" : "Assign"}
+                        </Button>
+                        {roleToEdit && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setRoleToEdit(null)}
+                            data-testid="button-cancel-edit-role"
+                          >
+                            Cancel
+                          </Button>
+                        )}
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="locations" className="space-y-4">
