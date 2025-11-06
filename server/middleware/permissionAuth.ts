@@ -162,3 +162,21 @@ export const canEditSettingsUsers = requirePermission('settings_users', 'canEdit
 export const canViewSettingsReportTemplate = requirePermission('settings_report_template', 'canView');
 export const canCreateSettingsReportTemplate = requirePermission('settings_report_template', 'canCreate');
 export const canEditSettingsReportTemplate = requirePermission('settings_report_template', 'canEdit');
+
+export const canViewLineupsPositions = requirePermission('lineups_positions', 'canView');
+export const canCreateLineupsPositions = requirePermission('lineups_positions', 'canCreate');
+export const canEditLineupsPositions = requirePermission('lineups_positions', 'canEdit');
+
+export const canViewLineupsCompetencies = requirePermission('lineups_competencies', 'canView');
+export const canCreateLineupsCompetencies = requirePermission('lineups_competencies', 'canCreate');
+export const canEditLineupsCompetencies = requirePermission('lineups_competencies', 'canEdit');
+
+export const canViewLineupsTrainingPrograms = requirePermission('lineups_training_programs', 'canView');
+export const canCreateLineupsTrainingPrograms = requirePermission('lineups_training_programs', 'canCreate');
+export const canEditLineupsTrainingPrograms = requirePermission('lineups_training_programs', 'canEdit');
+
+export const canViewLineupsRules = requirePermission('lineups_rules', 'canView');
+export const canCreateLineupsRules = requirePermission('lineups_rules', 'canCreate');
+export const canEditLineupsRules = requirePermission('lineups_rules', 'canEdit');
+
+export const canViewLineupsRestrictions = requirePermission('lineups_restrictions', 'canView');

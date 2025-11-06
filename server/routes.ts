@@ -16,6 +16,21 @@ import {
   canEditReports,
   canViewSettingsReportTemplate,
   canEditSettingsReportTemplate,
+  canViewLineupsPositions,
+  canCreateLineupsPositions,
+  canEditLineupsPositions,
+  canViewLineupsCompetencies,
+  canCreateLineupsCompetencies,
+  canEditLineupsCompetencies,
+  canViewLineupsTrainingPrograms,
+  canCreateLineupsTrainingPrograms,
+  canEditLineupsTrainingPrograms,
+  canViewLineupsRules,
+  canCreateLineupsRules,
+  canEditLineupsRules,
+  canViewLineupsRestrictions,
+  canViewSettingsDepartments,
+  canEditSettingsDepartments,
 } from "./middleware/permissionAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import {
@@ -2511,6 +2526,658 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error fetching features:", error);
       res.status(500).json({ error: "Failed to fetch features" });
+    }
+  });
+
+  // ========== LINEUP FOUNDATION ROUTES ==========
+
+  // Training Programs
+  app.get("/api/training-programs", canViewLineupsTrainingPrograms, async (req, res) => {
+    try {
+      const programs = await storage.getAllTrainingPrograms();
+      res.json(programs);
+    } catch (error: any) {
+      console.error("Error fetching training programs:", error);
+      res.status(500).json({ error: "Failed to fetch training programs" });
+    }
+  });
+
+  app.get("/api/training-programs/templates", canViewLineupsTrainingPrograms, async (req, res) => {
+    try {
+      const templates = await storage.getTrainingProgramTemplates();
+      res.json(templates);
+    } catch (error: any) {
+      console.error("Error fetching program templates:", error);
+      res.status(500).json({ error: "Failed to fetch program templates" });
+    }
+  });
+
+  app.get("/api/training-programs/:id", canViewLineupsTrainingPrograms, async (req, res) => {
+    try {
+      const program = await storage.getTrainingProgram(req.params.id);
+      if (!program) {
+        return res.status(404).json({ error: "Training program not found" });
+      }
+      res.json(program);
+    } catch (error: any) {
+      console.error("Error fetching training program:", error);
+      res.status(500).json({ error: "Failed to fetch training program" });
+    }
+  });
+
+  app.post("/api/training-programs", canCreateLineupsTrainingPrograms, async (req, res) => {
+    try {
+      const program = await storage.createTrainingProgram({ ...req.body, createdBy: req.user?.id });
+      res.status(201).json(program);
+    } catch (error: any) {
+      console.error("Error creating training program:", error);
+      res.status(500).json({ error: "Failed to create training program" });
+    }
+  });
+
+  app.patch("/api/training-programs/:id", canEditLineupsTrainingPrograms, async (req, res) => {
+    try {
+      const program = await storage.updateTrainingProgram(req.params.id, { ...req.body, updatedBy: req.user?.id });
+      if (!program) {
+        return res.status(404).json({ error: "Training program not found" });
+      }
+      res.json(program);
+    } catch (error: any) {
+      console.error("Error updating training program:", error);
+      res.status(500).json({ error: "Failed to update training program" });
+    }
+  });
+
+  app.delete("/api/training-programs/:id", canEditLineupsTrainingPrograms, async (req, res) => {
+    try {
+      await storage.deleteTrainingProgram(req.params.id);
+      res.sendStatus(204);
+    } catch (error: any) {
+      console.error("Error deleting training program:", error);
+      res.status(500).json({ error: "Failed to delete training program" });
+    }
+  });
+
+  // Program Steps
+  app.get("/api/training-programs/:programId/steps", canViewLineupsTrainingPrograms, async (req, res) => {
+    try {
+      const steps = await storage.getProgramSteps(req.params.programId);
+      res.json(steps);
+    } catch (error: any) {
+      console.error("Error fetching program steps:", error);
+      res.status(500).json({ error: "Failed to fetch program steps" });
+    }
+  });
+
+  app.post("/api/program-steps", canEditLineupsTrainingPrograms, async (req, res) => {
+    try {
+      const step = await storage.createProgramStep(req.body);
+      res.status(201).json(step);
+    } catch (error: any) {
+      console.error("Error creating program step:", error);
+      res.status(500).json({ error: "Failed to create program step" });
+    }
+  });
+
+  app.patch("/api/program-steps/:id", canEditLineupsTrainingPrograms, async (req, res) => {
+    try {
+      const step = await storage.updateProgramStep(req.params.id, req.body);
+      if (!step) {
+        return res.status(404).json({ error: "Program step not found" });
+      }
+      res.json(step);
+    } catch (error: any) {
+      console.error("Error updating program step:", error);
+      res.status(500).json({ error: "Failed to update program step" });
+    }
+  });
+
+  app.delete("/api/program-steps/:id", canEditLineupsTrainingPrograms, async (req, res) => {
+    try {
+      await storage.deleteProgramStep(req.params.id);
+      res.sendStatus(204);
+    } catch (error: any) {
+      console.error("Error deleting program step:", error);
+      res.status(500).json({ error: "Failed to delete program step" });
+    }
+  });
+
+  // Program Artists
+  app.get("/api/training-programs/:programId/artists", canViewLineupsTrainingPrograms, async (req, res) => {
+    try {
+      const programArtists = await storage.getProgramArtists(req.params.programId);
+      res.json(programArtists);
+    } catch (error: any) {
+      console.error("Error fetching program artists:", error);
+      res.status(500).json({ error: "Failed to fetch program artists" });
+    }
+  });
+
+  app.get("/api/artists/:artistId/programs", canViewLineupsTrainingPrograms, async (req, res) => {
+    try {
+      const programs = await storage.getArtistPrograms(req.params.artistId);
+      res.json(programs);
+    } catch (error: any) {
+      console.error("Error fetching artist programs:", error);
+      res.status(500).json({ error: "Failed to fetch artist programs" });
+    }
+  });
+
+  app.post("/api/program-artists", canEditLineupsTrainingPrograms, async (req, res) => {
+    try {
+      const programArtist = await storage.createProgramArtist(req.body);
+      res.status(201).json(programArtist);
+    } catch (error: any) {
+      console.error("Error adding artist to program:", error);
+      res.status(500).json({ error: "Failed to add artist to program" });
+    }
+  });
+
+  app.patch("/api/program-artists/:id", canEditLineupsTrainingPrograms, async (req, res) => {
+    try {
+      const programArtist = await storage.updateProgramArtist(req.params.id, req.body);
+      if (!programArtist) {
+        return res.status(404).json({ error: "Program artist not found" });
+      }
+      res.json(programArtist);
+    } catch (error: any) {
+      console.error("Error updating program artist:", error);
+      res.status(500).json({ error: "Failed to update program artist" });
+    }
+  });
+
+  app.delete("/api/program-artists/:id", canEditLineupsTrainingPrograms, async (req, res) => {
+    try {
+      await storage.deleteProgramArtist(req.params.id);
+      res.sendStatus(204);
+    } catch (error: any) {
+      console.error("Error removing artist from program:", error);
+      res.status(500).json({ error: "Failed to remove artist from program" });
+    }
+  });
+
+  // Step Status Records
+  app.get("/api/program-artists/:programArtistId/steps", canViewLineupsTrainingPrograms, async (req, res) => {
+    try {
+      const records = await storage.getStepStatusRecords(req.params.programArtistId);
+      res.json(records);
+    } catch (error: any) {
+      console.error("Error fetching step status records:", error);
+      res.status(500).json({ error: "Failed to fetch step status records" });
+    }
+  });
+
+  app.post("/api/step-status-records", canEditLineupsTrainingPrograms, async (req, res) => {
+    try {
+      const record = await storage.createStepStatusRecord({ ...req.body, recordedBy: req.user?.id });
+      res.status(201).json(record);
+    } catch (error: any) {
+      console.error("Error creating step status record:", error);
+      res.status(500).json({ error: "Failed to create step status record" });
+    }
+  });
+
+  app.patch("/api/step-status-records/:id", canEditLineupsTrainingPrograms, async (req, res) => {
+    try {
+      const record = await storage.updateStepStatusRecord(req.params.id, req.body);
+      if (!record) {
+        return res.status(404).json({ error: "Step status record not found" });
+      }
+      res.json(record);
+    } catch (error: any) {
+      console.error("Error updating step status record:", error);
+      res.status(500).json({ error: "Failed to update step status record" });
+    }
+  });
+
+  // Final Validations
+  app.get("/api/program-artists/:programArtistId/validation", canViewLineupsTrainingPrograms, async (req, res) => {
+    try {
+      const validation = await storage.getFinalValidation(req.params.programArtistId);
+      res.json(validation || null);
+    } catch (error: any) {
+      console.error("Error fetching final validation:", error);
+      res.status(500).json({ error: "Failed to fetch final validation" });
+    }
+  });
+
+  app.post("/api/final-validations", canEditLineupsTrainingPrograms, async (req, res) => {
+    try {
+      const validation = await storage.createFinalValidation({ ...req.body, validatedBy: req.user?.id });
+      res.status(201).json(validation);
+    } catch (error: any) {
+      console.error("Error creating final validation:", error);
+      res.status(500).json({ error: "Failed to create final validation" });
+    }
+  });
+
+  // Competencies
+  app.get("/api/competencies", canViewLineupsCompetencies, async (req, res) => {
+    try {
+      const competencies = await storage.getAllCompetencies();
+      res.json(competencies);
+    } catch (error: any) {
+      console.error("Error fetching competencies:", error);
+      res.status(500).json({ error: "Failed to fetch competencies" });
+    }
+  });
+
+  app.get("/api/competencies/:id", canViewLineupsCompetencies, async (req, res) => {
+    try {
+      const competency = await storage.getCompetency(req.params.id);
+      if (!competency) {
+        return res.status(404).json({ error: "Competency not found" });
+      }
+      res.json(competency);
+    } catch (error: any) {
+      console.error("Error fetching competency:", error);
+      res.status(500).json({ error: "Failed to fetch competency" });
+    }
+  });
+
+  app.post("/api/competencies", canCreateLineupsCompetencies, async (req, res) => {
+    try {
+      const competency = await storage.createCompetency(req.body);
+      res.status(201).json(competency);
+    } catch (error: any) {
+      console.error("Error creating competency:", error);
+      res.status(500).json({ error: "Failed to create competency" });
+    }
+  });
+
+  app.patch("/api/competencies/:id", canEditLineupsCompetencies, async (req, res) => {
+    try {
+      const competency = await storage.updateCompetency(req.params.id, req.body);
+      if (!competency) {
+        return res.status(404).json({ error: "Competency not found" });
+      }
+      res.json(competency);
+    } catch (error: any) {
+      console.error("Error updating competency:", error);
+      res.status(500).json({ error: "Failed to update competency" });
+    }
+  });
+
+  app.delete("/api/competencies/:id", canEditLineupsCompetencies, async (req, res) => {
+    try {
+      await storage.deleteCompetency(req.params.id);
+      res.sendStatus(204);
+    } catch (error: any) {
+      console.error("Error deleting competency:", error);
+      res.status(500).json({ error: "Failed to delete competency" });
+    }
+  });
+
+  // Positions
+  app.get("/api/positions", canViewLineupsPositions, async (req, res) => {
+    try {
+      const positions = await storage.getAllPositions();
+      res.json(positions);
+    } catch (error: any) {
+      console.error("Error fetching positions:", error);
+      res.status(500).json({ error: "Failed to fetch positions" });
+    }
+  });
+
+  app.get("/api/positions/:id", canViewLineupsPositions, async (req, res) => {
+    try {
+      const position = await storage.getPosition(req.params.id);
+      if (!position) {
+        return res.status(404).json({ error: "Position not found" });
+      }
+      res.json(position);
+    } catch (error: any) {
+      console.error("Error fetching position:", error);
+      res.status(500).json({ error: "Failed to fetch position" });
+    }
+  });
+
+  app.post("/api/positions", canCreateLineupsPositions, async (req, res) => {
+    try {
+      const position = await storage.createPosition(req.body);
+      res.status(201).json(position);
+    } catch (error: any) {
+      console.error("Error creating position:", error);
+      res.status(500).json({ error: "Failed to create position" });
+    }
+  });
+
+  app.patch("/api/positions/:id", canEditLineupsPositions, async (req, res) => {
+    try {
+      const position = await storage.updatePosition(req.params.id, req.body);
+      if (!position) {
+        return res.status(404).json({ error: "Position not found" });
+      }
+      res.json(position);
+    } catch (error: any) {
+      console.error("Error updating position:", error);
+      res.status(500).json({ error: "Failed to update position" });
+    }
+  });
+
+  app.delete("/api/positions/:id", canEditLineupsPositions, async (req, res) => {
+    try {
+      await storage.deletePosition(req.params.id);
+      res.sendStatus(204);
+    } catch (error: any) {
+      console.error("Error deleting position:", error);
+      res.status(500).json({ error: "Failed to delete position" });
+    }
+  });
+
+  // Position Competencies
+  app.get("/api/positions/:positionId/competencies", canViewLineupsPositions, async (req, res) => {
+    try {
+      const competencies = await storage.getPositionCompetencies(req.params.positionId);
+      res.json(competencies);
+    } catch (error: any) {
+      console.error("Error fetching position competencies:", error);
+      res.status(500).json({ error: "Failed to fetch position competencies" });
+    }
+  });
+
+  app.put("/api/positions/:positionId/competencies", canEditLineupsPositions, async (req, res) => {
+    try {
+      const { competencyIds } = req.body;
+      await storage.setPositionCompetencies(req.params.positionId, competencyIds);
+      res.sendStatus(204);
+    } catch (error: any) {
+      console.error("Error setting position competencies:", error);
+      res.status(500).json({ error: "Failed to set position competencies" });
+    }
+  });
+
+  // Position Tracks (Linked Positions)
+  app.get("/api/position-tracks", canViewLineupsPositions, async (req, res) => {
+    try {
+      const tracks = await storage.getAllPositionTracks();
+      res.json(tracks);
+    } catch (error: any) {
+      console.error("Error fetching position tracks:", error);
+      res.status(500).json({ error: "Failed to fetch position tracks" });
+    }
+  });
+
+  app.get("/api/position-tracks/:id", canViewLineupsPositions, async (req, res) => {
+    try {
+      const track = await storage.getPositionTrack(req.params.id);
+      if (!track) {
+        return res.status(404).json({ error: "Position track not found" });
+      }
+      res.json(track);
+    } catch (error: any) {
+      console.error("Error fetching position track:", error);
+      res.status(500).json({ error: "Failed to fetch position track" });
+    }
+  });
+
+  app.post("/api/position-tracks", canCreateLineupsPositions, async (req, res) => {
+    try {
+      const track = await storage.createPositionTrack(req.body);
+      res.status(201).json(track);
+    } catch (error: any) {
+      console.error("Error creating position track:", error);
+      res.status(500).json({ error: "Failed to create position track" });
+    }
+  });
+
+  app.patch("/api/position-tracks/:id", canEditLineupsPositions, async (req, res) => {
+    try {
+      const track = await storage.updatePositionTrack(req.params.id, req.body);
+      if (!track) {
+        return res.status(404).json({ error: "Position track not found" });
+      }
+      res.json(track);
+    } catch (error: any) {
+      console.error("Error updating position track:", error);
+      res.status(500).json({ error: "Failed to update position track" });
+    }
+  });
+
+  app.delete("/api/position-tracks/:id", canEditLineupsPositions, async (req, res) => {
+    try {
+      await storage.deletePositionTrack(req.params.id);
+      res.sendStatus(204);
+    } catch (error: any) {
+      console.error("Error deleting position track:", error);
+      res.status(500).json({ error: "Failed to delete position track" });
+    }
+  });
+
+  app.get("/api/position-tracks/:trackId/positions", canViewLineupsPositions, async (req, res) => {
+    try {
+      const positions = await storage.getTrackPositions(req.params.trackId);
+      res.json(positions);
+    } catch (error: any) {
+      console.error("Error fetching track positions:", error);
+      res.status(500).json({ error: "Failed to fetch track positions" });
+    }
+  });
+
+  app.post("/api/position-tracks/:trackId/positions", canEditLineupsPositions, async (req, res) => {
+    try {
+      const { positionIds } = req.body;
+      await storage.addPositionsToTrack(req.params.trackId, positionIds);
+      res.sendStatus(204);
+    } catch (error: any) {
+      console.error("Error adding positions to track:", error);
+      res.status(500).json({ error: "Failed to add positions to track" });
+    }
+  });
+
+  app.delete("/api/position-tracks/:trackId/positions/:positionId", canEditLineupsPositions, async (req, res) => {
+    try {
+      await storage.removePositionFromTrack(req.params.trackId, req.params.positionId);
+      res.sendStatus(204);
+    } catch (error: any) {
+      console.error("Error removing position from track:", error);
+      res.status(500).json({ error: "Failed to remove position from track" });
+    }
+  });
+
+  // Lineup Rules
+  app.get("/api/lineup-rules", canViewLineupsRules, async (req, res) => {
+    try {
+      const rules = req.query.active === 'true' 
+        ? await storage.getActiveLineupRules()
+        : await storage.getAllLineupRules();
+      res.json(rules);
+    } catch (error: any) {
+      console.error("Error fetching lineup rules:", error);
+      res.status(500).json({ error: "Failed to fetch lineup rules" });
+    }
+  });
+
+  app.get("/api/lineup-rules/:id", canViewLineupsRules, async (req, res) => {
+    try {
+      const rule = await storage.getLineupRule(req.params.id);
+      if (!rule) {
+        return res.status(404).json({ error: "Lineup rule not found" });
+      }
+      res.json(rule);
+    } catch (error: any) {
+      console.error("Error fetching lineup rule:", error);
+      res.status(500).json({ error: "Failed to fetch lineup rule" });
+    }
+  });
+
+  app.post("/api/lineup-rules", canCreateLineupsRules, async (req, res) => {
+    try {
+      const rule = await storage.createLineupRule({ ...req.body, createdBy: req.user?.id });
+      res.status(201).json(rule);
+    } catch (error: any) {
+      console.error("Error creating lineup rule:", error);
+      res.status(500).json({ error: "Failed to create lineup rule" });
+    }
+  });
+
+  app.patch("/api/lineup-rules/:id", canEditLineupsRules, async (req, res) => {
+    try {
+      const rule = await storage.updateLineupRule(req.params.id, { ...req.body, updatedBy: req.user?.id });
+      if (!rule) {
+        return res.status(404).json({ error: "Lineup rule not found" });
+      }
+      res.json(rule);
+    } catch (error: any) {
+      console.error("Error updating lineup rule:", error);
+      res.status(500).json({ error: "Failed to update lineup rule" });
+    }
+  });
+
+  app.delete("/api/lineup-rules/:id", canEditLineupsRules, async (req, res) => {
+    try {
+      await storage.deleteLineupRule(req.params.id);
+      res.sendStatus(204);
+    } catch (error: any) {
+      console.error("Error deleting lineup rule:", error);
+      res.status(500).json({ error: "Failed to delete lineup rule" });
+    }
+  });
+
+  // PWD Restrictions (Read-only for Stage Management)
+  app.get("/api/pwd-restrictions", canViewLineupsRestrictions, async (req, res) => {
+    try {
+      const restrictions = req.query.active === 'true'
+        ? await storage.getActivePwdRestrictions()
+        : await storage.getAllPwdRestrictions();
+      res.json(restrictions);
+    } catch (error: any) {
+      console.error("Error fetching PWD restrictions:", error);
+      res.status(500).json({ error: "Failed to fetch PWD restrictions" });
+    }
+  });
+
+  app.get("/api/pwd-restrictions/:id", canViewLineupsRestrictions, async (req, res) => {
+    try {
+      const restriction = await storage.getPwdRestriction(req.params.id);
+      if (!restriction) {
+        return res.status(404).json({ error: "PWD restriction not found" });
+      }
+      res.json(restriction);
+    } catch (error: any) {
+      console.error("Error fetching PWD restriction:", error);
+      res.status(500).json({ error: "Failed to fetch PWD restriction" });
+    }
+  });
+
+  app.get("/api/artists/:artistId/pwd-restrictions", canViewLineupsRestrictions, async (req, res) => {
+    try {
+      const restrictions = await storage.getArtistPwdRestrictions(req.params.artistId);
+      res.json(restrictions);
+    } catch (error: any) {
+      console.error("Error fetching artist PWD restrictions:", error);
+      res.status(500).json({ error: "Failed to fetch artist PWD restrictions" });
+    }
+  });
+
+  // PWD Restrictions Management (Admin only - managed by PWD team)
+  app.post("/api/pwd-restrictions", requireRole('admin'), async (req, res) => {
+    try {
+      const restriction = await storage.createPwdRestriction({ ...req.body, createdBy: req.user?.id });
+      res.status(201).json(restriction);
+    } catch (error: any) {
+      console.error("Error creating PWD restriction:", error);
+      res.status(500).json({ error: "Failed to create PWD restriction" });
+    }
+  });
+
+  app.patch("/api/pwd-restrictions/:id", requireRole('admin'), async (req, res) => {
+    try {
+      const restriction = await storage.updatePwdRestriction(req.params.id, { ...req.body, updatedBy: req.user?.id });
+      if (!restriction) {
+        return res.status(404).json({ error: "PWD restriction not found" });
+      }
+      res.json(restriction);
+    } catch (error: any) {
+      console.error("Error updating PWD restriction:", error);
+      res.status(500).json({ error: "Failed to update PWD restriction" });
+    }
+  });
+
+  app.delete("/api/pwd-restrictions/:id", requireRole('admin'), async (req, res) => {
+    try {
+      await storage.deletePwdRestriction(req.params.id);
+      res.sendStatus(204);
+    } catch (error: any) {
+      console.error("Error deleting PWD restriction:", error);
+      res.status(500).json({ error: "Failed to delete PWD restriction" });
+    }
+  });
+
+  // Department Roles (for Settings → Departments)
+  app.get("/api/departments/:departmentId/roles", canViewSettingsDepartments, async (req, res) => {
+    try {
+      const roles = await storage.getDepartmentRoles(req.params.departmentId);
+      res.json(roles);
+    } catch (error: any) {
+      console.error("Error fetching department roles:", error);
+      res.status(500).json({ error: "Failed to fetch department roles" });
+    }
+  });
+
+  app.put("/api/departments/:departmentId/roles", canEditSettingsDepartments, async (req, res) => {
+    try {
+      const { roles } = req.body;
+      await storage.setDepartmentRoles(req.params.departmentId, roles);
+      res.sendStatus(204);
+    } catch (error: any) {
+      console.error("Error setting department roles:", error);
+      res.status(500).json({ error: "Failed to set department roles" });
+    }
+  });
+
+  // Artist Competencies
+  app.get("/api/artists/:artistId/competencies", canViewLineupsCompetencies, async (req, res) => {
+    try {
+      const competencies = await storage.getArtistCompetencies(req.params.artistId);
+      res.json(competencies);
+    } catch (error: any) {
+      console.error("Error fetching artist competencies:", error);
+      res.status(500).json({ error: "Failed to fetch artist competencies" });
+    }
+  });
+
+  app.post("/api/artist-competencies", canEditLineupsCompetencies, async (req, res) => {
+    try {
+      const competency = await storage.createArtistCompetency({ ...req.body, grantedBy: req.user?.id });
+      res.status(201).json(competency);
+    } catch (error: any) {
+      console.error("Error creating artist competency:", error);
+      res.status(500).json({ error: "Failed to create artist competency" });
+    }
+  });
+
+  app.patch("/api/artist-competencies/:id", canEditLineupsCompetencies, async (req, res) => {
+    try {
+      const competency = await storage.updateArtistCompetency(req.params.id, req.body);
+      if (!competency) {
+        return res.status(404).json({ error: "Artist competency not found" });
+      }
+      res.json(competency);
+    } catch (error: any) {
+      console.error("Error updating artist competency:", error);
+      res.status(500).json({ error: "Failed to update artist competency" });
+    }
+  });
+
+  app.delete("/api/artist-competencies/:id", canEditLineupsCompetencies, async (req, res) => {
+    try {
+      await storage.deleteArtistCompetency(req.params.id);
+      res.sendStatus(204);
+    } catch (error: any) {
+      console.error("Error deleting artist competency:", error);
+      res.status(500).json({ error: "Failed to delete artist competency" });
+    }
+  });
+
+  // Audit Trail
+  app.get("/api/audit/:entityType/:entityId", requireRole('admin'), async (req, res) => {
+    try {
+      const trail = await storage.getAuditTrail(req.params.entityType, req.params.entityId);
+      res.json(trail);
+    } catch (error: any) {
+      console.error("Error fetching audit trail:", error);
+      res.status(500).json({ error: "Failed to fetch audit trail" });
     }
   });
 
