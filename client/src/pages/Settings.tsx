@@ -1097,6 +1097,8 @@ export default function Settings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/technicians"] });
       toast({ title: "Technician deleted successfully" });
+      setTechDialogOpen(false);
+      setEditTarget(null);
     },
   });
 
