@@ -123,12 +123,25 @@ export default function Settings() {
   // User linking state for artists
   const [selectedLinkedUserId, setSelectedLinkedUserId] = useState<string | null>(null);
   
+  // User linking state for technicians
+  const [selectedLinkedTechUserId, setSelectedLinkedTechUserId] = useState<string | null>(null);
+  
+  // Status state for technicians
+  const [selectedTechnicianStatus, setSelectedTechnicianStatus] = useState<string>("active");
+  
   // Archive artist confirmation dialog
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [artistToArchive, setArtistToArchive] = useState<string | null>(null);
   
+  // Archive technician confirmation dialog
+  const [archiveTechDialogOpen, setArchiveTechDialogOpen] = useState(false);
+  const [technicianToArchive, setTechnicianToArchive] = useState<string | null>(null);
+  
   // View archived artists dialog
   const [viewArchivedDialogOpen, setViewArchivedDialogOpen] = useState(false);
+  
+  // View archived technicians dialog
+  const [viewArchivedTechniciansDialogOpen, setViewArchivedTechniciansDialogOpen] = useState(false);
 
   const { toast} = useToast();
   const { user } = useAuth();
@@ -3288,8 +3301,8 @@ export default function Settings() {
                             <SelectValue placeholder="Select type" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="technical" data-testid="option-technical">Technical</SelectItem>
                             <SelectItem value="artistic" data-testid="option-artistic">Artistic</SelectItem>
+                            <SelectItem value="technical" data-testid="option-technical">Technical</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -4010,27 +4023,46 @@ export default function Settings() {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="tech-departments">Departments</Label>
-                            <div className="space-y-2">
-                              {departments.filter(d => d.type === 'artistic').map((dept) => (
-                                <div key={dept.id} className="flex items-center space-x-2">
-                                  <Checkbox
-                                    id={`dept-${dept.id}`}
-                                    checked={selectedTechnicianDepartmentIds.includes(dept.id)}
-                                    onCheckedChange={(checked) => {
-                                      if (checked) {
-                                        setSelectedTechnicianDepartmentIds([...selectedTechnicianDepartmentIds, dept.id]);
-                                      } else {
-                                        setSelectedTechnicianDepartmentIds(selectedTechnicianDepartmentIds.filter(id => id !== dept.id));
-                                      }
-                                    }}
-                                  />
-                                  <Label htmlFor={`dept-${dept.id}`} className="font-normal">
-                                    {dept.name}
-                                  </Label>
+                            <Label>Departments (Multiple)</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-full justify-start text-left font-normal" data-testid="select-artistic-departments">
+                                  {selectedTechnicianDepartmentIds.length > 0 ? (
+                                    <span className="truncate">
+                                      {selectedTechnicianDepartmentIds.map(id => {
+                                        const dept = departments.find(d => d.id === id);
+                                        return dept?.name;
+                                      }).join(", ")}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">Select departments...</span>
+                                  )}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80 p-0" align="start">
+                                <div className="max-h-96 overflow-y-auto p-4 space-y-2">
+                                  {[...departments].filter(d => d.type === 'artistic').sort((a, b) => a.name.localeCompare(b.name)).map((dept) => (
+                                    <div key={dept.id} className="flex items-center space-x-2">
+                                      <Checkbox
+                                        id={`artistic-dept-${dept.id}`}
+                                        checked={selectedTechnicianDepartmentIds.includes(dept.id)}
+                                        onCheckedChange={(checked) => {
+                                          if (checked) {
+                                            setSelectedTechnicianDepartmentIds([...selectedTechnicianDepartmentIds, dept.id]);
+                                          } else {
+                                            setSelectedTechnicianDepartmentIds(selectedTechnicianDepartmentIds.filter(id => id !== dept.id));
+                                          }
+                                        }}
+                                        data-testid={`checkbox-artistic-dept-${dept.id}`}
+                                      />
+                                      <label htmlFor={`artistic-dept-${dept.id}`} className="text-sm cursor-pointer">
+                                        {dept.name}
+                                      </label>
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
-                            </div>
+                              </PopoverContent>
+                            </Popover>
                           </div>
                           {editTarget?.type === "technician" && editTarget.data.photoUrl && !uploadedPhotoUrl && (
                             <div className="space-y-2">

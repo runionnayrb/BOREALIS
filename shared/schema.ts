@@ -374,7 +374,10 @@ export const technicians = pgTable("technicians", {
   technicianName: text("technician_name"),
   role: text("role"),
   photoUrl: text("photo_url"),
+  userId: varchar("user_id").references(() => users.id), // Linked user account for authentication
+  status: text("status").notNull().default('active'), // active, out, archived
   sortOrder: integer("sort_order").notNull().default(0),
+  archivedAt: timestamp("archived_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -382,6 +385,7 @@ export const insertTechnicianSchema = createInsertSchema(technicians).omit({
   id: true,
   createdAt: true,
   sortOrder: true,
+  archivedAt: true,
 });
 
 export type InsertTechnician = z.infer<typeof insertTechnicianSchema>;
