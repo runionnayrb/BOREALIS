@@ -4233,13 +4233,14 @@ export default function Settings() {
                             </div>
                           )}
                           <input type="hidden" name="photoUrl" value={uploadedPhotoUrl || (editTarget?.type === "technician" ? editTarget.data.photoUrl || "" : "")} />
-                          <PhotoUploader
-                            onUploadComplete={(url: string) => {
-                              setUploadedPhotoUrl(url);
-                            }}
-                            circular={true}
-                            label="Upload Photo (Optional)"
-                          />
+                          <div className="space-y-2">
+                            <Label>Upload Photo (Optional)</Label>
+                            <PhotoUploader
+                              onUploadComplete={(url: string) => {
+                                setUploadedPhotoUrl(url);
+                              }}
+                            />
+                          </div>
                           {editTarget?.type === "technician" && editTarget.data.photoUrl && (
                             <Button
                               type="button"

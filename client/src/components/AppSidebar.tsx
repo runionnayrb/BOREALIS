@@ -219,6 +219,26 @@ export default function AppSidebar() {
                   <p>Technicians can now be reordered independently within each department using drag-and-drop. Each department maintains its own sort order, allowing the same technician to appear in different positions across multiple departments. Changes update instantly with optimistic UI updates and automatic rollback on error.</p>
                 </div>
                 <div className="space-y-1">
+                  <p className="font-medium text-foreground">Staff Status Management</p>
+                  <p>Track staff member status with three states: Active (currently working), Out (temporarily unavailable), and Archived (permanently removed from active roster). Status is managed through a dropdown in both Artistic and Technical staff forms. Changing status to Archived automatically moves staff to the archived view.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Staff User Account Linking</p>
+                  <p>Link user accounts to both Artistic and Technical staff members with one-to-one relationship enforcement. Each staff member can have only one linked user account, and each user can only be linked to one staff member. Link and unlink accounts directly from the staff edit dialog with automatic duplicate prevention and validation.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Staff Archive & Restore System</p>
+                  <p>Archive staff members (both Artistic and Technical) to remove them from active visibility while preserving their data. Archiving automatically archives the linked user account in a single atomic transaction. View archived staff using the "View Archived Staff" button, which opens a dedicated dialog showing all archived personnel with unarchive capability. Restoration brings both the staff member and their linked user account back to active status.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Staff Photo Management</p>
+                  <p>Upload profile photos for all staff members with circular preview display. Photos can be deleted directly from the edit modal using the "Delete Photo" button. Photo management includes client-side crop adjustment, zoom control, and position adjustment before upload, matching the artist photo system.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Department Assignment Validation</p>
+                  <p>Staff members must be assigned to at least one department during creation and editing. This ensures all staff appear in the department-grouped view and prevents invisible staff records. Multi-department selection allows staff to work across multiple areas with independent ordering per department.</p>
+                </div>
+                <div className="space-y-1">
                   <p className="font-medium text-foreground">User Management</p>
                   <p>Create and manage user accounts for the team. Assign users to groups (Artist, Stage Management, Admin, etc.) which determines their access level. Activate or deactivate user accounts as needed.</p>
                 </div>
@@ -231,7 +251,7 @@ export default function AppSidebar() {
                   <p>Link user accounts to artist profiles. Only users in the "Artist" group can be linked to artist profiles, preventing accidental misassignment.</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="font-medium text-foreground">Archive & Restore</p>
+                  <p className="font-medium text-foreground">Artist Archive & Restore</p>
                   <p>Archive artist profiles and their linked user accounts to remove them from visibility throughout the app while maintaining their data for potential restoration. Archiving is transactional - both the artist and their user account are archived together atomically. View archived artists separately and unarchive when needed.</p>
                 </div>
                 <div className="space-y-1">
