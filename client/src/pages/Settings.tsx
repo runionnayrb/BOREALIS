@@ -107,6 +107,9 @@ export default function Settings() {
   // Technician department assignments
   const [selectedTechnicianDepartmentIds, setSelectedTechnicianDepartmentIds] = useState<string[]>([]);
   
+  // Department type selection
+  const [selectedDepartmentType, setSelectedDepartmentType] = useState<string>("technical");
+  
   // Local state for artist ordering
   const [orderedArtists, setOrderedArtists] = useState<Artist[]>([]);
 
@@ -172,6 +175,15 @@ export default function Settings() {
     },
     enabled: technicians.length > 0
   });
+
+  // Load department type when editing a department
+  useEffect(() => {
+    if (editTarget?.type === "department" && editTarget.data) {
+      setSelectedDepartmentType(editTarget.data.type || 'technical');
+    } else if (!editTarget || editTarget.type !== "department") {
+      setSelectedDepartmentType('technical');
+    }
+  }, [editTarget]);
 
   // Load act departments when editing an act
   useEffect(() => {
@@ -3220,11 +3232,13 @@ export default function Settings() {
                         updateDeptMutation.mutate({
                           id: editTarget.id,
                           name,
+                          type: selectedDepartmentType,
                           sortOrder: editTarget.data.sortOrder,
                         });
                       } else {
                         createDeptMutation.mutate({
                           name,
+                          type: selectedDepartmentType,
                           sortOrder: departments.length,
                         });
                       }
@@ -3244,6 +3258,21 @@ export default function Settings() {
                           defaultValue={editTarget?.type === "department" ? editTarget.data.name : ""}
                           data-testid="input-department-name"
                         />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dept-type">Department Type</Label>
+                        <Select
+                          value={selectedDepartmentType}
+                          onValueChange={setSelectedDepartmentType}
+                        >
+                          <SelectTrigger id="dept-type" data-testid="select-department-type">
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="technical" data-testid="option-technical">Technical</SelectItem>
+                            <SelectItem value="artistic" data-testid="option-artistic">Artistic</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                     <DialogFooter>
