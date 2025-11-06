@@ -113,6 +113,10 @@ export default function Settings() {
   // Local state for technician ordering
   const [orderedTechnicians, setOrderedTechnicians] = useState<Technician[]>([]);
 
+  // Optimistic state for technician reordering per department
+  // Maps departmentId to array of technicianIds in their current order
+  const [optimisticTechnicianOrder, setOptimisticTechnicianOrder] = useState<Map<string, string[]>>(new Map());
+
   // User linking state for artists
   const [selectedLinkedUserId, setSelectedLinkedUserId] = useState<string | null>(null);
   
@@ -460,6 +464,47 @@ export default function Settings() {
       setOrderedTechnicians([...technicians].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)));
     }
   }, [technicians]);
+
+  // Clear optimistic state once server data is synced
+  useEffect(() => {
+    if (allTechnicianDepartments.length > 0) {
+      // Build server order map from fetched data
+      const serverOrders = new Map<string, string[]>();
+      
+      allTechnicianDepartments.forEach(({ technicianId, departmentId }) => {
+        if (!serverOrders.has(departmentId)) {
+          serverOrders.set(departmentId, []);
+        }
+        serverOrders.get(departmentId)!.push(technicianId);
+      });
+      
+      // Sort each department's technicians by sortOrder
+      serverOrders.forEach((techIds, deptId) => {
+        const sorted = techIds.sort((a, b) => {
+          const techA = allTechnicianDepartments.find(td => td.departmentId === deptId && td.technicianId === a);
+          const techB = allTechnicianDepartments.find(td => td.departmentId === deptId && td.technicianId === b);
+          return (techA?.sortOrder ?? 0) - (techB?.sortOrder ?? 0);
+        });
+        serverOrders.set(deptId, sorted);
+      });
+      
+      // Clear optimistic states that match server state
+      setOptimisticTechnicianOrder(prev => {
+        const newMap = new Map(prev);
+        let hasChanges = false;
+        
+        for (const [deptId, optimisticIds] of prev.entries()) {
+          const serverIds = serverOrders.get(deptId);
+          if (serverIds && JSON.stringify(optimisticIds) === JSON.stringify(serverIds)) {
+            newMap.delete(deptId);
+            hasChanges = true;
+          }
+        }
+        
+        return hasChanges ? newMap : prev;
+      });
+    }
+  }, [allTechnicianDepartments]);
 
   // Drag-and-drop sensors for artist reordering
   const artistDragSensors = useSensors(
@@ -1044,9 +1089,35 @@ export default function Settings() {
     mutationFn: async ({ departmentId, technicianIds }: { departmentId: string; technicianIds: string[] }) => {
       return await apiRequest("PUT", `/api/departments/${departmentId}/technicians/reorder`, { technicianIds });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/technician-departments/all"] });
+    onMutate: async ({ departmentId, technicianIds }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/technician-departments/all"] });
+      
+      // Snapshot previous value
+      const previousOrder = new Map(optimisticTechnicianOrder);
+      
+      // Optimistically update the order
+      setOptimisticTechnicianOrder(prev => {
+        const newMap = new Map(prev);
+        newMap.set(departmentId, technicianIds);
+        return newMap;
+      });
+      
       toast({ title: "Technician order updated" });
+      
+      // Return context with previous value for rollback
+      return { previousOrder };
+    },
+    onError: (_error, _variables, context) => {
+      // Rollback on error
+      if (context?.previousOrder) {
+        setOptimisticTechnicianOrder(context.previousOrder);
+      }
+      toast({ title: "Failed to update order", variant: "destructive" });
+    },
+    onSettled: () => {
+      // Refetch to ensure sync with server
+      queryClient.invalidateQueries({ queryKey: ["/api/technician-departments/all"] });
     },
   });
 
@@ -1743,13 +1814,30 @@ export default function Settings() {
       group.sortOrders.set(technicianId, sortOrder);
     });
     
-    // Sort each department's technicians by their sortOrder
-    grouped.forEach((group) => {
-      group.technicians.sort((a, b) => {
-        const orderA = group.sortOrders.get(a.id) ?? 0;
-        const orderB = group.sortOrders.get(b.id) ?? 0;
-        return orderA - orderB;
-      });
+    // Sort each department's technicians by their sortOrder or optimistic order
+    grouped.forEach((group, deptId) => {
+      // Check if we have an optimistic order for this department
+      const optimisticOrder = optimisticTechnicianOrder.get(deptId);
+      
+      if (optimisticOrder) {
+        // Use optimistic order
+        group.technicians.sort((a, b) => {
+          const indexA = optimisticOrder.indexOf(a.id);
+          const indexB = optimisticOrder.indexOf(b.id);
+          // If not found in optimistic order, put at end
+          if (indexA === -1 && indexB === -1) return 0;
+          if (indexA === -1) return 1;
+          if (indexB === -1) return -1;
+          return indexA - indexB;
+        });
+      } else {
+        // Use server-side sortOrder
+        group.technicians.sort((a, b) => {
+          const orderA = group.sortOrders.get(a.id) ?? 0;
+          const orderB = group.sortOrders.get(b.id) ?? 0;
+          return orderA - orderB;
+        });
+      }
     });
     
     // Add technicians with no departments to "No Department" group
