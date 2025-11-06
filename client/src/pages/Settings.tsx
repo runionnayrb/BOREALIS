@@ -108,7 +108,7 @@ export default function Settings() {
   const [selectedTechnicianDepartmentIds, setSelectedTechnicianDepartmentIds] = useState<string[]>([]);
   
   // Department type selection
-  const [selectedDepartmentType, setSelectedDepartmentType] = useState<string>("technical");
+  const [selectedDepartmentType, setSelectedDepartmentType] = useState<'technical' | 'artistic'>("technical");
   
   // Local state for artist ordering
   const [orderedArtists, setOrderedArtists] = useState<Artist[]>([]);
@@ -681,7 +681,7 @@ export default function Settings() {
   });
 
   const createDeptMutation = useMutation({
-    mutationFn: async (data: { name: string; sortOrder: number }) => {
+    mutationFn: async (data: { name: string; type: 'technical' | 'artistic'; sortOrder: number }) => {
       return await apiRequest("POST", "/api/departments", data);
     },
     onSuccess: () => {
@@ -805,8 +805,8 @@ export default function Settings() {
   });
 
   const updateDeptMutation = useMutation({
-    mutationFn: async (data: { id: string; name: string; sortOrder: number }) => {
-      return await apiRequest("PATCH", `/api/departments/${data.id}`, { name: data.name, sortOrder: data.sortOrder });
+    mutationFn: async (data: { id: string; name: string; type: 'technical' | 'artistic'; sortOrder: number }) => {
+      return await apiRequest("PATCH", `/api/departments/${data.id}`, { name: data.name, type: data.type, sortOrder: data.sortOrder });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
