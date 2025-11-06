@@ -697,8 +697,9 @@ export default function Settings() {
       return technician;
     },
     onSuccess: () => {
+      // Only invalidate technicians - the allTechnicianDepartments query will automatically
+      // refetch when the technicians array changes (it's part of the queryKey)
       queryClient.invalidateQueries({ queryKey: ["/api/technicians"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/technician-departments/all"] });
       setTechDialogOpen(false);
       setSelectedTechnicianDepartmentIds([]);
       setUploadedPhotoUrl(null);
@@ -921,8 +922,9 @@ export default function Settings() {
       return technician;
     },
     onSuccess: () => {
+      // Only invalidate technicians - the allTechnicianDepartments query will automatically
+      // refetch when the technicians array changes (it's part of the queryKey)
       queryClient.invalidateQueries({ queryKey: ["/api/technicians"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/technician-departments/all"] });
       setTechDialogOpen(false);
       setEditTarget(null);
       setSelectedTechnicianDepartmentIds([]);
@@ -1791,16 +1793,18 @@ export default function Settings() {
               
               const newTechs = arrayMove(techsInDept, oldIndex, newIndex);
               
-              // Update the grouped map
+              // Optimistically update the local state
               if (grouped.has(deptId)) {
                 grouped.get(deptId)!.technicians = newTechs;
               }
               
-              // Call the reorder mutation for this department
-              reorderTechniciansInDepartmentMutation.mutate({
-                departmentId: deptId,
-                technicianIds: newTechs.map(t => t.id)
-              });
+              // Only call the reorder mutation for real departments (not "no-department")
+              if (!isNoDept) {
+                reorderTechniciansInDepartmentMutation.mutate({
+                  departmentId: deptId,
+                  technicianIds: newTechs.map(t => t.id)
+                });
+              }
             }
           };
           
