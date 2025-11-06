@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, Plus, Settings, ChevronRight, ClipboardCheck, CheckSquare, Users, CalendarDays, Info } from "lucide-react";
+import { FileText, Plus, Settings, ChevronRight, ClipboardCheck, CheckSquare, Users, CalendarDays, Info, GraduationCap, Award, MapPin, Shield, AlertTriangle } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
@@ -332,17 +332,74 @@ export default function AppSidebar() {
                 </SidebarMenuItem>
               )}
 
-              {/* Lineups - only show if user has permission */}
+              {/* Lineups with sub-menu - only show if user has permission */}
               {canView('lineups') && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={location.startsWith("/lineups")} data-testid="nav-lineups">
                     <Link href="/lineups" className="flex items-center gap-3">
                       <Users className="w-4 h-4" />
                       <span>Lineups</span>
-                      <span className="text-xs text-muted-foreground">(Coming Soon)</span>
-                      {location.startsWith("/lineups") && <ChevronRight className="w-4 h-4 ml-auto" />}
                     </Link>
                   </SidebarMenuButton>
+                  <SidebarMenuSub>
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton asChild isActive={location === "/lineups" || location.startsWith("/lineups/new") || (location.startsWith("/lineups/") && !location.includes("/training-programs") && !location.includes("/competencies") && !location.includes("/positions") && !location.includes("/rules") && !location.includes("/restrictions"))} data-testid="nav-lineups-builder">
+                        <Link href="/lineups" className="flex items-center gap-3">
+                          <span>Builder</span>
+                        </Link>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                    {canView('lineups_training_programs') && (
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location.startsWith("/lineups/training-programs")} data-testid="nav-lineups-training-programs">
+                          <Link href="/lineups/training-programs" className="flex items-center gap-3">
+                            <GraduationCap className="w-4 h-4" />
+                            <span>Training Programs</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    )}
+                    {canView('lineups_competencies') && (
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location.startsWith("/lineups/competencies")} data-testid="nav-lineups-competencies">
+                          <Link href="/lineups/competencies" className="flex items-center gap-3">
+                            <Award className="w-4 h-4" />
+                            <span>Competencies</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    )}
+                    {canView('lineups_positions') && (
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location.startsWith("/lineups/positions")} data-testid="nav-lineups-positions">
+                          <Link href="/lineups/positions" className="flex items-center gap-3">
+                            <MapPin className="w-4 h-4" />
+                            <span>Positions</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    )}
+                    {canView('lineups_rules') && (
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location.startsWith("/lineups/rules")} data-testid="nav-lineups-rules">
+                          <Link href="/lineups/rules" className="flex items-center gap-3">
+                            <Shield className="w-4 h-4" />
+                            <span>Rules & Automation</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    )}
+                    {canView('lineups_restrictions') && (
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location.startsWith("/lineups/restrictions")} data-testid="nav-lineups-restrictions">
+                          <Link href="/lineups/restrictions" className="flex items-center gap-3">
+                            <AlertTriangle className="w-4 h-4" />
+                            <span>Restrictions</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    )}
+                  </SidebarMenuSub>
                 </SidebarMenuItem>
               )}
 

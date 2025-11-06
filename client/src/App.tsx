@@ -17,6 +17,11 @@ import AttendanceDashboard from "@/pages/attendance/Dashboard";
 import TickSheetPage from "@/pages/attendance/TickSheet";
 import LineupsList from "@/pages/LineupsList";
 import LineupBuilder from "@/pages/LineupBuilder";
+import TrainingPrograms from "@/pages/lineups/TrainingPrograms";
+import Competencies from "@/pages/lineups/Competencies";
+import Positions from "@/pages/lineups/Positions";
+import Rules from "@/pages/lineups/Rules";
+import Restrictions from "@/pages/lineups/Restrictions";
 import WeeklySchedule from "@/pages/WeeklySchedule";
 import FullSchedule from "@/pages/FullSchedule";
 import ChangePassword from "@/pages/ChangePassword";
@@ -79,6 +84,11 @@ function AuthenticatedApp() {
               <Route path="/report/:id" component={ReportEditor} />
               <Route path="/attendance/dashboard" component={AttendanceDashboard} />
               <Route path="/attendance/tickoff" component={TickSheetPage} />
+              <Route path="/lineups/training-programs" component={TrainingPrograms} />
+              <Route path="/lineups/competencies" component={Competencies} />
+              <Route path="/lineups/positions" component={Positions} />
+              <Route path="/lineups/rules" component={Rules} />
+              <Route path="/lineups/restrictions" component={Restrictions} />
               <Route path="/lineups" component={LineupsList} />
               <Route path="/lineups/new" component={LineupBuilder} />
               <Route path="/lineups/:id" component={LineupBuilder} />
