@@ -207,6 +207,18 @@ export default function AppSidebar() {
                   <p>Configure scenes, acts, departments, locations, artists, and technicians. Organize locations by type (e.g., Studio, Pool, Backstage) and acts by scene. Drag and drop to reorder artists in your preferred display order.</p>
                 </div>
                 <div className="space-y-1">
+                  <p className="font-medium text-foreground">People Management - Three-Tab Organization</p>
+                  <p>The People section is now organized into three dedicated tabs: Artists (for all performers), Artistic Staff (for Coaching, Performance Wellness-PWD, Stage Management, and Wardrobe departments), and Technical Staff (for all other technical departments). Each tab has its own customized "Add" button and forms tailored to that staff category.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Department Type System</p>
+                  <p>Departments can now be classified as either "Technical" or "Artistic" types. When creating or editing a department, select its type from a dropdown. This categorization automatically filters technicians into the appropriate Artistic Staff or Technical Staff tabs, making it easier to manage different categories of personnel.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Per-Department Technician Ordering</p>
+                  <p>Technicians can now be reordered independently within each department using drag-and-drop. Each department maintains its own sort order, allowing the same technician to appear in different positions across multiple departments. Changes update instantly with optimistic UI updates and automatic rollback on error.</p>
+                </div>
+                <div className="space-y-1">
                   <p className="font-medium text-foreground">User Management</p>
                   <p>Create and manage user accounts for the team. Assign users to groups (Artist, Stage Management, Admin, etc.) which determines their access level. Activate or deactivate user accounts as needed.</p>
                 </div>
