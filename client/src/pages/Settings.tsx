@@ -1814,10 +1814,21 @@ export default function Settings() {
   };
 
   const renderGroupedTechnicians = (departmentType?: 'technical' | 'artistic') => {
-    if (orderedTechnicians.length === 0) {
+    // Don't show empty state during mutations
+    if (orderedTechnicians.length === 0 && !createTechMutation.isPending && !updateTechMutation.isPending) {
+      const staffType = departmentType === 'artistic' ? 'artistic staff' : departmentType === 'technical' ? 'technical staff' : 'technicians';
       return (
         <Card className="p-6 text-center text-muted-foreground">
-          <p>No technicians yet. Click "Add Technician" to create one.</p>
+          <p>No {staffType} yet. Click the button above to create one.</p>
+        </Card>
+      );
+    }
+    
+    // Show loading state during mutations
+    if (createTechMutation.isPending || updateTechMutation.isPending) {
+      return (
+        <Card className="p-6 text-center text-muted-foreground">
+          <p>Loading...</p>
         </Card>
       );
     }
@@ -1890,11 +1901,12 @@ export default function Settings() {
       return (deptA?.name || '').localeCompare(deptB?.name || '');
     });
     
-    // Show empty state if no departments match the filter
-    if (sortedDeptIds.length === 0) {
+    // Show empty state if no departments match the filter (but not during mutations)
+    if (sortedDeptIds.length === 0 && !createTechMutation.isPending && !updateTechMutation.isPending) {
+      const staffType = departmentType === 'artistic' ? 'artistic staff' : 'technical staff';
       return (
         <Card className="p-6 text-center text-muted-foreground">
-          <p>No {departmentType} departments with technicians yet.</p>
+          <p>No {staffType} in departments yet.</p>
         </Card>
       );
     }
