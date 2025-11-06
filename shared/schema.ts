@@ -119,10 +119,15 @@ export const insertCueSchema = createInsertSchema(cues).omit({
 export type InsertCue = z.infer<typeof insertCueSchema>;
 export type Cue = typeof cues.$inferSelect;
 
+// Department types
+export const departmentTypes = ['technical', 'artistic'] as const;
+export type DepartmentType = typeof departmentTypes[number];
+
 // Departments
 export const departments = pgTable("departments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  type: text("type").notNull().default('technical'), // 'technical' or 'artistic'
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
