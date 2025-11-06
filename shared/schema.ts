@@ -814,6 +814,11 @@ export const featureNames = [
   'reports',
   'schedules', 
   'lineups',
+  'lineups_positions',
+  'lineups_competencies',
+  'lineups_training_programs',
+  'lineups_rules',
+  'lineups_restrictions',
   'attendance_dashboard',
   'attendance_ticksheet',
   'attendance_signin',
@@ -877,3 +882,394 @@ export const insertSystemSettingSchema = createInsertSchema(systemSettings).omit
 
 export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
 export type SystemSetting = typeof systemSettings.$inferSelect;
+
+// ========== LINEUP FOUNDATION TABLES ==========
+
+// Department Roles - HOD/AHOD/Lead assignments
+export const departmentRoleTypes = ['hod', 'ahod', 'lead'] as const;
+export type DepartmentRoleType = typeof departmentRoleTypes[number];
+
+export const departmentRoles = pgTable("department_roles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  departmentId: varchar("department_id").notNull().references(() => departments.id, { onDelete: "cascade" }),
+  technicianId: varchar("technician_id").notNull().references(() => technicians.id, { onDelete: "cascade" }),
+  roleType: text("role_type").notNull(), // 'hod', 'ahod', 'lead'
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertDepartmentRoleSchema = createInsertSchema(departmentRoles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  roleType: z.enum(departmentRoleTypes),
+});
+
+export type InsertDepartmentRole = z.infer<typeof insertDepartmentRoleSchema>;
+export type DepartmentRole = typeof departmentRoles.$inferSelect;
+
+// Competencies - What artists need to qualify for positions
+export const competencies = pgTable("competencies", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  departmentId: varchar("department_id").references(() => departments.id),
+  description: text("description"),
+  expirationDays: integer("expiration_days").notNull().default(90), // Days until competency expires
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  createdBy: varchar("created_by").references(() => users.id),
+});
+
+export const insertCompetencySchema = createInsertSchema(competencies).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertCompetency = z.infer<typeof insertCompetencySchema>;
+export type Competency = typeof competencies.$inferSelect;
+
+// Positions - Building blocks of lineups
+export const positions = pgTable("positions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  sceneId: varchar("scene_id").references(() => scenes.id),
+  actId: varchar("act_id").references(() => acts.id),
+  cueId: varchar("cue_id").references(() => cues.id),
+  departmentId: varchar("department_id").references(() => departments.id),
+  maxAssignees: integer("max_assignees"), // null = unlimited
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  createdBy: varchar("created_by").references(() => users.id),
+});
+
+export const insertPositionSchema = createInsertSchema(positions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertPosition = z.infer<typeof insertPositionSchema>;
+export type Position = typeof positions.$inferSelect;
+
+// Position Competencies - Required competencies for positions
+export const positionCompetencies = pgTable("position_competencies", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  positionId: varchar("position_id").notNull().references(() => positions.id, { onDelete: "cascade" }),
+  competencyId: varchar("competency_id").notNull().references(() => competencies.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertPositionCompetencySchema = createInsertSchema(positionCompetencies).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertPositionCompetency = z.infer<typeof insertPositionCompetencySchema>;
+export type PositionCompetency = typeof positionCompetencies.$inferSelect;
+
+// Position Tracks - Linked positions for auto-assign
+export const positionTracks = pgTable("position_tracks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(), // e.g., "Pearl Girl Track"
+  description: text("description"),
+  autoAssign: integer("auto_assign").notNull().default(1), // 1 = auto-assign all positions in track, 0 = manual
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  createdBy: varchar("created_by").references(() => users.id),
+});
+
+export const insertPositionTrackSchema = createInsertSchema(positionTracks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertPositionTrack = z.infer<typeof insertPositionTrackSchema>;
+export type PositionTrack = typeof positionTracks.$inferSelect;
+
+// Track Positions - Positions in a track
+export const trackPositions = pgTable("track_positions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  trackId: varchar("track_id").notNull().references(() => positionTracks.id, { onDelete: "cascade" }),
+  positionId: varchar("position_id").notNull().references(() => positions.id, { onDelete: "cascade" }),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertTrackPositionSchema = createInsertSchema(trackPositions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertTrackPosition = z.infer<typeof insertTrackPositionSchema>;
+export type TrackPosition = typeof trackPositions.$inferSelect;
+
+// Lineup Rules - Constraints and validations for assignments
+export const ruleTypes = ['scene_conflict', 'character_exclusion', 'time_conflict', 'custom'] as const;
+export type RuleType = typeof ruleTypes[number];
+
+export const ruleSeverities = ['hard_block', 'warning'] as const;
+export type RuleSeverity = typeof ruleSeverities[number];
+
+export const lineupRules = pgTable("lineup_rules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  ruleType: text("rule_type").notNull(), // 'scene_conflict', 'character_exclusion', 'time_conflict', 'custom'
+  severity: text("severity").notNull(), // 'hard_block', 'warning'
+  description: text("description"),
+  conditionData: text("condition_data").notNull(), // JSON string with rule conditions
+  active: integer("active").notNull().default(1), // 1 = active, 0 = disabled
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  createdBy: varchar("created_by").references(() => users.id),
+});
+
+export const insertLineupRuleSchema = createInsertSchema(lineupRules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  ruleType: z.enum(ruleTypes),
+  severity: z.enum(ruleSeverities),
+});
+
+export type InsertLineupRule = z.infer<typeof insertLineupRuleSchema>;
+export type LineupRule = typeof lineupRules.$inferSelect;
+
+// PWD Restrictions - Read-only view for Stage Management
+export const restrictionTypes = ['hard', 'soft'] as const;
+export type RestrictionType = typeof restrictionTypes[number];
+
+export const pwdRestrictions = pgTable("pwd_restrictions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  artistId: varchar("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+  restrictionType: text("restriction_type").notNull(), // 'hard', 'soft'
+  scope: text("scope").notNull(), // JSON string defining what's restricted (positions, scenes, etc.)
+  reason: text("reason"),
+  notes: text("notes"),
+  expiresAt: timestamp("expires_at"), // null = no expiration
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  createdBy: varchar("created_by").references(() => users.id),
+});
+
+export const insertPwdRestrictionSchema = createInsertSchema(pwdRestrictions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  restrictionType: z.enum(restrictionTypes),
+});
+
+export type InsertPwdRestriction = z.infer<typeof insertPwdRestrictionSchema>;
+export type PwdRestriction = typeof pwdRestrictions.$inferSelect;
+
+// Training Programs - The foundation that validates competencies
+export const programTypes = ['induction', 'technical', 'rehearsal', 'show_validation'] as const;
+export type ProgramType = typeof programTypes[number];
+
+export const trainingPrograms = pgTable("training_programs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  sceneId: varchar("scene_id").references(() => scenes.id),
+  actId: varchar("act_id").references(() => acts.id),
+  cueId: varchar("cue_id").references(() => cues.id),
+  competencyId: varchar("competency_id").references(() => competencies.id), // Competency awarded upon completion
+  colorTag: text("color_tag"), // 'green' for Act, 'yellow' for Cue, 'orange' for Acrobatic Cue
+  isTemplate: integer("is_template").notNull().default(0), // 1 = template, 0 = active program
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  createdBy: varchar("created_by").references(() => users.id),
+});
+
+export const insertTrainingProgramSchema = createInsertSchema(trainingPrograms).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertTrainingProgram = z.infer<typeof insertTrainingProgramSchema>;
+export type TrainingProgram = typeof trainingPrograms.$inferSelect;
+
+// Program Steps - Ordered steps in a training program
+export const stepConditions = ['work_lights', 'show_conditions'] as const;
+export type StepCondition = typeof stepConditions[number];
+
+export const signOffAuthorities = ['hod', 'ahod', 'lead'] as const;
+export type SignOffAuthority = typeof signOffAuthorities[number];
+
+export const programSteps = pgTable("program_steps", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  programId: varchar("program_id").notNull().references(() => trainingPrograms.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  departmentId: varchar("department_id").notNull().references(() => departments.id), // Owning department
+  stepType: text("step_type").notNull(), // 'induction', 'technical', 'rehearsal', 'show_validation'
+  conditions: text("conditions"), // 'work_lights', 'show_conditions'
+  prerequisiteStepIds: text("prerequisite_step_ids").array(), // Array of step IDs that must be completed first
+  signOffAuthority: text("sign_off_authority").notNull(), // 'hod', 'ahod', 'lead'
+  notes: text("notes"),
+  expectedDurationMinutes: integer("expected_duration_minutes"),
+  attachmentUrl: text("attachment_url"), // Optional reference photo or guide
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertProgramStepSchema = createInsertSchema(programSteps).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  stepType: z.enum(programTypes),
+  conditions: z.enum(stepConditions).optional(),
+  signOffAuthority: z.enum(signOffAuthorities),
+});
+
+export type InsertProgramStep = z.infer<typeof insertProgramStepSchema>;
+export type ProgramStep = typeof programSteps.$inferSelect;
+
+// Program Artists - Artists enrolled in a training program
+export const programArtistStatuses = ['not_started', 'in_progress', 'complete'] as const;
+export type ProgramArtistStatus = typeof programArtistStatuses[number];
+
+export const programArtists = pgTable("program_artists", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  programId: varchar("program_id").notNull().references(() => trainingPrograms.id, { onDelete: "cascade" }),
+  artistId: varchar("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default('not_started'), // 'not_started', 'in_progress', 'complete'
+  lastActivityAt: timestamp("last_activity_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  programArtistUnique: sql`UNIQUE (program_id, artist_id)`,
+}));
+
+export const insertProgramArtistSchema = createInsertSchema(programArtists).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastActivityAt: true,
+}).extend({
+  status: z.enum(programArtistStatuses).optional(),
+});
+
+export type InsertProgramArtist = z.infer<typeof insertProgramArtistSchema>;
+export type ProgramArtist = typeof programArtists.$inferSelect;
+
+// Step Statuses - Status of each step for each artist
+export const stepStatuses = ['not_started', 'in_progress', 'complete'] as const;
+export type StepStatus = typeof stepStatuses[number];
+
+export const stepStatusRecords = pgTable("step_status_records", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  programArtistId: varchar("program_artist_id").notNull().references(() => programArtists.id, { onDelete: "cascade" }),
+  stepId: varchar("step_id").notNull().references(() => programSteps.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default('not_started'), // 'not_started', 'in_progress', 'complete'
+  signedOffBy: varchar("signed_off_by").references(() => users.id),
+  signedOffRole: text("signed_off_role"), // 'hod', 'ahod', 'lead'
+  signedOffAt: timestamp("signed_off_at"),
+  note: text("note"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  programArtistStepUnique: sql`UNIQUE (program_artist_id, step_id)`,
+}));
+
+export const insertStepStatusRecordSchema = createInsertSchema(stepStatusRecords).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  status: z.enum(stepStatuses).optional(),
+  signedOffRole: z.enum(signOffAuthorities).optional(),
+});
+
+export type InsertStepStatusRecord = z.infer<typeof insertStepStatusRecordSchema>;
+export type StepStatusRecord = typeof stepStatusRecords.$inferSelect;
+
+// Final Validations - Stage Management final validation
+export const finalValidations = pgTable("final_validations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  programArtistId: varchar("program_artist_id").notNull().references(() => programArtists.id, { onDelete: "cascade" }).unique(),
+  validatedBy: varchar("validated_by").notNull().references(() => users.id),
+  validatedAt: timestamp("validated_at").notNull().defaultNow(),
+  conditions: text("conditions").notNull(), // 'show_conditions'
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertFinalValidationSchema = createInsertSchema(finalValidations).omit({
+  id: true,
+  createdAt: true,
+  validatedAt: true,
+});
+
+export type InsertFinalValidation = z.infer<typeof insertFinalValidationSchema>;
+export type FinalValidation = typeof finalValidations.$inferSelect;
+
+// Audit Trail - Complete audit log for all actions
+export const auditActions = [
+  'created_program',
+  'edited_program',
+  'created_step',
+  'edited_step',
+  'deleted_step',
+  'added_artist',
+  'removed_artist',
+  'signed_off_step',
+  'reverted_sign_off',
+  'final_validation',
+  'reverted_validation',
+] as const;
+export type AuditAction = typeof auditActions[number];
+
+export const auditTrail = pgTable("audit_trail", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  entityType: text("entity_type").notNull(), // 'training_program', 'program_step', 'step_status', etc.
+  entityId: varchar("entity_id").notNull(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  userRole: text("user_role"), // 'hod', 'ahod', 'lead', 'stage_management'
+  action: text("action").notNull(),
+  note: text("note"),
+  metadata: text("metadata"), // JSON string with additional context
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertAuditTrailSchema = createInsertSchema(auditTrail).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  action: z.enum(auditActions),
+});
+
+export type InsertAuditTrail = z.infer<typeof insertAuditTrailSchema>;
+export type AuditTrail = typeof auditTrail.$inferSelect;
+
+// Artist Competencies - Competencies earned by artists with expiration tracking
+export const artistCompetencies = pgTable("artist_competencies", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  artistId: varchar("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+  competencyId: varchar("competency_id").notNull().references(() => competencies.id, { onDelete: "cascade" }),
+  programArtistId: varchar("program_artist_id").references(() => programArtists.id), // Link to training that awarded it
+  awardedAt: timestamp("awarded_at").notNull().defaultNow(),
+  lastPerformedAt: timestamp("last_performed_at"), // Track for expiration
+  expiresAt: timestamp("expires_at"), // Computed based on lastPerformedAt + expirationDays
+  expired: integer("expired").notNull().default(0), // 1 = expired, 0 = valid
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  artistCompetencyUnique: sql`UNIQUE (artist_id, competency_id)`,
+}));
+
+export const insertArtistCompetencySchema = createInsertSchema(artistCompetencies).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  awardedAt: true,
+});
+
+export type InsertArtistCompetency = z.infer<typeof insertArtistCompetencySchema>;
+export type ArtistCompetency = typeof artistCompetencies.$inferSelect;

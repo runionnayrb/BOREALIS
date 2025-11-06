@@ -32,9 +32,24 @@ import {
   type TickSheetMark, type InsertTickSheetMark, tickSheetMarks,
   type UserPermission, type InsertUserPermission, userPermissions,
   type SystemSetting, type InsertSystemSetting, systemSettings,
+  type DepartmentRole, type InsertDepartmentRole, departmentRoles,
+  type Competency, type InsertCompetency, competencies,
+  type Position, type InsertPosition, positions,
+  type PositionCompetency, type InsertPositionCompetency, positionCompetencies,
+  type PositionTrack, type InsertPositionTrack, positionTracks,
+  type TrackPosition, type InsertTrackPosition, trackPositions,
+  type LineupRule, type InsertLineupRule, lineupRules,
+  type PwdRestriction, type InsertPwdRestriction, pwdRestrictions,
+  type TrainingProgram, type InsertTrainingProgram, trainingPrograms,
+  type ProgramStep, type InsertProgramStep, programSteps,
+  type ProgramArtist, type InsertProgramArtist, programArtists,
+  type StepStatusRecord, type InsertStepStatusRecord, stepStatusRecords,
+  type FinalValidation, type InsertFinalValidation, finalValidations,
+  type AuditTrail, type InsertAuditTrail, auditTrail,
+  type ArtistCompetency, type InsertArtistCompetency, artistCompetencies,
 } from "@shared/schema";
 import { db, pool } from "./db";
-import { eq, asc, desc, inArray, and, gte, lte, isNull, isNotNull, sql } from "drizzle-orm";
+import { eq, asc, desc, inArray, and, or, gte, lte, isNull, isNotNull, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import type { Store } from "express-session";
@@ -255,6 +270,106 @@ export interface IStorage {
   updateSystemSetting(key: string, value: string, updatedBy?: string): Promise<SystemSetting | undefined>;
   upsertSystemSetting(key: string, value: string, type: string, category: string, description?: string, updatedBy?: string): Promise<SystemSetting>;
   deleteSystemSetting(key: string): Promise<void>;
+  
+  // Department Roles
+  getDepartmentRoles(departmentId: string): Promise<DepartmentRole[]>;
+  getDepartmentRole(id: string): Promise<DepartmentRole | undefined>;
+  createDepartmentRole(role: InsertDepartmentRole): Promise<DepartmentRole>;
+  updateDepartmentRole(id: string, updates: Partial<InsertDepartmentRole>): Promise<DepartmentRole | undefined>;
+  deleteDepartmentRole(id: string): Promise<void>;
+  setDepartmentRoles(departmentId: string, roles: InsertDepartmentRole[]): Promise<void>;
+  
+  // Competencies
+  getAllCompetencies(): Promise<Competency[]>;
+  getCompetency(id: string): Promise<Competency | undefined>;
+  createCompetency(competency: InsertCompetency): Promise<Competency>;
+  updateCompetency(id: string, updates: Partial<InsertCompetency>): Promise<Competency | undefined>;
+  deleteCompetency(id: string): Promise<void>;
+  
+  // Positions
+  getAllPositions(): Promise<Position[]>;
+  getPosition(id: string): Promise<Position | undefined>;
+  createPosition(position: InsertPosition): Promise<Position>;
+  updatePosition(id: string, updates: Partial<InsertPosition>): Promise<Position | undefined>;
+  deletePosition(id: string): Promise<void>;
+  
+  // Position Competencies
+  getPositionCompetencies(positionId: string): Promise<PositionCompetency[]>;
+  setPositionCompetencies(positionId: string, competencyIds: string[]): Promise<void>;
+  
+  // Position Tracks
+  getAllPositionTracks(): Promise<PositionTrack[]>;
+  getPositionTrack(id: string): Promise<PositionTrack | undefined>;
+  createPositionTrack(track: InsertPositionTrack): Promise<PositionTrack>;
+  updatePositionTrack(id: string, updates: Partial<InsertPositionTrack>): Promise<PositionTrack | undefined>;
+  deletePositionTrack(id: string): Promise<void>;
+  getTrackPositions(trackId: string): Promise<TrackPosition[]>;
+  addPositionsToTrack(trackId: string, positionIds: string[]): Promise<void>;
+  removePositionFromTrack(trackId: string, positionId: string): Promise<void>;
+  
+  // Lineup Rules
+  getAllLineupRules(): Promise<LineupRule[]>;
+  getActiveLineupRules(): Promise<LineupRule[]>;
+  getLineupRule(id: string): Promise<LineupRule | undefined>;
+  createLineupRule(rule: InsertLineupRule): Promise<LineupRule>;
+  updateLineupRule(id: string, updates: Partial<InsertLineupRule>): Promise<LineupRule | undefined>;
+  deleteLineupRule(id: string): Promise<void>;
+  
+  // PWD Restrictions
+  getAllPwdRestrictions(): Promise<PwdRestriction[]>;
+  getActivePwdRestrictions(): Promise<PwdRestriction[]>;
+  getPwdRestriction(id: string): Promise<PwdRestriction | undefined>;
+  getArtistPwdRestrictions(artistId: string): Promise<PwdRestriction[]>;
+  createPwdRestriction(restriction: InsertPwdRestriction): Promise<PwdRestriction>;
+  updatePwdRestriction(id: string, updates: Partial<InsertPwdRestriction>): Promise<PwdRestriction | undefined>;
+  deletePwdRestriction(id: string): Promise<void>;
+  
+  // Training Programs
+  getAllTrainingPrograms(): Promise<TrainingProgram[]>;
+  getTrainingProgram(id: string): Promise<TrainingProgram | undefined>;
+  getTrainingProgramTemplates(): Promise<TrainingProgram[]>;
+  createTrainingProgram(program: InsertTrainingProgram): Promise<TrainingProgram>;
+  updateTrainingProgram(id: string, updates: Partial<InsertTrainingProgram>): Promise<TrainingProgram | undefined>;
+  deleteTrainingProgram(id: string): Promise<void>;
+  
+  // Program Steps
+  getProgramSteps(programId: string): Promise<ProgramStep[]>;
+  getProgramStep(id: string): Promise<ProgramStep | undefined>;
+  createProgramStep(step: InsertProgramStep): Promise<ProgramStep>;
+  updateProgramStep(id: string, updates: Partial<InsertProgramStep>): Promise<ProgramStep | undefined>;
+  deleteProgramStep(id: string): Promise<void>;
+  
+  // Program Artists
+  getProgramArtists(programId: string): Promise<ProgramArtist[]>;
+  getProgramArtist(id: string): Promise<ProgramArtist | undefined>;
+  getArtistPrograms(artistId: string): Promise<ProgramArtist[]>;
+  createProgramArtist(programArtist: InsertProgramArtist): Promise<ProgramArtist>;
+  updateProgramArtist(id: string, updates: Partial<InsertProgramArtist>): Promise<ProgramArtist | undefined>;
+  deleteProgramArtist(id: string): Promise<void>;
+  
+  // Step Status Records
+  getStepStatusRecords(programArtistId: string): Promise<StepStatusRecord[]>;
+  getStepStatusRecord(id: string): Promise<StepStatusRecord | undefined>;
+  createStepStatusRecord(record: InsertStepStatusRecord): Promise<StepStatusRecord>;
+  updateStepStatusRecord(id: string, updates: Partial<InsertStepStatusRecord>): Promise<StepStatusRecord | undefined>;
+  deleteStepStatusRecord(id: string): Promise<void>;
+  
+  // Final Validations
+  getFinalValidation(programArtistId: string): Promise<FinalValidation | undefined>;
+  createFinalValidation(validation: InsertFinalValidation): Promise<FinalValidation>;
+  deleteFinalValidation(id: string): Promise<void>;
+  
+  // Audit Trail
+  getAuditTrail(entityType: string, entityId: string): Promise<AuditTrail[]>;
+  createAuditTrail(entry: InsertAuditTrail): Promise<AuditTrail>;
+  
+  // Artist Competencies
+  getArtistCompetencies(artistId: string): Promise<ArtistCompetency[]>;
+  getArtistCompetency(id: string): Promise<ArtistCompetency | undefined>;
+  createArtistCompetency(competency: InsertArtistCompetency): Promise<ArtistCompetency>;
+  updateArtistCompetency(id: string, updates: Partial<InsertArtistCompetency>): Promise<ArtistCompetency | undefined>;
+  deleteArtistCompetency(id: string): Promise<void>;
+  checkExpiredCompetencies(): Promise<void>;
   
   sessionStore: Store;
 }
@@ -1313,6 +1428,459 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSystemSetting(key: string): Promise<void> {
     await db.delete(systemSettings).where(eq(systemSettings.settingKey, key));
+  }
+
+  // ========== LINEUP FOUNDATION IMPLEMENTATIONS ==========
+
+  // Department Roles
+  async getDepartmentRoles(departmentId: string): Promise<DepartmentRole[]> {
+    return await db.select().from(departmentRoles).where(eq(departmentRoles.departmentId, departmentId));
+  }
+
+  async getDepartmentRole(id: string): Promise<DepartmentRole | undefined> {
+    const result = await db.select().from(departmentRoles).where(eq(departmentRoles.id, id));
+    return result[0];
+  }
+
+  async createDepartmentRole(role: InsertDepartmentRole): Promise<DepartmentRole> {
+    const result = await db.insert(departmentRoles).values(role).returning();
+    return result[0];
+  }
+
+  async updateDepartmentRole(id: string, updates: Partial<InsertDepartmentRole>): Promise<DepartmentRole | undefined> {
+    const result = await db.update(departmentRoles)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(departmentRoles.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteDepartmentRole(id: string): Promise<void> {
+    await db.delete(departmentRoles).where(eq(departmentRoles.id, id));
+  }
+
+  async setDepartmentRoles(departmentId: string, roles: InsertDepartmentRole[]): Promise<void> {
+    // Delete existing roles for this department
+    await db.delete(departmentRoles).where(eq(departmentRoles.departmentId, departmentId));
+    
+    // Insert new roles
+    if (roles.length > 0) {
+      await db.insert(departmentRoles).values(roles);
+    }
+  }
+
+  // Competencies
+  async getAllCompetencies(): Promise<Competency[]> {
+    return await db.select().from(competencies).orderBy(asc(competencies.name));
+  }
+
+  async getCompetency(id: string): Promise<Competency | undefined> {
+    const result = await db.select().from(competencies).where(eq(competencies.id, id));
+    return result[0];
+  }
+
+  async createCompetency(competency: InsertCompetency): Promise<Competency> {
+    const result = await db.insert(competencies).values(competency).returning();
+    return result[0];
+  }
+
+  async updateCompetency(id: string, updates: Partial<InsertCompetency>): Promise<Competency | undefined> {
+    const result = await db.update(competencies)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(competencies.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteCompetency(id: string): Promise<void> {
+    await db.delete(competencies).where(eq(competencies.id, id));
+  }
+
+  // Positions
+  async getAllPositions(): Promise<Position[]> {
+    return await db.select().from(positions).orderBy(asc(positions.name));
+  }
+
+  async getPosition(id: string): Promise<Position | undefined> {
+    const result = await db.select().from(positions).where(eq(positions.id, id));
+    return result[0];
+  }
+
+  async createPosition(position: InsertPosition): Promise<Position> {
+    const result = await db.insert(positions).values(position).returning();
+    return result[0];
+  }
+
+  async updatePosition(id: string, updates: Partial<InsertPosition>): Promise<Position | undefined> {
+    const result = await db.update(positions)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(positions.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deletePosition(id: string): Promise<void> {
+    await db.delete(positions).where(eq(positions.id, id));
+  }
+
+  // Position Competencies
+  async getPositionCompetencies(positionId: string): Promise<PositionCompetency[]> {
+    return await db.select().from(positionCompetencies).where(eq(positionCompetencies.positionId, positionId));
+  }
+
+  async setPositionCompetencies(positionId: string, competencyIds: string[]): Promise<void> {
+    // Delete existing competencies for this position
+    await db.delete(positionCompetencies).where(eq(positionCompetencies.positionId, positionId));
+    
+    // Insert new competencies
+    if (competencyIds.length > 0) {
+      const values = competencyIds.map(competencyId => ({ positionId, competencyId }));
+      await db.insert(positionCompetencies).values(values);
+    }
+  }
+
+  // Position Tracks
+  async getAllPositionTracks(): Promise<PositionTrack[]> {
+    return await db.select().from(positionTracks).orderBy(asc(positionTracks.name));
+  }
+
+  async getPositionTrack(id: string): Promise<PositionTrack | undefined> {
+    const result = await db.select().from(positionTracks).where(eq(positionTracks.id, id));
+    return result[0];
+  }
+
+  async createPositionTrack(track: InsertPositionTrack): Promise<PositionTrack> {
+    const result = await db.insert(positionTracks).values(track).returning();
+    return result[0];
+  }
+
+  async updatePositionTrack(id: string, updates: Partial<InsertPositionTrack>): Promise<PositionTrack | undefined> {
+    const result = await db.update(positionTracks)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(positionTracks.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deletePositionTrack(id: string): Promise<void> {
+    await db.delete(positionTracks).where(eq(positionTracks.id, id));
+  }
+
+  async getTrackPositions(trackId: string): Promise<TrackPosition[]> {
+    return await db.select().from(trackPositions)
+      .where(eq(trackPositions.trackId, trackId))
+      .orderBy(asc(trackPositions.sortOrder));
+  }
+
+  async addPositionsToTrack(trackId: string, positionIds: string[]): Promise<void> {
+    if (positionIds.length > 0) {
+      const values = positionIds.map((positionId, index) => ({
+        trackId,
+        positionId,
+        sortOrder: index,
+      }));
+      await db.insert(trackPositions).values(values);
+    }
+  }
+
+  async removePositionFromTrack(trackId: string, positionId: string): Promise<void> {
+    await db.delete(trackPositions).where(
+      and(
+        eq(trackPositions.trackId, trackId),
+        eq(trackPositions.positionId, positionId)
+      )
+    );
+  }
+
+  // Lineup Rules
+  async getAllLineupRules(): Promise<LineupRule[]> {
+    return await db.select().from(lineupRules).orderBy(asc(lineupRules.name));
+  }
+
+  async getActiveLineupRules(): Promise<LineupRule[]> {
+    return await db.select().from(lineupRules)
+      .where(eq(lineupRules.active, 1))
+      .orderBy(asc(lineupRules.name));
+  }
+
+  async getLineupRule(id: string): Promise<LineupRule | undefined> {
+    const result = await db.select().from(lineupRules).where(eq(lineupRules.id, id));
+    return result[0];
+  }
+
+  async createLineupRule(rule: InsertLineupRule): Promise<LineupRule> {
+    const result = await db.insert(lineupRules).values(rule).returning();
+    return result[0];
+  }
+
+  async updateLineupRule(id: string, updates: Partial<InsertLineupRule>): Promise<LineupRule | undefined> {
+    const result = await db.update(lineupRules)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(lineupRules.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteLineupRule(id: string): Promise<void> {
+    await db.delete(lineupRules).where(eq(lineupRules.id, id));
+  }
+
+  // PWD Restrictions
+  async getAllPwdRestrictions(): Promise<PwdRestriction[]> {
+    return await db.select().from(pwdRestrictions).orderBy(desc(pwdRestrictions.createdAt));
+  }
+
+  async getActivePwdRestrictions(): Promise<PwdRestriction[]> {
+    const now = new Date();
+    return await db.select().from(pwdRestrictions)
+      .where(
+        or(
+          isNull(pwdRestrictions.expiresAt),
+          gte(pwdRestrictions.expiresAt, now)
+        )
+      )
+      .orderBy(desc(pwdRestrictions.createdAt));
+  }
+
+  async getPwdRestriction(id: string): Promise<PwdRestriction | undefined> {
+    const result = await db.select().from(pwdRestrictions).where(eq(pwdRestrictions.id, id));
+    return result[0];
+  }
+
+  async getArtistPwdRestrictions(artistId: string): Promise<PwdRestriction[]> {
+    const now = new Date();
+    return await db.select().from(pwdRestrictions)
+      .where(
+        and(
+          eq(pwdRestrictions.artistId, artistId),
+          or(
+            isNull(pwdRestrictions.expiresAt),
+            gte(pwdRestrictions.expiresAt, now)
+          )
+        )
+      )
+      .orderBy(desc(pwdRestrictions.createdAt));
+  }
+
+  async createPwdRestriction(restriction: InsertPwdRestriction): Promise<PwdRestriction> {
+    const result = await db.insert(pwdRestrictions).values(restriction).returning();
+    return result[0];
+  }
+
+  async updatePwdRestriction(id: string, updates: Partial<InsertPwdRestriction>): Promise<PwdRestriction | undefined> {
+    const result = await db.update(pwdRestrictions)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(pwdRestrictions.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deletePwdRestriction(id: string): Promise<void> {
+    await db.delete(pwdRestrictions).where(eq(pwdRestrictions.id, id));
+  }
+
+  // Training Programs
+  async getAllTrainingPrograms(): Promise<TrainingProgram[]> {
+    return await db.select().from(trainingPrograms)
+      .where(eq(trainingPrograms.isTemplate, 0))
+      .orderBy(desc(trainingPrograms.createdAt));
+  }
+
+  async getTrainingProgram(id: string): Promise<TrainingProgram | undefined> {
+    const result = await db.select().from(trainingPrograms).where(eq(trainingPrograms.id, id));
+    return result[0];
+  }
+
+  async getTrainingProgramTemplates(): Promise<TrainingProgram[]> {
+    return await db.select().from(trainingPrograms)
+      .where(eq(trainingPrograms.isTemplate, 1))
+      .orderBy(asc(trainingPrograms.name));
+  }
+
+  async createTrainingProgram(program: InsertTrainingProgram): Promise<TrainingProgram> {
+    const result = await db.insert(trainingPrograms).values(program).returning();
+    return result[0];
+  }
+
+  async updateTrainingProgram(id: string, updates: Partial<InsertTrainingProgram>): Promise<TrainingProgram | undefined> {
+    const result = await db.update(trainingPrograms)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(trainingPrograms.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteTrainingProgram(id: string): Promise<void> {
+    await db.delete(trainingPrograms).where(eq(trainingPrograms.id, id));
+  }
+
+  // Program Steps
+  async getProgramSteps(programId: string): Promise<ProgramStep[]> {
+    return await db.select().from(programSteps)
+      .where(eq(programSteps.programId, programId))
+      .orderBy(asc(programSteps.sortOrder));
+  }
+
+  async getProgramStep(id: string): Promise<ProgramStep | undefined> {
+    const result = await db.select().from(programSteps).where(eq(programSteps.id, id));
+    return result[0];
+  }
+
+  async createProgramStep(step: InsertProgramStep): Promise<ProgramStep> {
+    const result = await db.insert(programSteps).values(step).returning();
+    return result[0];
+  }
+
+  async updateProgramStep(id: string, updates: Partial<InsertProgramStep>): Promise<ProgramStep | undefined> {
+    const result = await db.update(programSteps)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(programSteps.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteProgramStep(id: string): Promise<void> {
+    await db.delete(programSteps).where(eq(programSteps.id, id));
+  }
+
+  // Program Artists
+  async getProgramArtists(programId: string): Promise<ProgramArtist[]> {
+    return await db.select().from(programArtists)
+      .where(eq(programArtists.programId, programId))
+      .orderBy(asc(programArtists.createdAt));
+  }
+
+  async getProgramArtist(id: string): Promise<ProgramArtist | undefined> {
+    const result = await db.select().from(programArtists).where(eq(programArtists.id, id));
+    return result[0];
+  }
+
+  async getArtistPrograms(artistId: string): Promise<ProgramArtist[]> {
+    return await db.select().from(programArtists)
+      .where(eq(programArtists.artistId, artistId))
+      .orderBy(desc(programArtists.lastActivityAt));
+  }
+
+  async createProgramArtist(programArtist: InsertProgramArtist): Promise<ProgramArtist> {
+    const result = await db.insert(programArtists).values(programArtist).returning();
+    return result[0];
+  }
+
+  async updateProgramArtist(id: string, updates: Partial<InsertProgramArtist>): Promise<ProgramArtist | undefined> {
+    const result = await db.update(programArtists)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(programArtists.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteProgramArtist(id: string): Promise<void> {
+    await db.delete(programArtists).where(eq(programArtists.id, id));
+  }
+
+  // Step Status Records
+  async getStepStatusRecords(programArtistId: string): Promise<StepStatusRecord[]> {
+    return await db.select().from(stepStatusRecords)
+      .where(eq(stepStatusRecords.programArtistId, programArtistId))
+      .orderBy(asc(stepStatusRecords.createdAt));
+  }
+
+  async getStepStatusRecord(id: string): Promise<StepStatusRecord | undefined> {
+    const result = await db.select().from(stepStatusRecords).where(eq(stepStatusRecords.id, id));
+    return result[0];
+  }
+
+  async createStepStatusRecord(record: InsertStepStatusRecord): Promise<StepStatusRecord> {
+    const result = await db.insert(stepStatusRecords).values(record).returning();
+    return result[0];
+  }
+
+  async updateStepStatusRecord(id: string, updates: Partial<InsertStepStatusRecord>): Promise<StepStatusRecord | undefined> {
+    const result = await db.update(stepStatusRecords)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(stepStatusRecords.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteStepStatusRecord(id: string): Promise<void> {
+    await db.delete(stepStatusRecords).where(eq(stepStatusRecords.id, id));
+  }
+
+  // Final Validations
+  async getFinalValidation(programArtistId: string): Promise<FinalValidation | undefined> {
+    const result = await db.select().from(finalValidations)
+      .where(eq(finalValidations.programArtistId, programArtistId));
+    return result[0];
+  }
+
+  async createFinalValidation(validation: InsertFinalValidation): Promise<FinalValidation> {
+    const result = await db.insert(finalValidations).values(validation).returning();
+    return result[0];
+  }
+
+  async deleteFinalValidation(id: string): Promise<void> {
+    await db.delete(finalValidations).where(eq(finalValidations.id, id));
+  }
+
+  // Audit Trail
+  async getAuditTrail(entityType: string, entityId: string): Promise<AuditTrail[]> {
+    return await db.select().from(auditTrail)
+      .where(
+        and(
+          eq(auditTrail.entityType, entityType),
+          eq(auditTrail.entityId, entityId)
+        )
+      )
+      .orderBy(desc(auditTrail.createdAt));
+  }
+
+  async createAuditTrail(entry: InsertAuditTrail): Promise<AuditTrail> {
+    const result = await db.insert(auditTrail).values(entry).returning();
+    return result[0];
+  }
+
+  // Artist Competencies
+  async getArtistCompetencies(artistId: string): Promise<ArtistCompetency[]> {
+    return await db.select().from(artistCompetencies)
+      .where(eq(artistCompetencies.artistId, artistId))
+      .orderBy(asc(artistCompetencies.createdAt));
+  }
+
+  async getArtistCompetency(id: string): Promise<ArtistCompetency | undefined> {
+    const result = await db.select().from(artistCompetencies).where(eq(artistCompetencies.id, id));
+    return result[0];
+  }
+
+  async createArtistCompetency(competency: InsertArtistCompetency): Promise<ArtistCompetency> {
+    const result = await db.insert(artistCompetencies).values(competency).returning();
+    return result[0];
+  }
+
+  async updateArtistCompetency(id: string, updates: Partial<InsertArtistCompetency>): Promise<ArtistCompetency | undefined> {
+    const result = await db.update(artistCompetencies)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(artistCompetencies.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteArtistCompetency(id: string): Promise<void> {
+    await db.delete(artistCompetencies).where(eq(artistCompetencies.id, id));
+  }
+
+  async checkExpiredCompetencies(): Promise<void> {
+    const now = new Date();
+    // Mark competencies as expired if expiresAt is in the past
+    await db.update(artistCompetencies)
+      .set({ expired: 1, updatedAt: now })
+      .where(
+        and(
+          isNotNull(artistCompetencies.expiresAt),
+          lte(artistCompetencies.expiresAt, now),
+          eq(artistCompetencies.expired, 0)
+        )
+      );
   }
 }
 
