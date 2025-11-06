@@ -151,7 +151,7 @@ export default function Settings() {
   
   // Fetch all technician-department assignments for grouping
   const { data: allTechnicianDepartments = [] } = useQuery<Array<{ technicianId: string; departmentId: string }>>({
-    queryKey: ["/api/technician-departments/all"],
+    queryKey: ["/api/technician-departments/all", technicians.map(t => t.id).sort().join(',')],
     queryFn: async () => {
       // Fetch department assignments for all technicians
       const assignments = await Promise.all(
