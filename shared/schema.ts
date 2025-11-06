@@ -387,12 +387,14 @@ export const technicianDepartments = pgTable("technician_departments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   technicianId: varchar("technician_id").notNull().references(() => technicians.id),
   departmentId: varchar("department_id").notNull().references(() => departments.id),
+  sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertTechnicianDepartmentSchema = createInsertSchema(technicianDepartments).omit({
   id: true,
   createdAt: true,
+  sortOrder: true,
 });
 
 export type InsertTechnicianDepartment = z.infer<typeof insertTechnicianDepartmentSchema>;

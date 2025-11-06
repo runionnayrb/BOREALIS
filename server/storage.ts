@@ -758,24 +758,64 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
+      // Get existing assignments to preserve sortOrder where possible
+      const existingAssignments = await tx.select().from(technicianDepartments).where(eq(technicianDepartments.technicianId, technicianId));
+      const existingMap = new Map(existingAssignments.map(a => [a.departmentId, a.sortOrder]));
+
       // Delete existing assignments
       await tx.delete(technicianDepartments).where(eq(technicianDepartments.technicianId, technicianId));
 
-      // Insert new assignments
+      // Insert new assignments, preserving sortOrder for departments that already existed
+      // For new departments, get the max sortOrder in that department and add to the end
       if (departmentIds.length > 0) {
-        await tx.insert(technicianDepartments).values(
-          departmentIds.map(departmentId => ({ technicianId, departmentId }))
-        );
+        const newAssignments = await Promise.all(departmentIds.map(async (departmentId) => {
+          // If this department assignment already existed, keep its sortOrder
+          if (existingMap.has(departmentId)) {
+            return { technicianId, departmentId, sortOrder: existingMap.get(departmentId)! };
+          }
+          // Otherwise, add to the end of the department's list
+          const maxSortOrder = await tx.select({ max: sql<number>`COALESCE(MAX(${technicianDepartments.sortOrder}), -1)` })
+            .from(technicianDepartments)
+            .where(eq(technicianDepartments.departmentId, departmentId));
+          return { technicianId, departmentId, sortOrder: (maxSortOrder[0]?.max ?? -1) + 1 };
+        }));
+        
+        await tx.insert(technicianDepartments).values(newAssignments);
+      }
+    });
+  }
+
+  async reorderTechniciansInDepartment(departmentId: string, technicianIds: string[]): Promise<void> {
+    await db.transaction(async (tx) => {
+      for (let i = 0; i < technicianIds.length; i++) {
+        await tx.update(technicianDepartments)
+          .set({ sortOrder: i })
+          .where(
+            and(
+              eq(technicianDepartments.departmentId, departmentId),
+              eq(technicianDepartments.technicianId, technicianIds[i])
+            )
+          );
       }
     });
   }
 
   async getTechniciansByDepartment(departmentId: string): Promise<Technician[]> {
-    const techDepts = await db.select().from(technicianDepartments).where(eq(technicianDepartments.departmentId, departmentId));
+    // Get technician-department assignments ordered by sortOrder
+    const techDepts = await db.select()
+      .from(technicianDepartments)
+      .where(eq(technicianDepartments.departmentId, departmentId))
+      .orderBy(asc(technicianDepartments.sortOrder));
+    
     if (techDepts.length === 0) return [];
     
+    // Get technicians and maintain the order from techDepts
     const technicianIds = techDepts.map(td => td.technicianId);
-    return await db.select().from(technicians).where(inArray(technicians.id, technicianIds)).orderBy(asc(technicians.sortOrder));
+    const techniciansData = await db.select().from(technicians).where(inArray(technicians.id, technicianIds));
+    
+    // Re-sort based on the order from techDepts
+    const techMap = new Map(techniciansData.map(t => [t.id, t]));
+    return technicianIds.map(id => techMap.get(id)!).filter(Boolean);
   }
 
   // Report Template

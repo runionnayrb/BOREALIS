@@ -1106,6 +1106,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(departments);
   });
 
+  app.put("/api/departments/:id/technicians/reorder", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const validation = z.object({
+      technicianIds: z.array(z.string()),
+    }).safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    await storage.reorderTechniciansInDepartment(req.params.id, validation.data.technicianIds);
+    res.sendStatus(204);
+  });
+
   // Attendance routes
   app.get("/api/attendance/artists", async (req, res) => {
     const artists = await storage.getAllArtists();

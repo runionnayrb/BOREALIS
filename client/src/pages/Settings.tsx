@@ -150,7 +150,7 @@ export default function Settings() {
   const { data: userGroups = [] } = useQuery<UserGroup[]>({ queryKey: ["/api/user-groups"] });
   
   // Fetch all technician-department assignments for grouping
-  const { data: allTechnicianDepartments = [] } = useQuery<Array<{ technicianId: string; departmentId: string }>>({
+  const { data: allTechnicianDepartments = [] } = useQuery<Array<{ technicianId: string; departmentId: string; sortOrder: number }>>({
     queryKey: ["/api/technician-departments/all", technicians.map(t => t.id).sort().join(',')],
     queryFn: async () => {
       // Fetch department assignments for all technicians
@@ -161,7 +161,7 @@ export default function Settings() {
           });
           if (!res.ok) return [];
           const depts = await res.json();
-          return depts.map((d: any) => ({ technicianId: tech.id, departmentId: d.departmentId }));
+          return depts.map((d: any) => ({ technicianId: tech.id, departmentId: d.departmentId, sortOrder: d.sortOrder || 0 }));
         })
       );
       return assignments.flat();
@@ -1038,6 +1038,16 @@ export default function Settings() {
     },
   });
 
+  const reorderTechniciansInDepartmentMutation = useMutation({
+    mutationFn: async ({ departmentId, technicianIds }: { departmentId: string; technicianIds: string[] }) => {
+      return await apiRequest("PUT", `/api/departments/${departmentId}/technicians/reorder`, { technicianIds });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/technician-departments/all"] });
+      toast({ title: "Technician order updated" });
+    },
+  });
+
   const reorderActsMutation = useMutation({
     mutationFn: async (actsWithOrder: Array<{id: string; sortOrder: number}>) => {
       return await apiRequest("POST", "/api/acts/reorder", { acts: actsWithOrder });
@@ -1599,7 +1609,7 @@ export default function Settings() {
     );
   };
 
-  const SortableTechnicianCard = ({ technician }: { technician: Technician }) => {
+  const SortableTechnicianCard = ({ technician, deptId }: { technician: Technician; deptId: string }) => {
     const {
       attributes,
       listeners,
@@ -1607,7 +1617,7 @@ export default function Settings() {
       transform,
       transition,
       isDragging,
-    } = useSortable({ id: technician.id });
+    } = useSortable({ id: `${deptId}-${technician.id}` });
 
     const style = {
       transform: CSS.Transform.toString(transform),
@@ -1714,18 +1724,109 @@ export default function Settings() {
       );
     }
 
-    // Simple flat list for drag-and-drop reordering
-    // Each technician appears exactly once, preventing duplicate IDs in DndContext
+    // Group technicians by department with proper ordering
+    const grouped = new Map<string, { technicians: Technician[]; sortOrders: Map<string, number> }>();
+    const techniciansWithDepts = new Set<string>();
+    
+    allTechnicianDepartments.forEach(({ technicianId, departmentId, sortOrder }) => {
+      techniciansWithDepts.add(technicianId);
+      const tech = orderedTechnicians.find(t => t.id === technicianId);
+      if (!tech) return;
+      
+      if (!grouped.has(departmentId)) {
+        grouped.set(departmentId, { technicians: [], sortOrders: new Map() });
+      }
+      const group = grouped.get(departmentId)!;
+      group.technicians.push(tech);
+      group.sortOrders.set(technicianId, sortOrder);
+    });
+    
+    // Sort each department's technicians by their sortOrder
+    grouped.forEach((group) => {
+      group.technicians.sort((a, b) => {
+        const orderA = group.sortOrders.get(a.id) ?? 0;
+        const orderB = group.sortOrders.get(b.id) ?? 0;
+        return orderA - orderB;
+      });
+    });
+    
+    // Add technicians with no departments to "No Department" group
+    const noDeptTechs = orderedTechnicians.filter(t => !techniciansWithDepts.has(t.id));
+    if (noDeptTechs.length > 0) {
+      grouped.set('no-department', { technicians: noDeptTechs, sortOrders: new Map() });
+    }
+    
+    // Sort departments alphabetically, with "no-department" last
+    const sortedDeptIds = Array.from(grouped.keys()).sort((a, b) => {
+      if (a === 'no-department') return 1;
+      if (b === 'no-department') return -1;
+      const deptA = departments.find(d => d.id === a);
+      const deptB = departments.find(d => d.id === b);
+      return (deptA?.name || '').localeCompare(deptB?.name || '');
+    });
+
     return (
-      <DndContext sensors={technicianDragSensors} collisionDetection={closestCenter} onDragEnd={handleTechnicianDragEnd}>
-        <SortableContext items={orderedTechnicians.map(t => t.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-2">
-            {orderedTechnicians.map((tech) => (
-              <SortableTechnicianCard key={tech.id} technician={tech} />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+      <div className="space-y-6">
+        {sortedDeptIds.map((deptId) => {
+          const group = grouped.get(deptId);
+          if (!group) return null;
+          
+          const techsInDept = group.technicians;
+          const dept = departments.find(d => d.id === deptId);
+          const isNoDept = deptId === 'no-department';
+          
+          // Create department-specific drag handler
+          const handleDeptDragEnd = (event: DragEndEvent) => {
+            const { active, over } = event;
+            
+            if (over && active.id !== over.id) {
+              // Extract technician IDs from composite keys (format: "deptId-technicianId")
+              const activeId = String(active.id).split('-').slice(1).join('-');
+              const overId = String(over.id).split('-').slice(1).join('-');
+              
+              const oldIndex = techsInDept.findIndex((t) => t.id === activeId);
+              const newIndex = techsInDept.findIndex((t) => t.id === overId);
+              
+              if (oldIndex === -1 || newIndex === -1) return;
+              
+              const newTechs = arrayMove(techsInDept, oldIndex, newIndex);
+              
+              // Update the grouped map
+              if (grouped.has(deptId)) {
+                grouped.get(deptId)!.technicians = newTechs;
+              }
+              
+              // Call the reorder mutation for this department
+              reorderTechniciansInDepartmentMutation.mutate({
+                departmentId: deptId,
+                technicianIds: newTechs.map(t => t.id)
+              });
+            }
+          };
+          
+          return (
+            <div key={deptId} className="space-y-2">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  {isNoDept ? 'No Department' : dept?.name || 'Unknown'}
+                </h3>
+                <span className="text-xs text-muted-foreground">
+                  ({techsInDept.length})
+                </span>
+              </div>
+              <DndContext sensors={technicianDragSensors} collisionDetection={closestCenter} onDragEnd={handleDeptDragEnd}>
+                <SortableContext items={techsInDept.map(t => `${deptId}-${t.id}`)} strategy={verticalListSortingStrategy}>
+                  <div className="space-y-2">
+                    {techsInDept.map((tech) => (
+                      <SortableTechnicianCard key={`${deptId}-${tech.id}`} technician={tech} deptId={deptId} />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </div>
+          );
+        })}
+      </div>
     );
   };
 
