@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit, Settings as SettingsIcon, Shield, UserCircle2, GripVertical, KeyRound, Copy, Check, Archive } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -1783,8 +1783,15 @@ export default function Settings() {
             
             if (over && active.id !== over.id) {
               // Extract technician IDs from composite keys (format: "deptId-technicianId")
-              const activeId = String(active.id).split('-').slice(1).join('-');
-              const overId = String(over.id).split('-').slice(1).join('-');
+              // Both deptId and technicianId are UUIDs with hyphens, so we need to split carefully
+              // UUID format: 8-4-4-4-12 characters (5 segments separated by hyphens)
+              // So composite key has format: uuid-uuid-uuid-uuid-uuid-uuid-uuid-uuid-uuid-uuid (10 segments)
+              const activeParts = String(active.id).split('-');
+              const overParts = String(over.id).split('-');
+              
+              // First 5 segments are the department ID, remaining 5 are the technician ID
+              const activeId = activeParts.slice(5).join('-');
+              const overId = overParts.slice(5).join('-');
               
               const oldIndex = techsInDept.findIndex((t) => t.id === activeId);
               const newIndex = techsInDept.findIndex((t) => t.id === overId);
@@ -1792,17 +1799,13 @@ export default function Settings() {
               if (oldIndex === -1 || newIndex === -1) return;
               
               const newTechs = arrayMove(techsInDept, oldIndex, newIndex);
-              
-              // Optimistically update the local state
-              if (grouped.has(deptId)) {
-                grouped.get(deptId)!.technicians = newTechs;
-              }
+              const newOrder = newTechs.map(t => t.id);
               
               // Only call the reorder mutation for real departments (not "no-department")
               if (!isNoDept) {
                 reorderTechniciansInDepartmentMutation.mutate({
                   departmentId: deptId,
-                  technicianIds: newTechs.map(t => t.id)
+                  technicianIds: newOrder
                 });
               }
             }
