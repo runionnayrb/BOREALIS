@@ -4036,6 +4036,22 @@ export default function Settings() {
                             />
                           </div>
                           <div className="space-y-2">
+                            <Label htmlFor="tech-status">Status</Label>
+                            <Select
+                              value={selectedTechnicianStatus}
+                              onValueChange={setSelectedTechnicianStatus}
+                            >
+                              <SelectTrigger id="tech-status" data-testid="select-technician-status">
+                                <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="active" data-testid="option-status-active">Active</SelectItem>
+                                <SelectItem value="inactive" data-testid="option-status-inactive">Inactive</SelectItem>
+                                <SelectItem value="on_leave" data-testid="option-status-on-leave">On Leave</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
                             <Label>Departments (Multiple)</Label>
                             <Popover>
                               <PopoverTrigger asChild>
@@ -4113,8 +4129,112 @@ export default function Settings() {
                             circular={true}
                             label="Upload Photo (Optional)"
                           />
+                          {editTarget?.type === "technician" && editTarget.data.photoUrl && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm("Are you sure you want to delete this photo?")) {
+                                  setUploadedPhotoUrl("");
+                                }
+                              }}
+                              data-testid="button-delete-photo"
+                            >
+                              Delete Current Photo
+                            </Button>
+                          )}
+                          {editTarget?.type === "technician" && isStageManager && (
+                            <div className="space-y-2 pt-2 border-t">
+                              <Label>Linked User Account</Label>
+                              {editTarget.data.userId ? (
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between p-3 bg-muted rounded-md">
+                                    <div className="flex items-center gap-2">
+                                      <UserCircle2 className="w-4 h-4" />
+                                      <span className="text-sm">
+                                        {users.find(u => u.id === editTarget.data.userId)?.name || "Unknown User"}
+                                      </span>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        // Will implement unlink mutation
+                                        toast({
+                                          title: "Feature coming soon",
+                                          description: "User unlinking will be implemented.",
+                                        });
+                                      }}
+                                      data-testid="button-unlink-tech-user"
+                                    >
+                                      Unlink
+                                    </Button>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    This staff member is linked to a user account. They can sign in and access features based on their permissions.
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <Select
+                                    value={selectedLinkedTechUserId || ""}
+                                    onValueChange={(value) => setSelectedLinkedTechUserId(value || null)}
+                                  >
+                                    <SelectTrigger data-testid="select-link-tech-user">
+                                      <SelectValue placeholder="Select user account to link..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {users
+                                        .filter(u => !technicians.some(a => a.userId === u.id))
+                                        .map(u => (
+                                          <SelectItem key={u.id} value={u.id} data-testid={`option-user-${u.id}`}>
+                                            {u.name} ({u.email})
+                                          </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                  </Select>
+                                  {selectedLinkedTechUserId && (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        // Will implement link mutation
+                                        toast({
+                                          title: "Feature coming soon",
+                                          description: "User linking will be implemented.",
+                                        });
+                                      }}
+                                      data-testid="button-link-tech-user"
+                                    >
+                                      Link User Account
+                                    </Button>
+                                  )}
+                                  <p className="text-xs text-muted-foreground">
+                                    Link this staff member to a user account to allow them to sign in.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <DialogFooter>
+                          {editTarget?.type === "technician" && (
+                            <Button 
+                              type="button"
+                              variant="destructive"
+                              onClick={() => {
+                                setTechnicianToArchive(editTarget.id);
+                                setArchiveTechDialogOpen(true);
+                              }}
+                              data-testid="button-archive-technician"
+                            >
+                              Archive
+                            </Button>
+                          )}
+                          <div className="flex-1"></div>
                           <Button type="submit" disabled={createTechMutation.isPending || updateTechMutation.isPending} data-testid="button-save-technician">
                             {(createTechMutation.isPending || updateTechMutation.isPending) ? "Saving..." : editTarget?.type === "technician" ? "Update Artistic Staff" : "Save Artistic Staff"}
                           </Button>
@@ -4222,6 +4342,22 @@ export default function Settings() {
                             />
                           </div>
                           <div className="space-y-2">
+                            <Label htmlFor="tech-status-2">Status</Label>
+                            <Select
+                              value={selectedTechnicianStatus}
+                              onValueChange={setSelectedTechnicianStatus}
+                            >
+                              <SelectTrigger id="tech-status-2" data-testid="select-technician-status">
+                                <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="active" data-testid="option-status-active">Active</SelectItem>
+                                <SelectItem value="inactive" data-testid="option-status-inactive">Inactive</SelectItem>
+                                <SelectItem value="on_leave" data-testid="option-status-on-leave">On Leave</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
                             <Label>Photo</Label>
                             <div className="flex items-center gap-4">
                               {(uploadedPhotoUrl || (editTarget?.type === "technician" && editTarget.data.photoUrl)) && (
@@ -4291,6 +4427,96 @@ export default function Settings() {
                               </PopoverContent>
                             </Popover>
                           </div>
+                          {editTarget?.type === "technician" && editTarget.data.photoUrl && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm("Are you sure you want to delete this photo?")) {
+                                  setUploadedPhotoUrl("");
+                                }
+                              }}
+                              data-testid="button-delete-tech-photo"
+                            >
+                              Delete Current Photo
+                            </Button>
+                          )}
+                          {editTarget?.type === "technician" && isStageManager && (
+                            <div className="space-y-2 pt-2 border-t">
+                              <Label>Linked User Account</Label>
+                              {editTarget.data.userId ? (
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between p-3 bg-muted rounded-md">
+                                    <div className="flex items-center gap-2">
+                                      <UserCircle2 className="w-4 h-4" />
+                                      <span className="text-sm">
+                                        {users.find(u => u.id === editTarget.data.userId)?.name || "Unknown User"}
+                                      </span>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        // Will implement unlink mutation
+                                        toast({
+                                          title: "Feature coming soon",
+                                          description: "User unlinking will be implemented.",
+                                        });
+                                      }}
+                                      data-testid="button-unlink-tech-user-2"
+                                    >
+                                      Unlink
+                                    </Button>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    This staff member is linked to a user account. They can sign in and access features based on their permissions.
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <Select
+                                    value={selectedLinkedTechUserId || ""}
+                                    onValueChange={(value) => setSelectedLinkedTechUserId(value || null)}
+                                  >
+                                    <SelectTrigger data-testid="select-link-tech-user-2">
+                                      <SelectValue placeholder="Select user account to link..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {users
+                                        .filter(u => !technicians.some(a => a.userId === u.id))
+                                        .map(u => (
+                                          <SelectItem key={u.id} value={u.id} data-testid={`option-user-${u.id}`}>
+                                            {u.name} ({u.email})
+                                          </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                  </Select>
+                                  {selectedLinkedTechUserId && (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        // Will implement link mutation
+                                        toast({
+                                          title: "Feature coming soon",
+                                          description: "User linking will be implemented.",
+                                        });
+                                      }}
+                                      data-testid="button-link-tech-user-2"
+                                    >
+                                      Link User Account
+                                    </Button>
+                                  )}
+                                  <p className="text-xs text-muted-foreground">
+                                    Link this staff member to a user account to allow them to sign in.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <DialogFooter className="flex justify-between items-center gap-2">
                           {editTarget?.type === "technician" && (
@@ -4298,12 +4524,12 @@ export default function Settings() {
                               type="button"
                               variant="destructive"
                               onClick={() => {
-                                setDeleteTarget({ type: "technician", id: editTarget.id });
-                                setDeleteDialogOpen(true);
+                                setTechnicianToArchive(editTarget.id);
+                                setArchiveTechDialogOpen(true);
                               }}
-                              data-testid="button-delete-technician"
+                              data-testid="button-archive-technician"
                             >
-                              Delete Technician
+                              Archive
                             </Button>
                           )}
                           <div className="flex-1"></div>
