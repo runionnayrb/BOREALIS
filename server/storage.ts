@@ -700,7 +700,7 @@ export class DatabaseStorage implements IStorage {
 
   // Technicians
   async getAllTechnicians(): Promise<Technician[]> {
-    return await db.select().from(technicians);
+    return await db.select().from(technicians).orderBy(asc(technicians.sortOrder));
   }
 
   async getTechnician(id: string): Promise<Technician | undefined> {
@@ -719,7 +719,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteTechnician(id: string): Promise<void> {
-    await db.delete(technicians).where(eq(technicians.id, id));
+    await db.transaction(async (tx) => {
+      // Delete related technician_departments records first
+      await tx.delete(technicianDepartments).where(eq(technicianDepartments.technicianId, id));
+      // Then delete the technician
+      await tx.delete(technicians).where(eq(technicians.id, id));
+    });
   }
 
   async reorderTechnicians(technicianIds: string[]): Promise<void> {
@@ -770,7 +775,7 @@ export class DatabaseStorage implements IStorage {
     if (techDepts.length === 0) return [];
     
     const technicianIds = techDepts.map(td => td.technicianId);
-    return await db.select().from(technicians).where(inArray(technicians.id, technicianIds));
+    return await db.select().from(technicians).where(inArray(technicians.id, technicianIds)).orderBy(asc(technicians.sortOrder));
   }
 
   // Report Template
