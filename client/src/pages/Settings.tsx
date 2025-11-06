@@ -1042,9 +1042,16 @@ export default function Settings() {
     mutationFn: async (data: { technicianId: string; userId: string }) => {
       return await apiRequest("POST", `/api/technicians/${data.technicianId}/link-user`, { userId: data.userId });
     },
-    onSuccess: () => {
+    onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/technicians"] });
       setSelectedLinkedTechUserId(null);
+      // Update editTarget to reflect the new userId
+      if (editTarget?.type === "technician" && editTarget.id === variables.technicianId) {
+        setEditTarget({
+          ...editTarget,
+          data: { ...editTarget.data, userId: variables.userId }
+        });
+      }
       toast({ title: "User linked successfully" });
     },
     onError: (error: any) => {
@@ -1059,14 +1066,21 @@ export default function Settings() {
     mutationFn: async (technicianId: string) => {
       return await apiRequest("POST", `/api/technicians/${technicianId}/unlink-user`);
     },
-    onSuccess: () => {
+    onSuccess: (_result, technicianId) => {
       queryClient.invalidateQueries({ queryKey: ["/api/technicians"] });
+      // Update editTarget to reflect the removed userId
+      if (editTarget?.type === "technician" && editTarget.id === technicianId) {
+        setEditTarget({
+          ...editTarget,
+          data: { ...editTarget.data, userId: null }
+        });
+      }
       toast({ title: "User unlinked successfully" });
     },
   });
 
   const updateTechMutation = useMutation({
-    mutationFn: async (data: { id: string; firstName: string; lastName: string; technicianName?: string; role?: string; photoUrl?: string; status: "active" | "out" | "archived"; departmentIds: string[] }) => {
+    mutationFn: async (data: { id: string; firstName: string; lastName: string; technicianName?: string; role?: string; photoUrl?: string; status: "active" | "out" | "archived"; departmentIds: string[]; userId?: string | null }) => {
       const technician = await apiRequest("PATCH", `/api/technicians/${data.id}`, {
         firstName: data.firstName,
         lastName: data.lastName,
@@ -1074,6 +1088,7 @@ export default function Settings() {
         role: data.role,
         photoUrl: data.photoUrl,
         status: data.status,
+        userId: data.userId,
       });
       // Set department assignments
       await apiRequest("PUT", `/api/technicians/${data.id}/departments`, {
@@ -1910,8 +1925,8 @@ export default function Settings() {
   };
 
   const renderGroupedTechnicians = (departmentType?: 'technical' | 'artistic') => {
-    // Show loading state during mutations or query loading
-    if (createTechMutation.isPending || updateTechMutation.isPending || techniciansQuery.isLoading || techniciansQuery.isFetching) {
+    // Show loading state only on initial load, not during refetches
+    if (techniciansQuery.isLoading) {
       return (
         <Card className="p-6 text-center text-muted-foreground">
           <p>Loading...</p>
@@ -4084,6 +4099,7 @@ export default function Settings() {
                               photoUrl,
                               status,
                               departmentIds: selectedTechnicianDepartmentIds,
+                              userId: editTarget?.data?.userId ?? null,
                             });
                           } else {
                             createTechMutation.mutate({
@@ -4422,6 +4438,7 @@ export default function Settings() {
                               photoUrl,
                               status,
                               departmentIds: selectedTechnicianDepartmentIds,
+                              userId: editTarget?.data?.userId ?? null,
                             });
                           } else {
                             createTechMutation.mutate({
