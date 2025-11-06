@@ -1,0 +1,257 @@
+Purpose
+
+Create a Training Programs feature that captures how artists progress from induction to validation, then to competency for a specific position. This page will be used by rigging, coaching, and stage management to plan, run, and sign off training, with strict permissions and a complete audit trail. It must integrate cleanly with the existing lineup and competency structures, but this scope focuses on Training Programs.
+
+Core outcomes
+
+Every artist has a clear, step by step path for a given act or cue.
+
+Only authorized roles can sign off their department steps.
+
+An artist cannot move forward until prerequisites are complete.
+
+A final stage management validation is required to perform in show conditions.
+
+Once all steps are complete, the system can assign a competency for that position.
+
+Use the team transcript to shape stages
+
+Use the conversation notes to pre build sensible default stages and language. Examples to include as templates:
+
+Induction and orientation, safety procedures, harness fitting
+
+Technical induction, harness on, connect to trolley, go inverted a few times under supervision
+
+Track familiarization, walk the track halfway, return, then full track walk
+
+Full track rehearsal, run both tracks P1 and P2 with supervision
+These are examples. The system must allow adding, removing, and reordering stages for any act or cue.
+
+Example training program
+
+Name: Globe Cable
+Steps in order:
+
+Cable rigging induction
+
+Cable choreography with coaching
+
+Cable training in work lights
+
+Cable validation in show conditions
+Each step is owned by a department. Rigging owns rigging items. Coaching owns choreography or movement. Stage management owns anything non department specific and always performs the final show readiness validation.
+
+Scope of this page
+
+A new section named Training Programs with two views and one modal flow.
+
+View A, Programs list
+
+Filter and search by scene, act, cue, department, status, and tag
+
+Color tags, green for Act, yellow for Cue, orange for Acrobatic Cue
+
+Columns, Program name, Scene, Act or Cue, Departments involved, Artists in progress, Artists validated, Last activity
+
+New Program button
+
+View B, Program detail
+
+Header, Program name, Scene, Act, Cue, Color tag, Departments involved
+
+Tabs
+
+Steps, ordered list of training steps with owner department, prerequisite flags, status per artist, and a progress bar
+
+Artists, roster with status for each step, a final status pill for validation eligibility, and a final stage management validation state
+
+Audit log, time stamped actions with user and role on every create, edit, and sign off
+
+Settings, ownership and permissions, default templates, expiration policy, competency mapping
+
+Steps section, required fields
+
+Step name
+
+Owning department, rigging, coaching, stage management
+
+Prerequisite steps, can choose one or more required steps
+
+Conditions, work lights or show conditions
+
+Validation type, induction, technical induction, full track rehearsal, show validation
+
+Sign off authority, only HOD, AHOD, or Lead from the owning department, must be enforced by permissions
+
+Notes for internal guidance
+
+Expected duration, optional
+
+Attachment upload, optional, for reference photos or quick guides
+
+Artists section, required behavior
+
+Add or remove artists from the program
+
+For each artist, display each step with status, not started, in progress, complete
+
+A Sign Off button appears only when the logged in user has the correct department role and the artist has met prerequisites for that step
+
+Signing off logs a date and time stamp and the exact user and role, and locks that step from edits except by stage management with a reason note
+
+Final stage management validation appears only after all required steps are complete
+
+When stage management validates, store date validated, validator name, and show conditions state
+
+Sign off modal flow
+
+Shows the artist, program, step, prerequisites check, owning department, and the signer’s role
+
+Requires an optional note for context, and always writes a date and time stamp
+
+On confirm, update the step to complete and write a line to the audit log
+
+Data model, high level
+
+Do not create code here, only define how data should be modeled.
+
+Program
+
+id, name, scene, act or cue, color tag, departments involved, created by, created at, updated at
+
+ProgramStep
+
+id, program id, name, owning department, type, induction or technical or rehearsal or show validation, conditions, work lights or show, prerequisites, array of ProgramStep ids, sign off authority, HOD or AHOD or Lead, notes, order
+
+ProgramArtist
+
+id, program id, artist id, status summary, in progress, complete, last activity at
+
+StepStatus
+
+id, program artist id, program step id, status, not started or in progress or complete, signed off by user id, signed off by role, HOD or AHOD or Lead, signed off at, note
+
+FinalValidation
+
+id, program artist id, validated by user id, validated by role, always stage management, validated at, conditions, show, notes
+
+AuditLine
+
+id, entity type and id, user id, role, action, created program, edited step, signed off step, final validation, timestamp, note
+
+Permissions and access control
+
+Only HOD, AHOD, and Lead from the owning department can sign off their department steps
+
+Coaching can sign off choreography and movement steps only, they do not sign technical approvals
+
+Rigging signs off technical inductions, harness fit, cable, trolley, track walk
+
+Stage management signs off any neutral step defined as show level oversight and always performs the final show validation
+
+Only stage management can revert a sign off, requires a note and is always logged
+
+Progress logic and gating
+
+A step can be started only if all prerequisites are complete
+
+Sign off button should be disabled until prerequisites are met and the logged in user has the correct role
+
+Final stage management validation is available only when all required steps are complete
+
+When a program is fully complete for an artist, emit a system event that the artist is eligible for competency assignment in this position
+
+Show a clear badge, Eligible for competency, once the final validation is done
+
+Competency link and expiration signals
+
+This page does not issue competencies, but it must surface competency status and warnings.
+
+Store date validated and last time performed
+
+Compute days since last performance
+
+If no activity for 90 days, mark the related competency as expired and require revalidation
+
+Show a warning seven days before the ninety day mark to rigging, coaching, and stage management for planning
+
+Integration points, read and write
+
+Do not write code, only define the events.
+
+On final stage management validation, emit ProgramCompleted for artist id and program id
+
+On every sign off, emit ProgramStepCompleted with artist id, program step id, department, and signer role
+
+Provide a read endpoint to the lineup and competency modules to query an artist current program status and eligibility
+
+When a performer is restricted by PWD, Training Programs should still allow viewing and planning, but sign off and final validation must be disabled and the UI must show Restricted by PWD
+
+UX details
+
+Mobile friendly first, big tap targets for sign off
+
+Clear progress bars at the program and artist levels
+
+Color tags appear on the program header and in the list view, green for Act, yellow for Cue, orange for Acrobatic Cue
+
+Use simple language labels, avoid jargon, include tooltips for any specialized term
+
+Fast scan design, list row shows progress percent, next step, and last activity time
+
+Templates
+
+Provide a starter set of reusable templates for common flows based on the transcript.
+
+Harness and trolley induction
+
+Inverted familiarization plus track walk
+
+Dual track full rehearsal P1 and P2
+
+Show conditions validation
+Allow cloning a template into a new program, then allow edits without changing the original template.
+
+Manual override rules
+
+Out of scope for complex logic, but support a minimal flow for low risk roles like background citizens.
+
+A single checkbox, Manual override for simple substitution, visible to stage management
+
+Requires a short note and writes to audit
+
+Does not mark the program complete and does not award a competency
+
+Creates a traceable record and shows a temporary badge for the day
+
+Migration readiness
+
+Include a hidden tag field for future import mapping from FileMaker
+
+Allow bulk import placeholders for steps and artists, without committing to schema
+
+Acceptance criteria
+
+Only HOD, AHOD, or Lead in the owning department can sign off their steps, confirmed by a role check
+
+Prerequisites block progression and sign off until the required steps are complete
+
+Final stage management validation is required to mark a program complete for an artist
+
+Every sign off writes a date and time stamp and the exact user and role to the audit log
+
+When a program is complete for an artist, the system exposes an Eligible for competency state to the competencies module
+
+Warning banner appears seven days before the ninety day inactivity rule, and the competency changes to expired after ninety days without activity
+
+List and detail views are responsive and usable on mobile
+
+Color coding follows green for Act, yellow for Cue, orange for Acrobatic Cue
+
+Success measures
+
+Time to sign off a step on mobile is under ten seconds
+
+At least ninety percent of sign offs happen inside the app, not through email
+
+Stage management can see a real time roster of who is eligible for validation across programs
