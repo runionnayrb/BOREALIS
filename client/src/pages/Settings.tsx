@@ -163,7 +163,8 @@ export default function Settings() {
     enabled: viewArchivedDialogOpen,
   });
   const artists = artistsQuery.data || [];
-  const { data: technicians = [] } = useQuery<Technician[]>({ queryKey: ["/api/technicians"] });
+  const techniciansQuery = useQuery<Technician[]>({ queryKey: ["/api/technicians"] });
+  const technicians = techniciansQuery.data || [];
   const { data: reportTemplate } = useQuery<ReportTemplate | null>({ queryKey: ["/api/report-template"] });
   const usersQuery = useQuery<SafeUser[]>({ queryKey: ["/api/users"] });
   const users = usersQuery.data || [];
@@ -1814,21 +1815,21 @@ export default function Settings() {
   };
 
   const renderGroupedTechnicians = (departmentType?: 'technical' | 'artistic') => {
-    // Don't show empty state during mutations
-    if (orderedTechnicians.length === 0 && !createTechMutation.isPending && !updateTechMutation.isPending) {
-      const staffType = departmentType === 'artistic' ? 'artistic staff' : departmentType === 'technical' ? 'technical staff' : 'technicians';
+    // Show loading state during mutations or query loading
+    if (createTechMutation.isPending || updateTechMutation.isPending || techniciansQuery.isLoading || techniciansQuery.isFetching) {
       return (
         <Card className="p-6 text-center text-muted-foreground">
-          <p>No {staffType} yet. Click the button above to create one.</p>
+          <p>Loading...</p>
         </Card>
       );
     }
     
-    // Show loading state during mutations
-    if (createTechMutation.isPending || updateTechMutation.isPending) {
+    // Only show empty state when not loading and truly empty
+    if (orderedTechnicians.length === 0) {
+      const staffType = departmentType === 'artistic' ? 'artistic staff' : departmentType === 'technical' ? 'technical staff' : 'technicians';
       return (
         <Card className="p-6 text-center text-muted-foreground">
-          <p>Loading...</p>
+          <p>No {staffType} yet. Click the button above to create one.</p>
         </Card>
       );
     }
@@ -1901,8 +1902,8 @@ export default function Settings() {
       return (deptA?.name || '').localeCompare(deptB?.name || '');
     });
     
-    // Show empty state if no departments match the filter (but not during mutations)
-    if (sortedDeptIds.length === 0 && !createTechMutation.isPending && !updateTechMutation.isPending) {
+    // Show empty state if no departments match the filter (but not during mutations or loading)
+    if (sortedDeptIds.length === 0 && !createTechMutation.isPending && !updateTechMutation.isPending && !techniciansQuery.isLoading && !techniciansQuery.isFetching) {
       const staffType = departmentType === 'artistic' ? 'artistic staff' : 'technical staff';
       return (
         <Card className="p-6 text-center text-muted-foreground">
