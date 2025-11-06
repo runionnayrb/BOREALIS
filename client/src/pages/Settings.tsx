@@ -163,6 +163,10 @@ export default function Settings() {
     enabled: viewArchivedDialogOpen,
   });
   const artists = artistsQuery.data || [];
+  const archivedTechniciansQuery = useQuery<Technician[]>({ 
+    queryKey: ["/api/technicians/archived"],
+    enabled: viewArchivedTechniciansDialogOpen,
+  });
   const techniciansQuery = useQuery<Technician[]>({ queryKey: ["/api/technicians"] });
   const technicians = techniciansQuery.data || [];
   const { data: reportTemplate } = useQuery<ReportTemplate | null>({ queryKey: ["/api/report-template"] });
@@ -189,6 +193,18 @@ export default function Settings() {
     },
     enabled: technicians.length > 0
   });
+
+  // Load technician status when editing a technician
+  useEffect(() => {
+    if (editTarget?.type === "technician" && editTarget.data) {
+      setSelectedTechnicianStatus(editTarget.data.status || "active");
+      setSelectedLinkedTechUserId(editTarget.data.userId || null);
+    } else if (!editTarget || editTarget.type !== "technician") {
+      // Reset to defaults when not editing a technician
+      setSelectedTechnicianStatus("active");
+      setSelectedLinkedTechUserId(null);
+    }
+  }, [editTarget]);
 
   // Load department type when editing a department
   useEffect(() => {
@@ -751,13 +767,14 @@ export default function Settings() {
   });
 
   const createTechMutation = useMutation({
-    mutationFn: async (data: { firstName: string; lastName: string; technicianName?: string; role?: string; photoUrl?: string; departmentIds: string[] }) => {
+    mutationFn: async (data: { firstName: string; lastName: string; technicianName?: string; role?: string; photoUrl?: string; status: "active" | "out" | "archived"; departmentIds: string[] }) => {
       const technician: any = await apiRequest("POST", "/api/technicians", {
         firstName: data.firstName,
         lastName: data.lastName,
         technicianName: data.technicianName,
         role: data.role,
         photoUrl: data.photoUrl,
+        status: data.status,
       });
       // Set department assignments
       if (data.departmentIds.length > 0) {
@@ -775,6 +792,12 @@ export default function Settings() {
       setSelectedTechnicianDepartmentIds([]);
       setUploadedPhotoUrl(null);
       toast({ title: "Technician created successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: error.message || "Failed to create technician", 
+        variant: "destructive" 
+      });
     },
   });
 
@@ -977,14 +1000,80 @@ export default function Settings() {
     },
   });
 
+  const archiveTechnicianMutation = useMutation({
+    mutationFn: async (technicianId: string) => {
+      return await apiRequest("POST", `/api/technicians/${technicianId}/archive`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/technicians"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/technicians/archived"] });
+      setTechDialogOpen(false);
+      setEditTarget(null);
+      setArchiveTechDialogOpen(false);
+      setTechnicianToArchive(null);
+      toast({ title: "Staff member archived successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: error.message || "Failed to archive staff member", 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const unarchiveTechnicianMutation = useMutation({
+    mutationFn: async (technicianId: string) => {
+      return await apiRequest("POST", `/api/technicians/${technicianId}/unarchive`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/technicians"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/technicians/archived"] });
+      toast({ title: "Staff member unarchived successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: error.message || "Failed to unarchive staff member", 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const linkUserToTechnicianMutation = useMutation({
+    mutationFn: async (data: { technicianId: string; userId: string }) => {
+      return await apiRequest("POST", `/api/technicians/${data.technicianId}/link-user`, { userId: data.userId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/technicians"] });
+      setSelectedLinkedTechUserId(null);
+      toast({ title: "User linked successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: error.message || "Failed to link user", 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const unlinkUserFromTechnicianMutation = useMutation({
+    mutationFn: async (technicianId: string) => {
+      return await apiRequest("POST", `/api/technicians/${technicianId}/unlink-user`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/technicians"] });
+      toast({ title: "User unlinked successfully" });
+    },
+  });
+
   const updateTechMutation = useMutation({
-    mutationFn: async (data: { id: string; firstName: string; lastName: string; technicianName?: string; role?: string; photoUrl?: string; departmentIds: string[] }) => {
+    mutationFn: async (data: { id: string; firstName: string; lastName: string; technicianName?: string; role?: string; photoUrl?: string; status: "active" | "out" | "archived"; departmentIds: string[] }) => {
       const technician = await apiRequest("PATCH", `/api/technicians/${data.id}`, {
         firstName: data.firstName,
         lastName: data.lastName,
         technicianName: data.technicianName,
         role: data.role,
         photoUrl: data.photoUrl,
+        status: data.status,
       });
       // Set department assignments
       await apiRequest("PUT", `/api/technicians/${data.id}/departments`, {
@@ -1001,6 +1090,12 @@ export default function Settings() {
       setSelectedTechnicianDepartmentIds([]);
       setUploadedPhotoUrl(null);
       toast({ title: "Technician updated successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: error.message || "Failed to update technician", 
+        variant: "destructive" 
+      });
     },
   });
 
@@ -3308,7 +3403,7 @@ export default function Settings() {
                         <Label htmlFor="dept-type">Department Type</Label>
                         <Select
                           value={selectedDepartmentType}
-                          onValueChange={setSelectedDepartmentType}
+                          onValueChange={(value) => setSelectedDepartmentType(value as 'technical' | 'artistic')}
                         >
                           <SelectTrigger id="dept-type" data-testid="select-department-type">
                             <SelectValue placeholder="Select type" />
@@ -3947,6 +4042,7 @@ export default function Settings() {
                         setUploadedPhotoUrl(null);
                         setSelectedTechnicianStatus("active");
                         setSelectedLinkedTechUserId(null);
+                        setSelectedTechnicianDepartmentIds([]);
                       }
                     }}
                   >
@@ -3960,13 +4056,23 @@ export default function Settings() {
                       <form
                         onSubmit={(e) => {
                           e.preventDefault();
+                          
+                          // Validate at least one department is selected
+                          if (selectedTechnicianDepartmentIds.length === 0) {
+                            toast({
+                              title: "Please select at least one department",
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+                          
                           const formData = new FormData(e.currentTarget);
                           const firstName = formData.get("firstName") as string;
                           const lastName = formData.get("lastName") as string;
                           const technicianName = (formData.get("technicianName") as string) || undefined;
                           const role = (formData.get("role") as string) || undefined;
                           const photoUrl = (formData.get("photoUrl") as string) || undefined;
-                          const status = selectedTechnicianStatus as "active" | "inactive" | "on_leave";
+                          const status = selectedTechnicianStatus as "active" | "out" | "archived";
 
                           if (editTarget?.type === "technician") {
                             updateTechMutation.mutate({
@@ -4051,8 +4157,8 @@ export default function Settings() {
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="active" data-testid="option-status-active">Active</SelectItem>
-                                <SelectItem value="inactive" data-testid="option-status-inactive">Inactive</SelectItem>
-                                <SelectItem value="on_leave" data-testid="option-status-on-leave">On Leave</SelectItem>
+                                <SelectItem value="out" data-testid="option-status-out">Out</SelectItem>
+                                <SelectItem value="archived" data-testid="option-status-archived">Archived</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -4128,7 +4234,7 @@ export default function Settings() {
                           )}
                           <input type="hidden" name="photoUrl" value={uploadedPhotoUrl || (editTarget?.type === "technician" ? editTarget.data.photoUrl || "" : "")} />
                           <PhotoUploader
-                            onPhotoReady={(url) => {
+                            onUploadComplete={(url: string) => {
                               setUploadedPhotoUrl(url);
                             }}
                             circular={true}
@@ -4166,12 +4272,11 @@ export default function Settings() {
                                       variant="ghost"
                                       size="sm"
                                       onClick={() => {
-                                        // Will implement unlink mutation
-                                        toast({
-                                          title: "Feature coming soon",
-                                          description: "User unlinking will be implemented.",
-                                        });
+                                        if (confirm("Are you sure you want to unlink this user account?")) {
+                                          unlinkUserFromTechnicianMutation.mutate(editTarget.id);
+                                        }
                                       }}
+                                      disabled={unlinkUserFromTechnicianMutation.isPending}
                                       data-testid="button-unlink-tech-user"
                                     >
                                       Unlink
@@ -4206,12 +4311,14 @@ export default function Settings() {
                                       variant="outline"
                                       size="sm"
                                       onClick={() => {
-                                        // Will implement link mutation
-                                        toast({
-                                          title: "Feature coming soon",
-                                          description: "User linking will be implemented.",
-                                        });
+                                        if (editTarget?.type === "technician") {
+                                          linkUserToTechnicianMutation.mutate({ 
+                                            technicianId: editTarget.id, 
+                                            userId: selectedLinkedTechUserId 
+                                          });
+                                        }
                                       }}
+                                      disabled={linkUserToTechnicianMutation.isPending}
                                       data-testid="button-link-tech-user"
                                     >
                                       Link User Account
@@ -4249,6 +4356,16 @@ export default function Settings() {
                   </Dialog>
                 </div>
                 {renderGroupedTechnicians('artistic')}
+                <div className="mt-6 flex justify-center">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setViewArchivedTechniciansDialogOpen(true)}
+                    data-testid="button-view-archived-artistic-staff"
+                  >
+                    <Archive className="w-4 h-4 mr-2" />
+                    View Archived Staff
+                  </Button>
+                </div>
               </TabsContent>
               <TabsContent value="technical" className="space-y-4 mt-4">
                 <div className="flex items-center justify-between">
@@ -4262,6 +4379,7 @@ export default function Settings() {
                         setUploadedPhotoUrl(null);
                         setSelectedTechnicianStatus("active");
                         setSelectedLinkedTechUserId(null);
+                        setSelectedTechnicianDepartmentIds([]);
                       }
                     }}
                   >
@@ -4275,13 +4393,23 @@ export default function Settings() {
                       <form
                         onSubmit={(e) => {
                           e.preventDefault();
+                          
+                          // Validate at least one department is selected
+                          if (selectedTechnicianDepartmentIds.length === 0) {
+                            toast({
+                              title: "Please select at least one department",
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+                          
                           const formData = new FormData(e.currentTarget);
                           const firstName = formData.get("firstName") as string;
                           const lastName = formData.get("lastName") as string;
                           const technicianName = (formData.get("technicianName") as string) || undefined;
                           const role = (formData.get("role") as string) || undefined;
                           const photoUrl = (formData.get("photoUrl") as string) || undefined;
-                          const status = selectedTechnicianStatus as "active" | "inactive" | "on_leave";
+                          const status = selectedTechnicianStatus as "active" | "out" | "archived";
 
                           if (editTarget?.type === "technician") {
                             updateTechMutation.mutate({
@@ -4362,8 +4490,8 @@ export default function Settings() {
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="active" data-testid="option-status-active">Active</SelectItem>
-                                <SelectItem value="inactive" data-testid="option-status-inactive">Inactive</SelectItem>
-                                <SelectItem value="on_leave" data-testid="option-status-on-leave">On Leave</SelectItem>
+                                <SelectItem value="out" data-testid="option-status-out">Out</SelectItem>
+                                <SelectItem value="archived" data-testid="option-status-archived">Archived</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -4469,12 +4597,11 @@ export default function Settings() {
                                       variant="ghost"
                                       size="sm"
                                       onClick={() => {
-                                        // Will implement unlink mutation
-                                        toast({
-                                          title: "Feature coming soon",
-                                          description: "User unlinking will be implemented.",
-                                        });
+                                        if (confirm("Are you sure you want to unlink this user account?")) {
+                                          unlinkUserFromTechnicianMutation.mutate(editTarget.id);
+                                        }
                                       }}
+                                      disabled={unlinkUserFromTechnicianMutation.isPending}
                                       data-testid="button-unlink-tech-user-2"
                                     >
                                       Unlink
@@ -4509,12 +4636,14 @@ export default function Settings() {
                                       variant="outline"
                                       size="sm"
                                       onClick={() => {
-                                        // Will implement link mutation
-                                        toast({
-                                          title: "Feature coming soon",
-                                          description: "User linking will be implemented.",
-                                        });
+                                        if (editTarget?.type === "technician") {
+                                          linkUserToTechnicianMutation.mutate({ 
+                                            technicianId: editTarget.id, 
+                                            userId: selectedLinkedTechUserId 
+                                          });
+                                        }
                                       }}
+                                      disabled={linkUserToTechnicianMutation.isPending}
                                       data-testid="button-link-tech-user-2"
                                     >
                                       Link User Account
@@ -4556,6 +4685,16 @@ export default function Settings() {
                   </Dialog>
                 </div>
                 {renderGroupedTechnicians('technical')}
+                <div className="mt-6 flex justify-center">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setViewArchivedTechniciansDialogOpen(true)}
+                    data-testid="button-view-archived-technical-staff"
+                  >
+                    <Archive className="w-4 h-4 mr-2" />
+                    View Archived Staff
+                  </Button>
+                </div>
               </TabsContent>
             </Tabs>
           </TabsContent>
@@ -4956,6 +5095,106 @@ export default function Settings() {
                     </div>
                   </Card>
                 ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={archiveTechDialogOpen} onOpenChange={setArchiveTechDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive this staff member?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will archive the staff member profile and their linked user account, removing them from all lists in the app. You can unarchive them later if needed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-archive-tech">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (technicianToArchive) {
+                  archiveTechnicianMutation.mutate(technicianToArchive);
+                }
+              }} 
+              className="bg-destructive hover:bg-destructive/90"
+              data-testid="button-confirm-archive-tech"
+            >
+              Archive
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={viewArchivedTechniciansDialogOpen} onOpenChange={setViewArchivedTechniciansDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Archived Staff</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 overflow-y-auto max-h-[calc(80vh-8rem)] pr-2">
+            {archivedTechniciansQuery.isLoading && (
+              <div className="text-center py-8 text-muted-foreground">
+                Loading archived staff...
+              </div>
+            )}
+            {archivedTechniciansQuery.isError && (
+              <div className="text-center py-8 text-destructive">
+                Failed to load archived staff
+              </div>
+            )}
+            {archivedTechniciansQuery.data && archivedTechniciansQuery.data.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No archived staff
+              </div>
+            )}
+            {archivedTechniciansQuery.data && archivedTechniciansQuery.data.length > 0 && (
+              <div className="space-y-2">
+                {archivedTechniciansQuery.data.map((tech) => {
+                  const techDepts = departments.filter(d => 
+                    allTechnicianDepartments.some(td => td.technicianId === tech.id && td.departmentId === d.id)
+                  );
+                  return (
+                    <Card key={tech.id} className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="w-12 h-12">
+                            <AvatarImage src={tech.photoUrl || undefined} />
+                            <AvatarFallback>
+                              {tech.firstName[0]}{tech.lastName[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">
+                              {tech.firstName} {tech.lastName}
+                              {tech.technicianName && ` (${tech.technicianName})`}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {tech.role || "No role specified"}
+                            </p>
+                            {techDepts.length > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                {techDepts.map(d => d.name).join(", ")}
+                              </p>
+                            )}
+                            {tech.archivedAt && (
+                              <p className="text-xs text-muted-foreground">
+                                Archived on {new Date(tech.archivedAt).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          onClick={() => unarchiveTechnicianMutation.mutate(tech.id)}
+                          disabled={unarchiveTechnicianMutation.isPending}
+                          data-testid={`button-unarchive-tech-${tech.id}`}
+                        >
+                          Unarchive
+                        </Button>
+                      </div>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </div>

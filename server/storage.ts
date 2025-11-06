@@ -160,6 +160,11 @@ export interface IStorage {
   createTechnician(technician: InsertTechnician): Promise<Technician>;
   updateTechnician(id: string, updates: Partial<InsertTechnician>): Promise<Technician | undefined>;
   deleteTechnician(id: string): Promise<void>;
+  archiveTechnicianWithUser(technicianId: string): Promise<void>;
+  unarchiveTechnicianWithUser(technicianId: string): Promise<void>;
+  getAllArchivedTechnicians(): Promise<Technician[]>;
+  linkUserToTechnician(technicianId: string, userId: string): Promise<void>;
+  unlinkUserFromTechnician(technicianId: string): Promise<void>;
   reorderTechnicians(technicianIds: string[]): Promise<void>;
   
   // Technician Departments
@@ -700,7 +705,7 @@ export class DatabaseStorage implements IStorage {
 
   // Technicians
   async getAllTechnicians(): Promise<Technician[]> {
-    return await db.select().from(technicians).orderBy(asc(technicians.sortOrder));
+    return await db.select().from(technicians).where(isNull(technicians.archivedAt)).orderBy(asc(technicians.sortOrder));
   }
 
   async getTechnician(id: string): Promise<Technician | undefined> {
@@ -725,6 +730,52 @@ export class DatabaseStorage implements IStorage {
       // Then delete the technician
       await tx.delete(technicians).where(eq(technicians.id, id));
     });
+  }
+
+  async archiveTechnicianWithUser(technicianId: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      const technician = await tx.select().from(technicians).where(eq(technicians.id, technicianId)).limit(1);
+      if (!technician[0]) {
+        throw new Error("Technician not found");
+      }
+
+      await tx.update(technicians).set({ archivedAt: sql`now()` }).where(eq(technicians.id, technicianId));
+
+      if (technician[0].userId) {
+        await tx.update(users).set({ archivedAt: sql`now()` }).where(eq(users.id, technician[0].userId));
+      }
+    });
+  }
+
+  async unarchiveTechnicianWithUser(technicianId: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      const technician = await tx.select().from(technicians).where(eq(technicians.id, technicianId)).limit(1);
+      if (!technician[0]) {
+        throw new Error("Technician not found");
+      }
+
+      await tx.update(technicians).set({ archivedAt: null }).where(eq(technicians.id, technicianId));
+
+      if (technician[0].userId) {
+        await tx.update(users).set({ archivedAt: null }).where(eq(users.id, technician[0].userId));
+      }
+    });
+  }
+
+  async getAllArchivedTechnicians(): Promise<Technician[]> {
+    return await db.select().from(technicians).where(isNotNull(technicians.archivedAt)).orderBy(asc(technicians.sortOrder));
+  }
+
+  async linkUserToTechnician(technicianId: string, userId: string): Promise<void> {
+    const existingLink = await db.select().from(technicians).where(eq(technicians.userId, userId)).limit(1);
+    if (existingLink.length > 0 && existingLink[0].id !== technicianId) {
+      throw new Error("This user is already linked to another technician");
+    }
+    await db.update(technicians).set({ userId }).where(eq(technicians.id, technicianId));
+  }
+
+  async unlinkUserFromTechnician(technicianId: string): Promise<void> {
+    await db.update(technicians).set({ userId: null }).where(eq(technicians.id, technicianId));
   }
 
   async reorderTechnicians(technicianIds: string[]): Promise<void> {
