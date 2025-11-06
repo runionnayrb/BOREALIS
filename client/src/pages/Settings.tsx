@@ -3962,7 +3962,7 @@ export default function Settings() {
                         }}
                       >
                         <DialogHeader>
-                          <DialogTitle>{editTarget?.type === "technician" ? "Edit Technician" : "Add Technician"}</DialogTitle>
+                          <DialogTitle>{editTarget?.type === "technician" ? "Edit Artistic Staff" : "Add Artistic Staff"}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                           <div className="grid grid-cols-2 gap-4">
@@ -3990,7 +3990,7 @@ export default function Settings() {
                             </div>
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="tech-technicianName">Technician Name (Optional)</Label>
+                            <Label htmlFor="tech-technicianName">Preferred Name (Optional)</Label>
                             <Input
                               id="tech-technicianName"
                               name="technicianName"
@@ -4004,7 +4004,7 @@ export default function Settings() {
                             <Input
                               id="tech-role"
                               name="role"
-                              placeholder="e.g., Automation Operator"
+                              placeholder="e.g., Head Coach"
                               defaultValue={editTarget?.type === "technician" ? editTarget.data.role || "" : ""}
                               data-testid="input-technician-role"
                             />
@@ -4071,7 +4071,7 @@ export default function Settings() {
                         </div>
                         <DialogFooter>
                           <Button type="submit" disabled={createTechMutation.isPending || updateTechMutation.isPending} data-testid="button-save-technician">
-                            {(createTechMutation.isPending || updateTechMutation.isPending) ? "Saving..." : editTarget?.type === "technician" ? "Update Technician" : "Save Technician"}
+                            {(createTechMutation.isPending || updateTechMutation.isPending) ? "Saving..." : editTarget?.type === "technician" ? "Update Artistic Staff" : "Save Artistic Staff"}
                           </Button>
                         </DialogFooter>
                       </form>
@@ -4133,14 +4133,14 @@ export default function Settings() {
                         }}
                       >
                         <DialogHeader>
-                          <DialogTitle>{editTarget?.type === "technician" ? "Edit Technician" : "Add Technician"}</DialogTitle>
+                          <DialogTitle>{editTarget?.type === "technician" ? "Edit Technical Staff" : "Add Technical Staff"}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                           <div className="space-y-2">
-                            <Label>Technician Name</Label>
+                            <Label>Preferred Name (Optional)</Label>
                             <Input 
                               name="technicianName" 
-                              placeholder="Technician name"
+                              placeholder="Preferred name or nickname"
                               defaultValue={editTarget?.type === "technician" ? editTarget.data.technicianName || "" : ""}
                               data-testid="input-tech-name" 
                             />
@@ -4267,7 +4267,7 @@ export default function Settings() {
                             disabled={createTechMutation.isPending || updateTechMutation.isPending} 
                             data-testid="button-save-technician"
                           >
-                            {(createTechMutation.isPending || updateTechMutation.isPending) ? "Saving..." : editTarget?.type === "technician" ? "Update Technician" : "Save Technician"}
+                            {(createTechMutation.isPending || updateTechMutation.isPending) ? "Saving..." : editTarget?.type === "technician" ? "Update Technical Staff" : "Save Technical Staff"}
                           </Button>
                         </DialogFooter>
                       </form>
