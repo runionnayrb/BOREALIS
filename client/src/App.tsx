@@ -31,6 +31,15 @@ import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
 
+function usePageTitle(title: string) {
+  useEffect(() => {
+    document.title = `BOREALIS | ${title}`;
+    return () => {
+      document.title = "BOREALIS";
+    };
+  }, [title]);
+}
+
 function AuthenticatedApp() {
   const { user, isLoading } = useAuth();
   const [location, setLocation] = useLocation();
@@ -47,6 +56,44 @@ function AuthenticatedApp() {
       setLocation("/change-password");
     }
   }, [user, location, setLocation]);
+
+  // Update page title based on route
+  useEffect(() => {
+    const routeTitles: Record<string, string> = {
+      "/": "Training Reports",
+      "/new-report": "New Report",
+      "/admin": "Admin Dashboard",
+      "/attendance/dashboard": "Attendance Dashboard",
+      "/attendance/tickoff": "Tick Sheet",
+      "/lineups": "Lineups",
+      "/lineups/new": "New Lineup",
+      "/lineups/training-programs": "Training Programs",
+      "/lineups/training-programs/templates": "Program Templates",
+      "/lineups/competencies": "Competencies",
+      "/lineups/positions": "Positions",
+      "/lineups/rules": "Rules & Automation",
+      "/lineups/restrictions": "Restrictions",
+      "/schedule/full": "Full Schedule",
+      "/schedule/artists": "Weekly Schedule",
+      "/settings": "Settings",
+      "/profile": "Profile",
+      "/change-password": "Change Password",
+    };
+
+    let title = routeTitles[location];
+    
+    if (!title) {
+      if (location.startsWith("/report/")) {
+        title = "Edit Report";
+      } else if (location.startsWith("/lineups/") && location !== "/lineups" && location !== "/lineups/new" && !location.includes("/training-programs") && !location.includes("/competencies") && !location.includes("/positions") && !location.includes("/rules") && !location.includes("/restrictions")) {
+        title = "Edit Lineup";
+      } else if (location.startsWith("/lineups/training-programs/") && location !== "/lineups/training-programs/templates") {
+        title = "Training Program";
+      }
+    }
+
+    document.title = title ? `BOREALIS | ${title}` : "BOREALIS";
+  }, [location]);
 
   if (isLoading) {
     return (
@@ -108,16 +155,32 @@ function AuthenticatedApp() {
   );
 }
 
+function AppRouter() {
+  const [location] = useLocation();
+
+  useEffect(() => {
+    if (location === "/auth") {
+      document.title = "BOREALIS | Sign In";
+    } else if (location === "/attendance/sign-in") {
+      document.title = "BOREALIS | Artist Sign In";
+    }
+  }, [location]);
+
+  return (
+    <Switch>
+      <Route path="/auth" component={AuthPage} />
+      <Route path="/attendance/sign-in" component={ArtistSignIn} />
+      <Route component={AuthenticatedApp} />
+    </Switch>
+  );
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-          <Switch>
-            <Route path="/auth" component={AuthPage} />
-            <Route path="/attendance/sign-in" component={ArtistSignIn} />
-            <Route component={AuthenticatedApp} />
-          </Switch>
+          <AppRouter />
           <Toaster />
         </TooltipProvider>
       </AuthProvider>
