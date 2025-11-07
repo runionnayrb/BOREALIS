@@ -913,9 +913,9 @@ export type DepartmentRole = typeof departmentRoles.$inferSelect;
 export const competencies = pgTable("competencies", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
-  sceneId: varchar("scene_id").references(() => scenes.id),
-  actId: varchar("act_id").references(() => acts.id),
-  cueId: varchar("cue_id").references(() => cues.id),
+  sceneId: varchar("sceneId").references(() => scenes.id),
+  actId: varchar("actId").references(() => acts.id),
+  cueId: varchar("cueId").references(() => cues.id),
   departmentId: varchar("department_id").references(() => departments.id),
   description: text("description"),
   expirationDays: integer("expiration_days").notNull().default(90), // Days until competency expires

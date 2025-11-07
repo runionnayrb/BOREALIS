@@ -50,11 +50,11 @@ La Perle - Borealis is a production-ready, full-stack web application designed t
 - **Attendance System**: Public sign-in page with photo grid and PIN, geofencing, real-time SM dashboard with manual sign-out, Tick Sheets with optimistic UI and WebSocket sync, artist PIN management.
 
 ### System Design Choices
-- **Database Schema**: Comprehensive PostgreSQL schema for all application entities including `user_permissions` table (unique constraint on userId+feature) and `system_settings` table (key-value pairs for all configurable settings).
+- **Database Schema**: Comprehensive PostgreSQL schema for all application entities including `user_permissions` table (unique constraint on userId+feature) and `system_settings` table (key-value pairs for all configurable settings). **Lineup Foundation Schema (November 2025)**: Competencies table with camelCase columns (sceneId, actId, cueId) linking qualifications to specific show acts/scenes. Program Steps table with "description" field (renamed from "notes") describing skills being validated. Training Programs require competencyId (cannot be null) establishing flow: Competency (defines WHAT for specific act) → Training Program (defines HOW to earn competency) → Program Steps (individual validations with descriptions).
 - **Permission Architecture**: Two-level structure - Admin Dashboard (system configuration, admin-only) vs Settings Page (operational data, stage managers). Permission enforcement uses atomic ON CONFLICT operations to prevent race conditions. All permission routes validate UUID parameters to prevent security bypasses.
 - **Data Models**: Reusable lineup templates, show-specific lineups, and structured schedule containers.
 - **API**: RESTful API for all functionalities with permission enforcement middleware (`requirePermission`, `requirePermissionByMethod`).
-- **Session Management**: Session-based authentication using PostgreSQL.
+- **Session Management**: Session-based authentication using PostgreSQL. **Development Testing**: Admin account bryan.runion@laperle.com with password "password123" (development database only, must_change_password=0).
 - **WebSocket**: Dedicated server for real-time communication.
 
 ## External Dependencies
