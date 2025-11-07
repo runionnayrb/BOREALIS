@@ -473,7 +473,10 @@ export default function TrainingPrograms() {
           setProgramDialogOpen(open);
           if (!open) setEditingProgram(null);
         }}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent 
+            className="max-w-2xl"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+          >
             <DialogHeader>
               <DialogTitle>{editingProgram ? "Edit" : "Create"} Training Program</DialogTitle>
               <DialogDescription>
@@ -816,7 +819,10 @@ export default function TrainingPrograms() {
         setStepDialogOpen(open);
         if (!open) setEditingStep(null);
       }}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent 
+          className="max-w-2xl"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>{editingStep ? "Edit" : "Add"} Training Step</DialogTitle>
             <DialogDescription>
