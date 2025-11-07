@@ -47,7 +47,7 @@ import type { Competency, Department } from "@shared/schema";
 
 const competencySchema = z.object({
   name: z.string().min(1, "Name is required"),
-  departmentId: z.string().optional(),
+  departmentId: z.string().min(1).optional().or(z.literal(undefined)),
   description: z.string().optional(),
   expirationDays: z.coerce.number().min(1, "Must be at least 1 day").default(90),
 });
@@ -73,7 +73,7 @@ export default function Competencies() {
     resolver: zodResolver(competencySchema),
     defaultValues: {
       name: "",
-      departmentId: "",
+      departmentId: undefined,
       description: "",
       expirationDays: 90,
     },
@@ -84,14 +84,14 @@ export default function Competencies() {
     if (editingCompetency) {
       form.reset({
         name: editingCompetency.name,
-        departmentId: editingCompetency.departmentId || "",
+        departmentId: editingCompetency.departmentId || undefined,
         description: editingCompetency.description || "",
         expirationDays: editingCompetency.expirationDays,
       });
     } else {
       form.reset({
         name: "",
-        departmentId: "",
+        departmentId: undefined,
         description: "",
         expirationDays: 90,
       });
