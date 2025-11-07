@@ -20,7 +20,7 @@ import LineupBuilder from "@/pages/LineupBuilder";
 import TrainingPrograms from "@/pages/lineups/TrainingPrograms";
 import Competencies from "@/pages/lineups/Competencies";
 import Positions from "@/pages/lineups/Positions";
-import Rules from "@/pages/lineups/Rules";
+import RulesAutomation from "@/pages/lineups/RulesAutomation";
 import Restrictions from "@/pages/lineups/Restrictions";
 import WeeklySchedule from "@/pages/WeeklySchedule";
 import FullSchedule from "@/pages/FullSchedule";
@@ -87,7 +87,7 @@ function AuthenticatedApp() {
               <Route path="/lineups/training-programs" component={TrainingPrograms} />
               <Route path="/lineups/competencies" component={Competencies} />
               <Route path="/lineups/positions" component={Positions} />
-              <Route path="/lineups/rules" component={Rules} />
+              <Route path="/lineups/rules" component={RulesAutomation} />
               <Route path="/lineups/restrictions" component={Restrictions} />
               <Route path="/lineups" component={LineupsList} />
               <Route path="/lineups/new" component={LineupBuilder} />
