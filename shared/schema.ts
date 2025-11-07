@@ -1081,7 +1081,7 @@ export type InsertPwdRestriction = z.infer<typeof insertPwdRestrictionSchema>;
 export type PwdRestriction = typeof pwdRestrictions.$inferSelect;
 
 // Training Programs - The foundation that validates competencies
-export const programTypes = ['induction', 'technical', 'rehearsal', 'show_validation'] as const;
+export const programTypes = ['choreography', 'induction', 'rehearsal', 'show_validation', 'technical', 'wardrobe'] as const;
 export type ProgramType = typeof programTypes[number];
 
 export const trainingPrograms = pgTable("training_programs", {
@@ -1105,7 +1105,7 @@ export type InsertTrainingProgram = z.infer<typeof insertTrainingProgramSchema>;
 export type TrainingProgram = typeof trainingPrograms.$inferSelect;
 
 // Program Steps - Ordered steps in a training program
-export const stepConditions = ['work_lights', 'show_conditions'] as const;
+export const stepConditions = ['work_lights', 'training_lights', 'show_conditions'] as const;
 export type StepCondition = typeof stepConditions[number];
 
 export const programSteps = pgTable("program_steps", {
@@ -1113,8 +1113,8 @@ export const programSteps = pgTable("program_steps", {
   programId: varchar("program_id").notNull().references(() => trainingPrograms.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   departmentId: varchar("department_id").notNull().references(() => departments.id), // Owning department
-  stepType: text("step_type").notNull(), // 'induction', 'technical', 'rehearsal', 'show_validation'
-  conditions: text("conditions"), // 'work_lights', 'show_conditions'
+  stepType: text("step_type").notNull(), // 'choreography', 'induction', 'rehearsal', 'show_validation', 'technical', 'wardrobe'
+  conditions: text("conditions"), // 'work_lights', 'training_lights', 'show_conditions'
   prerequisiteStepIds: text("prerequisite_step_ids").array(), // Array of step IDs that must be completed first
   departmentSignOffId: varchar("department_sign_off_id").notNull().references(() => departments.id), // Department that signs off on this step
   description: text("description"),

@@ -40,10 +40,12 @@ import { Link, useParams, useLocation } from "wouter";
 import type { TrainingProgram, ProgramStep, Competency, Department } from "@shared/schema";
 
 const stepTypeLabels: Record<string, string> = {
+  choreography: "Choreography",
   induction: "Induction",
-  technical: "Technical",
   rehearsal: "Rehearsal",
   show_validation: "Show Validation",
+  technical: "Technical",
+  wardrobe: "Wardrobe",
 };
 
 const programSchema = z.object({
@@ -917,7 +919,7 @@ export default function TrainingPrograms() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {departments.map((dept) => (
+                          {[...departments].sort((a, b) => a.name.localeCompare(b.name)).map((dept) => (
                             <SelectItem key={dept.id} value={dept.id}>
                               {dept.name}
                             </SelectItem>
@@ -942,10 +944,12 @@ export default function TrainingPrograms() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value="choreography">Choreography</SelectItem>
                           <SelectItem value="induction">Induction</SelectItem>
-                          <SelectItem value="technical">Technical</SelectItem>
                           <SelectItem value="rehearsal">Rehearsal</SelectItem>
                           <SelectItem value="show_validation">Show Validation</SelectItem>
+                          <SelectItem value="technical">Technical</SelectItem>
+                          <SelectItem value="wardrobe">Wardrobe</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -968,7 +972,7 @@ export default function TrainingPrograms() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {departments.map((dept) => (
+                          {[...departments].sort((a, b) => a.name.localeCompare(b.name)).map((dept) => (
                             <SelectItem key={dept.id} value={dept.id}>
                               {dept.name}
                             </SelectItem>
@@ -994,6 +998,7 @@ export default function TrainingPrograms() {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="work_lights">Work Lights</SelectItem>
+                          <SelectItem value="training_lights">Training Lights</SelectItem>
                           <SelectItem value="show_conditions">Show Conditions</SelectItem>
                         </SelectContent>
                       </Select>
