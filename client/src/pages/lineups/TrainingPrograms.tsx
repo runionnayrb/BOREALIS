@@ -1142,24 +1142,22 @@ export default function TrainingPrograms() {
                 )}
               />
 
-              <DialogFooter className="flex items-center justify-between">
-                <div>
-                  {editingStep && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => {
-                        setItemToDelete({ type: 'step', id: editingStep.id });
-                        setDeleteConfirmOpen(true);
-                        setStepDialogOpen(false);
-                      }}
-                      data-testid="button-delete-step"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2 text-destructive" />
-                      Delete Step
-                    </Button>
-                  )}
-                </div>
+              <DialogFooter className="!flex !flex-row !items-center !justify-between !space-x-0">
+                {editingStep ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setItemToDelete({ type: 'step', id: editingStep.id });
+                      setDeleteConfirmOpen(true);
+                      setStepDialogOpen(false);
+                    }}
+                    data-testid="button-delete-step"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2 text-destructive" />
+                    Delete Step
+                  </Button>
+                ) : <div />}
                 <div className="flex gap-2">
                   <Button
                     type="button"
