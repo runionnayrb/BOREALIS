@@ -3599,7 +3599,11 @@ export default function Settings() {
                             <Card key={role.id} className="p-3 flex items-center justify-between" data-testid={`role-${role.id}`}>
                               <div>
                                 <p className="font-medium">{tech?.firstName} {tech?.lastName}</p>
-                                <p className="text-sm text-muted-foreground">{role.roleType}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {role.roleType.toLowerCase() === 'hod' ? 'HOD' : 
+                                   role.roleType.toLowerCase() === 'ahod' ? 'AHOD' : 
+                                   role.roleType.toLowerCase() === 'lead' ? 'Lead' : role.roleType}
+                                </p>
                               </div>
                               <div className="flex items-center gap-1">
                                 <Button
