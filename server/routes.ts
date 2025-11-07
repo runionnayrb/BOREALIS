@@ -2675,18 +2675,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Program step not found" });
       }
 
-      const userAssignments = await storage.getTechnicianDepartments(req.user.id);
-      const userDepartmentIds = userAssignments.map((a) => a.departmentId);
-
-      const signOffDept = await storage.getDepartment(step.departmentSignOffId);
-      
+      const currentUser = await storage.getUser(req.user.id);
       let canSignOff = false;
-      if (signOffDept?.name === "Stage Management" && signOffDept.type === "artistic") {
-        canSignOff = userDepartmentIds.includes(step.departmentSignOffId);
+
+      if (currentUser?.role === 'admin') {
+        canSignOff = true;
       } else {
-        const roles = await storage.getDepartmentRoles(step.departmentSignOffId);
-        const userRoles = roles.filter((r) => r.technicianId === req.user!.id);
-        canSignOff = userRoles.some((r) => ['hod', 'ahod', 'lead'].includes(r.roleType));
+        const technician = await storage.getTechnicianByUserId(req.user.id);
+        if (!technician) {
+          return res.status(403).json({ error: "You do not have permission to sign off this step" });
+        }
+
+        const technicianAssignments = await storage.getTechnicianDepartments(technician.id);
+        const technicianDepartmentIds = technicianAssignments.map((a) => a.departmentId);
+
+        const signOffDept = await storage.getDepartment(step.departmentSignOffId);
+        
+        if (signOffDept?.name === "Stage Management" && signOffDept.type === "artistic") {
+          canSignOff = technicianDepartmentIds.includes(step.departmentSignOffId);
+        } else {
+          const roles = await storage.getDepartmentRoles(step.departmentSignOffId);
+          const userRoles = roles.filter((r) => r.technicianId === technician.id);
+          canSignOff = userRoles.some((r) => ['hod', 'ahod', 'lead'].includes(r.roleType));
+        }
       }
 
       if (!canSignOff) {

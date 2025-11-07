@@ -758,6 +758,11 @@ export default function TrainingPrograms() {
                           {step.expectedDurationMinutes && (
                             <Badge variant="outline">{step.expectedDurationMinutes} min</Badge>
                           )}
+                          {step.signedOffByUserId && step.signedOffAt && (
+                            <Badge className="bg-green-600 hover:bg-green-700" data-testid={`badge-signed-off-${step.id}`}>
+                              Signed Off {new Date(step.signedOffAt).toLocaleDateString()}
+                            </Badge>
+                          )}
                         </div>
                         {step.description && (
                           <p className="text-sm mt-2">{step.description}</p>
@@ -765,6 +770,18 @@ export default function TrainingPrograms() {
                       </CardDescription>
                     </div>
                     <div className="flex items-center gap-1">
+                      {!step.signedOffByUserId && selectedProgram.status === 'active' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => signOffStepMutation.mutate(step.id)}
+                          disabled={signOffStepMutation.isPending}
+                          data-testid={`button-sign-off-${step.id}`}
+                        >
+                          <Award className="w-4 h-4 mr-2" />
+                          Sign Off
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
