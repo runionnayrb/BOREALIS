@@ -47,12 +47,21 @@ import type { Competency, Scene, Act, Cue } from "@shared/schema";
 
 const competencySchema = z.object({
   name: z.string().min(1, "Name is required"),
-  sceneId: z.string().min(1).optional().or(z.literal(undefined)),
+  sceneId: z.string().min(1, "Scene is required"),
   actId: z.string().min(1).optional().or(z.literal(undefined)),
   cueId: z.string().min(1).optional().or(z.literal(undefined)),
   description: z.string().optional(),
   expirationDays: z.coerce.number().min(1, "Must be at least 1 day").default(90),
-});
+}).refine(
+  (data) => {
+    // Either/or validation: Can have actId OR cueId, but not both
+    return !(data.actId && data.cueId);
+  },
+  {
+    message: "Cannot select both Act and Cue. Please choose one or neither.",
+    path: ["actId"], // Show error on Act field
+  }
+);
 
 export default function Competencies() {
   const { toast } = useToast();
@@ -66,17 +75,22 @@ export default function Competencies() {
     queryKey: ["/api/competencies"],
   });
 
-  const { data: scenes = [] } = useQuery<Scene[]>({
+  const { data: scenesData = [] } = useQuery<Scene[]>({
     queryKey: ["/api/scenes"],
   });
 
-  const { data: acts = [] } = useQuery<Act[]>({
+  const { data: actsData = [] } = useQuery<Act[]>({
     queryKey: ["/api/acts"],
   });
 
-  const { data: cues = [] } = useQuery<Cue[]>({
+  const { data: cuesData = [] } = useQuery<Cue[]>({
     queryKey: ["/api/cues"],
   });
+
+  // Sort by show flow sequence (sortOrder)
+  const scenes = [...scenesData].sort((a, b) => a.sortOrder - b.sortOrder);
+  const acts = [...actsData].sort((a, b) => a.sortOrder - b.sortOrder);
+  const cues = [...cuesData].sort((a, b) => a.sortOrder - b.sortOrder);
 
   // Form
   const form = useForm<z.infer<typeof competencySchema>>({
@@ -119,7 +133,7 @@ export default function Competencies() {
     mutationFn: async (data: any) => {
       const payload = {
         ...data,
-        sceneId: data.sceneId || null,
+        sceneId: data.sceneId, // Required field, no null fallback
         actId: data.actId || null,
         cueId: data.cueId || null,
         description: data.description || null,
@@ -140,7 +154,7 @@ export default function Competencies() {
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       const payload = {
         ...data,
-        sceneId: data.sceneId || null,
+        sceneId: data.sceneId, // Required field, no null fallback
         actId: data.actId || null,
         cueId: data.cueId || null,
         description: data.description || null,
@@ -320,7 +334,7 @@ export default function Competencies() {
                   name="sceneId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Scene</FormLabel>
+                      <FormLabel>Scene *</FormLabel>
                       <Select onValueChange={(value) => field.onChange(value || undefined)} value={field.value || ""}>
                         <FormControl>
                           <SelectTrigger data-testid="select-scene">
@@ -346,7 +360,16 @@ export default function Competencies() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Act</FormLabel>
-                      <Select onValueChange={(value) => field.onChange(value || undefined)} value={field.value || ""}>
+                      <Select 
+                        onValueChange={(value) => {
+                          field.onChange(value || undefined);
+                          // Clear Cue when Act is selected (either/or logic)
+                          if (value) {
+                            form.setValue("cueId", undefined);
+                          }
+                        }} 
+                        value={field.value || ""}
+                      >
                         <FormControl>
                           <SelectTrigger data-testid="select-act">
                             <SelectValue placeholder="Select act" />
@@ -371,7 +394,16 @@ export default function Competencies() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Cue</FormLabel>
-                      <Select onValueChange={(value) => field.onChange(value || undefined)} value={field.value || ""}>
+                      <Select 
+                        onValueChange={(value) => {
+                          field.onChange(value || undefined);
+                          // Clear Act when Cue is selected (either/or logic)
+                          if (value) {
+                            form.setValue("actId", undefined);
+                          }
+                        }} 
+                        value={field.value || ""}
+                      >
                         <FormControl>
                           <SelectTrigger data-testid="select-cue">
                             <SelectValue placeholder="Select cue" />

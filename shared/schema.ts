@@ -913,7 +913,7 @@ export type DepartmentRole = typeof departmentRoles.$inferSelect;
 export const competencies = pgTable("competencies", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
-  sceneId: varchar("sceneId").references(() => scenes.id),
+  sceneId: varchar("sceneId").notNull().references(() => scenes.id), // MANDATORY
   actId: varchar("actId").references(() => acts.id),
   cueId: varchar("cueId").references(() => cues.id),
   departmentId: varchar("department_id").references(() => departments.id),
@@ -924,11 +924,21 @@ export const competencies = pgTable("competencies", {
   createdBy: varchar("created_by").references(() => users.id),
 });
 
-export const insertCompetencySchema = createInsertSchema(competencies).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertCompetencySchema = createInsertSchema(competencies)
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .refine(
+    (data) => {
+      // Either/or validation: Can have actId OR cueId, but not both
+      return !(data.actId && data.cueId);
+    },
+    {
+      message: "Cannot select both Act and Cue. Please choose one or neither.",
+    }
+  );
 
 export type InsertCompetency = z.infer<typeof insertCompetencySchema>;
 export type Competency = typeof competencies.$inferSelect;
