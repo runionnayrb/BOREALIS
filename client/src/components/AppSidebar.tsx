@@ -39,9 +39,9 @@ export default function AppSidebar() {
   const [location] = useLocation();
   const { user } = useAuth();
   const [changelogOpen, setChangelogOpen] = useState(false);
-  const [lineupsOpen, setLineupsOpen] = useState(true);
-  const [scheduleOpen, setScheduleOpen] = useState(true);
-  const [attendanceOpen, setAttendanceOpen] = useState(true);
+  const [lineupsOpen, setLineupsOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [attendanceOpen, setAttendanceOpen] = useState(false);
   
   // Fetch user permissions from database
   const { data: permissions, isLoading: isLoadingPermissions } = useQuery<UserPermission[]>({
