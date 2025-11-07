@@ -297,6 +297,21 @@ export default function TrainingPrograms() {
     },
   });
 
+  const updateStatusMutation = useMutation({
+    mutationFn: async (status: 'active' | 'completed') => {
+      if (!selectedProgram) return null;
+      return apiRequest("PATCH", `/api/training-programs/${selectedProgram.id}`, { status });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-programs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/training-programs", params.id] });
+      toast({ title: "Program status updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update program status", variant: "destructive" });
+    },
+  });
+
   const handleSubmitProgram = (values: z.infer<typeof programSchema>) => {
     if (editingProgram) {
       updateProgramMutation.mutate({ id: editingProgram.id, data: values });
@@ -615,19 +630,6 @@ export default function TrainingPrograms() {
   // Detail view
   const sortedSteps = [...steps].sort((a, b) => a.sortOrder - b.sortOrder);
   const competency = competencies.find((c) => c.id === selectedProgram.competencyId);
-
-  const updateStatusMutation = useMutation({
-    mutationFn: async (status: 'active' | 'completed') => {
-      return apiRequest("PATCH", `/api/training-programs/${selectedProgram.id}`, { status });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/training-programs"] });
-      toast({ title: "Program status updated successfully" });
-    },
-    onError: () => {
-      toast({ title: "Failed to update program status", variant: "destructive" });
-    },
-  });
 
   return (
     <div className="container mx-auto p-6 space-y-6">
