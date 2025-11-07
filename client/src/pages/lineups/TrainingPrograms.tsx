@@ -35,7 +35,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Plus, Edit, Trash2, ChevronRight, Award, Layers, AlertCircle, FileText, Users, X } from "lucide-react";
+import { Plus, Edit, Trash2, ChevronRight, Award, Layers, AlertCircle, FileText, Users, X, GraduationCap } from "lucide-react";
 import { Link, useParams, useLocation } from "wouter";
 import type { TrainingProgram, ProgramStep, Competency, Department, Artist, ProgramArtist } from "@shared/schema";
 
@@ -484,24 +484,37 @@ export default function TrainingPrograms() {
             ) : (
               <div className="grid gap-4">
                 {activePrograms.map((program) => {
+                  const competency = competencies.find((c) => c.id === program.competencyId);
                   return (
                     <Card
                       key={program.id}
-                      className="hover-elevate cursor-pointer"
+                      className="p-4 hover-elevate cursor-pointer"
                       onClick={() => setSelectedProgram(program)}
                       data-testid={`program-card-${program.id}`}
                     >
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <CardTitle>{program.name}</CardTitle>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary" data-testid="badge-status-active">
-                              Active
-                            </Badge>
-                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="p-2 rounded-md bg-primary/10 text-primary shrink-0">
+                            <GraduationCap className="w-5 h-5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-base mb-1 truncate">
+                              {program.name}
+                            </h3>
+                            {competency && (
+                              <p className="text-xs text-muted-foreground mt-1 truncate">
+                                {competency.name}
+                              </p>
+                            )}
                           </div>
                         </div>
-                      </CardHeader>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge variant="secondary" data-testid="badge-status-active">
+                            Active
+                          </Badge>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                      </div>
                     </Card>
                   );
                 })}
@@ -524,24 +537,37 @@ export default function TrainingPrograms() {
             ) : (
               <div className="grid gap-4">
                 {completedPrograms.map((program) => {
+                  const competency = competencies.find((c) => c.id === program.competencyId);
                   return (
                     <Card
                       key={program.id}
-                      className="hover-elevate cursor-pointer"
+                      className="p-4 hover-elevate cursor-pointer"
                       onClick={() => setSelectedProgram(program)}
                       data-testid={`program-card-${program.id}`}
                     >
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <CardTitle>{program.name}</CardTitle>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary" data-testid="badge-status-completed">
-                              Completed
-                            </Badge>
-                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="p-2 rounded-md bg-primary/10 text-primary shrink-0">
+                            <GraduationCap className="w-5 h-5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-base mb-1 truncate">
+                              {program.name}
+                            </h3>
+                            {competency && (
+                              <p className="text-xs text-muted-foreground mt-1 truncate">
+                                {competency.name}
+                              </p>
+                            )}
                           </div>
                         </div>
-                      </CardHeader>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge variant="secondary" data-testid="badge-status-completed">
+                            Completed
+                          </Badge>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                      </div>
                     </Card>
                   );
                 })}
