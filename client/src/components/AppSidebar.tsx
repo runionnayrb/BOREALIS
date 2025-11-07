@@ -153,6 +153,14 @@ export default function AppSidebar() {
                   <p className="font-medium text-foreground">Show Notes</p>
                   <p>Track OUT artists, add show notes and technical notes. Configure dive heights and other show-specific details all in one place.</p>
                 </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Training Programs</p>
+                  <p>Create and manage training programs that validate artist competencies. Define step-by-step workflows with department-based sign-off validation. HOD, AHOD, and Lead technicians can approve steps for their departments, with specialized rules for Stage Management. Programs can be marked as templates for reuse or set as active programs for tracking artist progress. Assign artists to programs to track their training journey, and view complete step details with sign-off status and timestamps.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Competencies</p>
+                  <p>Define competencies that artists must earn to qualify for lineup positions. Each competency links to a specific scene and optionally to acts or cues within that scene. Competencies serve as the foundation for training programs - when an artist completes a training program, they earn the associated competency. Assign competencies directly to artists or grant them through training program completion, with full tracking of award dates and expiration status.</p>
+                </div>
               </div>
             </div>
 
