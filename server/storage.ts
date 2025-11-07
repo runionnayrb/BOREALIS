@@ -332,6 +332,7 @@ export interface IStorage {
   createTrainingProgram(program: InsertTrainingProgram): Promise<TrainingProgram>;
   updateTrainingProgram(id: string, updates: Partial<InsertTrainingProgram>): Promise<TrainingProgram | undefined>;
   deleteTrainingProgram(id: string): Promise<void>;
+  createProgramFromTemplate(templateId: string, name: string, userId?: string): Promise<TrainingProgram>;
   
   // Program Steps
   getProgramSteps(programId: string): Promise<ProgramStep[]>;
@@ -1718,6 +1719,40 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTrainingProgram(id: string): Promise<void> {
     await db.delete(trainingPrograms).where(eq(trainingPrograms.id, id));
+  }
+
+  async createProgramFromTemplate(templateId: string, name: string, userId?: string): Promise<TrainingProgram> {
+    const template = await this.getTrainingProgram(templateId);
+    if (!template) {
+      throw new Error("Template not found");
+    }
+    if (template.isTemplate !== 1) {
+      throw new Error("Cannot create program from non-template");
+    }
+
+    const newProgram = await this.createTrainingProgram({
+      name,
+      competencyId: template.competencyId,
+      isTemplate: 0,
+      createdBy: userId,
+    });
+
+    const templateSteps = await this.getProgramSteps(templateId);
+    for (const step of templateSteps) {
+      await this.createProgramStep({
+        programId: newProgram.id,
+        name: step.name,
+        departmentId: step.departmentId,
+        stepType: step.stepType as "technical" | "induction" | "rehearsal" | "show_validation",
+        departmentSignOffId: step.departmentSignOffId,
+        conditions: step.conditions as "work_lights" | "show_conditions" | undefined,
+        description: step.description,
+        expectedDurationMinutes: step.expectedDurationMinutes,
+        sortOrder: step.sortOrder,
+      });
+    }
+
+    return newProgram;
   }
 
   // Program Steps

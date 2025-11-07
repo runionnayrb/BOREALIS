@@ -63,12 +63,17 @@ const stepSchema = z.object({
   sortOrder: z.coerce.number(),
 });
 
+const createFromTemplateSchema = z.object({
+  name: z.string().min(1, "Program name is required"),
+});
+
 export default function TrainingPrograms() {
   const { toast } = useToast();
   const params = useParams<{ id?: string }>();
   const [, setLocation] = useLocation();
   const [programDialogOpen, setProgramDialogOpen] = useState(false);
   const [stepDialogOpen, setStepDialogOpen] = useState(false);
+  const [createFromTemplateOpen, setCreateFromTemplateOpen] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState<TrainingProgram | null>(null);
   const [editingProgram, setEditingProgram] = useState<TrainingProgram | null>(null);
   const [editingStep, setEditingStep] = useState<ProgramStep | null>(null);
@@ -145,6 +150,13 @@ export default function TrainingPrograms() {
       description: "",
       expectedDurationMinutes: undefined,
       sortOrder: 0,
+    },
+  });
+
+  const createFromTemplateForm = useForm<z.infer<typeof createFromTemplateSchema>>({
+    resolver: zodResolver(createFromTemplateSchema),
+    defaultValues: {
+      name: "",
     },
   });
 
@@ -303,6 +315,24 @@ export default function TrainingPrograms() {
     },
     onError: () => {
       toast({ title: "Failed to update program status", variant: "destructive" });
+    },
+  });
+
+  const createFromTemplateMutation = useMutation({
+    mutationFn: async (name: string) => {
+      if (!selectedProgram) throw new Error("No template selected");
+      return apiRequest("POST", `/api/training-programs/${selectedProgram.id}/create-from-template`, { name });
+    },
+    onSuccess: (newProgram) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-programs"] });
+      toast({ title: "Program created from template successfully" });
+      setCreateFromTemplateOpen(false);
+      createFromTemplateForm.reset();
+      setSelectedProgram(newProgram);
+      setLocation(`/lineups/training-programs/${newProgram.id}`);
+    },
+    onError: () => {
+      toast({ title: "Failed to create program from template", variant: "destructive" });
     },
   });
 
@@ -617,6 +647,56 @@ export default function TrainingPrograms() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Create from Template Dialog */}
+        <Dialog open={createFromTemplateOpen} onOpenChange={(open) => {
+          setCreateFromTemplateOpen(open);
+          if (!open) createFromTemplateForm.reset();
+        }}>
+          <DialogContent data-testid="dialog-create-from-template">
+            <DialogHeader>
+              <DialogTitle>Create Program from Template</DialogTitle>
+              <DialogDescription>
+                Enter a name for the new training program. All steps from the template will be copied to the new program.
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...createFromTemplateForm}>
+              <form onSubmit={createFromTemplateForm.handleSubmit((values) => createFromTemplateMutation.mutate(values.name))}>
+                <FormField
+                  control={createFromTemplateForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Program Name *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter program name" {...field} data-testid="input-template-program-name" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <DialogFooter className="mt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setCreateFromTemplateOpen(false)}
+                    data-testid="button-cancel-create-template"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={createFromTemplateMutation.isPending}
+                    data-testid="button-confirm-create-template"
+                  >
+                    Create Program
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -664,6 +744,15 @@ export default function TrainingPrograms() {
                 <SelectItem value="completed">Completed</SelectItem>
               </SelectContent>
             </Select>
+          )}
+          {selectedProgram.isTemplate === 1 && (
+            <Button
+              onClick={() => setCreateFromTemplateOpen(true)}
+              data-testid="button-create-from-template"
+            >
+              <Layers className="w-4 h-4 mr-2" />
+              Create from Template
+            </Button>
           )}
           <Button
             variant="outline"

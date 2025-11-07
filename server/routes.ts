@@ -2606,6 +2606,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/training-programs/:templateId/create-from-template", canCreateLineupsTrainingPrograms, async (req, res) => {
+    try {
+      const { name } = req.body;
+      if (!name) {
+        return res.status(400).json({ error: "Program name is required" });
+      }
+      const newProgram = await storage.createProgramFromTemplate(req.params.templateId, name, req.user?.id);
+      res.status(201).json(newProgram);
+    } catch (error: any) {
+      console.error("Error creating program from template:", error);
+      res.status(500).json({ error: "Failed to create program from template" });
+    }
+  });
+
   // Program Steps
   app.get("/api/training-programs/:programId/steps", canViewLineupsTrainingPrograms, async (req, res) => {
     try {
