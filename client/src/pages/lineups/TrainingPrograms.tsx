@@ -811,79 +811,75 @@ export default function TrainingPrograms() {
       ) : (
         <div className="space-y-3">
           {sortedSteps.map((step, index) => {
-            const department = departments.find((d) => d.id === step.departmentId);
             const signOffDepartment = departments.find((d) => d.id === step.departmentSignOffId);
+            const signedOffDate = step.signedOffAt ? new Date(step.signedOffAt) : null;
+            const formattedSignOffText = signedOffDate 
+              ? `Signed-Off By: ${signOffDepartment?.name || 'Unknown'} on ${signedOffDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} at ${signedOffDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+              : null;
+            
             return (
-              <Card key={step.id} data-testid={`step-card-${step.id}`}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                        <span className="text-muted-foreground">#{index + 1}</span>
+              <Card key={step.id} className="p-4" data-testid={`step-card-${step.id}`}>
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <span className="text-muted-foreground font-semibold text-base shrink-0">#{index + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-base mb-1">
                         {step.name}
-                      </CardTitle>
-                      <CardDescription className="mt-2 space-y-1">
-                        <div className="flex flex-wrap gap-2">
-                          <Badge variant="secondary">{stepTypeLabels[step.stepType]}</Badge>
-                          <Badge variant="outline">{department?.name}</Badge>
-                          <Badge variant="outline">Sign-off: {signOffDepartment?.name}</Badge>
-                          {step.conditions && (
-                            <Badge variant="outline">
-                              {step.conditions === 'work_lights' ? 'Work Lights' : 'Show Conditions'}
-                            </Badge>
-                          )}
-                          {step.expectedDurationMinutes && (
-                            <Badge variant="outline">{step.expectedDurationMinutes} min</Badge>
-                          )}
-                          {step.signedOffByUserId && step.signedOffAt && (
-                            <Badge className="bg-green-600 hover:bg-green-700" data-testid={`badge-signed-off-${step.id}`}>
-                              Signed Off {new Date(step.signedOffAt).toLocaleDateString()}
-                            </Badge>
-                          )}
-                        </div>
-                        {step.description && (
-                          <p className="text-sm mt-2">{step.description}</p>
-                        )}
-                      </CardDescription>
+                      </h3>
+                      {step.description && (
+                        <p className="text-sm text-muted-foreground">{step.description}</p>
+                      )}
                     </div>
-                    <div className="flex items-center gap-1">
-                      {!step.signedOffByUserId && selectedProgram.status === 'active' && (
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                    {formattedSignOffText && (
+                      <p className="text-xs text-muted-foreground">{formattedSignOffText}</p>
+                    )}
+                    {step.signedOffByUserId && step.signedOffAt ? (
+                      <Badge className="bg-green-600 hover:bg-green-700 shrink-0" data-testid={`badge-signed-off-${step.id}`}>
+                        Signed Off
+                      </Badge>
+                    ) : (
+                      selectedProgram.status === 'active' && (
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => signOffStepMutation.mutate(step.id)}
                           disabled={signOffStepMutation.isPending}
+                          className="shrink-0"
                           data-testid={`button-sign-off-${step.id}`}
                         >
                           <Award className="w-4 h-4 mr-2" />
                           Sign Off
                         </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditingStep(step);
-                          setStepDialogOpen(true);
-                        }}
-                        data-testid={`button-edit-step-${step.id}`}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setItemToDelete({ type: 'step', id: step.id });
-                          setDeleteConfirmOpen(true);
-                        }}
-                        data-testid={`button-delete-step-${step.id}`}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
+                      )
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setEditingStep(step);
+                        setStepDialogOpen(true);
+                      }}
+                      className="shrink-0"
+                      data-testid={`button-edit-step-${step.id}`}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setItemToDelete({ type: 'step', id: step.id });
+                        setDeleteConfirmOpen(true);
+                      }}
+                      className="shrink-0"
+                      data-testid={`button-delete-step-${step.id}`}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
                   </div>
-                </CardHeader>
+                </div>
               </Card>
             );
           })}
