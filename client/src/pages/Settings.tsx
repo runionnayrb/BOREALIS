@@ -3590,7 +3590,10 @@ export default function Settings() {
                       <p className="text-sm text-muted-foreground">No roles assigned yet</p>
                     ) : (
                       <div className="space-y-2">
-                        {departmentRoles.map((role) => {
+                        {[...departmentRoles].sort((a, b) => {
+                          const roleOrder: Record<string, number> = { 'hod': 1, 'ahod': 2, 'lead': 3 };
+                          return (roleOrder[a.roleType.toLowerCase()] || 999) - (roleOrder[b.roleType.toLowerCase()] || 999);
+                        }).map((role) => {
                           const tech = technicians.find(t => t.id === role.technicianId);
                           return (
                             <Card key={role.id} className="p-3 flex items-center justify-between" data-testid={`role-${role.id}`}>
@@ -3628,6 +3631,21 @@ export default function Settings() {
                   
                   <div className="space-y-2">
                     <h3 className="font-medium">{roleToEdit ? "Edit Role" : "Assign New Role"}</h3>
+                    {!roleToEdit && technicians
+                      .filter(t => t.status === 'active')
+                      .filter(t => 
+                        allTechnicianDepartments.some(td => 
+                          td.technicianId === t.id && 
+                          td.departmentId === selectedDepartmentForRoles?.id
+                        )
+                      )
+                      .filter(t => 
+                        !departmentRoles.some(role => role.technicianId === t.id)
+                      ).length === 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          All technicians assigned to this department already have roles, or no technicians are assigned to this department yet.
+                        </p>
+                      )}
                     <form onSubmit={(e) => {
                       e.preventDefault();
                       
@@ -3668,11 +3686,27 @@ export default function Settings() {
                               <SelectValue placeholder="Select technician" />
                             </SelectTrigger>
                             <SelectContent>
-                              {technicians.filter(t => t.status === 'active').map((tech) => (
-                                <SelectItem key={tech.id} value={tech.id} data-testid={`option-tech-${tech.id}`}>
-                                  {tech.firstName} {tech.lastName}
-                                </SelectItem>
-                              ))}
+                              {technicians
+                                .filter(t => t.status === 'active')
+                                .filter(t => 
+                                  allTechnicianDepartments.some(td => 
+                                    td.technicianId === t.id && 
+                                    td.departmentId === selectedDepartmentForRoles?.id
+                                  )
+                                )
+                                .filter(t => 
+                                  !departmentRoles.some(role => role.technicianId === t.id)
+                                )
+                                .sort((a, b) => {
+                                  const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
+                                  const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
+                                  return nameA.localeCompare(nameB);
+                                })
+                                .map((tech) => (
+                                  <SelectItem key={tech.id} value={tech.id} data-testid={`option-tech-${tech.id}`}>
+                                    {tech.firstName} {tech.lastName}
+                                  </SelectItem>
+                                ))}
                             </SelectContent>
                           </Select>
                         )}
