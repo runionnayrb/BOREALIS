@@ -134,8 +134,9 @@ export default function TrainingPrograms() {
 
   // Handle URL parameter to auto-select program
   useEffect(() => {
-    if (params.id && programFromUrl && programFromUrl.id !== selectedProgram?.id) {
+    if (params.id && programFromUrl) {
       // Use programFromUrl (fetched by ID, includes templates)
+      // Always update to ensure we have the latest data after mutations
       setSelectedProgram(programFromUrl);
     } else if (!params.id && selectedProgram) {
       // Clear selection when navigating back to list view
@@ -229,8 +230,9 @@ export default function TrainingPrograms() {
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       return apiRequest("PATCH", `/api/training-programs/${id}`, data);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-programs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/training-programs", variables.id] });
       toast({ title: "Training program updated successfully" });
       setProgramDialogOpen(false);
       setEditingProgram(null);
@@ -1210,6 +1212,109 @@ export default function TrainingPrograms() {
               </p>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Program Dialog */}
+      <Dialog open={programDialogOpen} onOpenChange={(open) => {
+        setProgramDialogOpen(open);
+        if (!open) setEditingProgram(null);
+      }}>
+        <DialogContent 
+          className="max-w-2xl"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>{editingProgram ? "Edit" : "Create"} Training Program</DialogTitle>
+            <DialogDescription>
+              Define a training program with steps for artist competency validation
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...programForm}>
+            <form onSubmit={programForm.handleSubmit(handleSubmitProgram)} className="space-y-4">
+              <FormField
+                control={programForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Program Name *</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-program-name" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={programForm.control}
+                name="competencyId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Competency Goal *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-competency">
+                          <SelectValue placeholder="Select competency" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {competencies.map((comp) => (
+                          <SelectItem key={comp.id} value={comp.id}>
+                            {comp.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      The competency this training program will award upon completion
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={programForm.control}
+                name="isTemplate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Program Type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value?.toString()}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-is-template">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="0">Active Program</SelectItem>
+                        <SelectItem value="1">Template</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setProgramDialogOpen(false)}
+                  data-testid="button-cancel-program"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={createProgramMutation.isPending || updateProgramMutation.isPending}
+                  data-testid="button-save-program"
+                >
+                  {editingProgram ? "Update" : "Create"} Program
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
 
