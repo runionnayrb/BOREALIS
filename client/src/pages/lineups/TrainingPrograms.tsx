@@ -510,7 +510,6 @@ export default function TrainingPrograms() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">None</SelectItem>
                             {competencies.map((comp) => (
                               <SelectItem key={comp.id} value={comp.id}>
                                 {comp.name}
@@ -536,7 +535,6 @@ export default function TrainingPrograms() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">None</SelectItem>
                             <SelectItem value="green">Green (Act)</SelectItem>
                             <SelectItem value="yellow">Yellow (Cue)</SelectItem>
                             <SelectItem value="orange">Orange (Acrobatic Cue)</SelectItem>
@@ -562,7 +560,6 @@ export default function TrainingPrograms() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">None</SelectItem>
                             {scenes.map((scene) => (
                               <SelectItem key={scene.id} value={scene.id}>
                                 {scene.name}
@@ -588,7 +585,6 @@ export default function TrainingPrograms() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">None</SelectItem>
                             {acts.map((act) => (
                               <SelectItem key={act.id} value={act.id}>
                                 {act.name}
@@ -614,7 +610,6 @@ export default function TrainingPrograms() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">None</SelectItem>
                             {cues.map((cue) => (
                               <SelectItem key={cue.id} value={cue.id}>
                                 {cue.name}
@@ -932,7 +927,6 @@ export default function TrainingPrograms() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
                           <SelectItem value="work_lights">Work Lights</SelectItem>
                           <SelectItem value="show_conditions">Show Conditions</SelectItem>
                         </SelectContent>
