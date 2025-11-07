@@ -918,33 +918,33 @@ export default function TrainingPrograms() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="space-y-3">
             {programArtists.map((programArtist) => {
               const artist = artists.find((a) => a.id === programArtist.artistId);
               if (!artist) return null;
               return (
-                <Card key={programArtist.id} data-testid={`artist-card-${artist.id}`}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
+                <Card key={programArtist.id} className="p-4" data-testid={`artist-card-${artist.id}`}>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex-1 min-w-0">
                         <p className="font-medium">{artist.firstName} {artist.lastName}</p>
-                        <Badge variant="outline" className="mt-1">
-                          {programArtist.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        </Badge>
                       </div>
-                      {selectedProgram.status === 'active' && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeArtistMutation.mutate(programArtist.id)}
-                          disabled={removeArtistMutation.isPending}
-                          data-testid={`button-remove-artist-${artist.id}`}
-                        >
-                          <X className="w-4 h-4 text-destructive" />
-                        </Button>
-                      )}
+                      <Badge variant="outline">
+                        {programArtist.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </Badge>
                     </div>
-                  </CardContent>
+                    {selectedProgram.status === 'active' && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeArtistMutation.mutate(programArtist.id)}
+                        disabled={removeArtistMutation.isPending}
+                        data-testid={`button-remove-artist-${artist.id}`}
+                      >
+                        <X className="w-4 h-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
                 </Card>
               );
             })}
