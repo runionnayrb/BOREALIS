@@ -269,11 +269,17 @@ export default function TrainingPrograms() {
   });
 
   const handleSubmitProgram = (values: z.infer<typeof programSchema>) => {
+    console.log("Submitting program with values:", values);
+    console.log("Form errors:", programForm.formState.errors);
     if (editingProgram) {
       updateProgramMutation.mutate({ id: editingProgram.id, data: values });
     } else {
       createProgramMutation.mutate(values);
     }
+  };
+
+  const handleProgramFormError = (errors: any) => {
+    console.log("Program form validation errors:", errors);
   };
 
   const handleSubmitStep = (values: z.infer<typeof stepSchema>) => {
@@ -417,7 +423,7 @@ export default function TrainingPrograms() {
               </DialogDescription>
             </DialogHeader>
             <Form {...programForm}>
-              <form onSubmit={programForm.handleSubmit(handleSubmitProgram)} className="space-y-4">
+              <form onSubmit={programForm.handleSubmit(handleSubmitProgram, handleProgramFormError)} className="space-y-4">
                 <FormField
                   control={programForm.control}
                   name="name"
