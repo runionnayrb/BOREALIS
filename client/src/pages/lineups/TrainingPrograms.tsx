@@ -500,6 +500,12 @@ export default function TrainingPrograms() {
                   <Button
                     type="submit"
                     disabled={createProgramMutation.isPending || updateProgramMutation.isPending}
+                    onClick={() => {
+                      console.log("Submit button clicked!");
+                      console.log("Form state:", programForm.formState);
+                      console.log("Form values:", programForm.getValues());
+                      console.log("Form errors:", programForm.formState.errors);
+                    }}
                     data-testid="button-save-program"
                   >
                     {editingProgram ? "Update" : "Create"} Program
