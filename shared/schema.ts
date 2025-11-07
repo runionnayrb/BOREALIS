@@ -1108,9 +1108,6 @@ export type TrainingProgram = typeof trainingPrograms.$inferSelect;
 export const stepConditions = ['work_lights', 'show_conditions'] as const;
 export type StepCondition = typeof stepConditions[number];
 
-export const signOffAuthorities = ['hod', 'ahod', 'lead'] as const;
-export type SignOffAuthority = typeof signOffAuthorities[number];
-
 export const programSteps = pgTable("program_steps", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   programId: varchar("program_id").notNull().references(() => trainingPrograms.id, { onDelete: "cascade" }),
@@ -1119,7 +1116,7 @@ export const programSteps = pgTable("program_steps", {
   stepType: text("step_type").notNull(), // 'induction', 'technical', 'rehearsal', 'show_validation'
   conditions: text("conditions"), // 'work_lights', 'show_conditions'
   prerequisiteStepIds: text("prerequisite_step_ids").array(), // Array of step IDs that must be completed first
-  signOffAuthority: text("sign_off_authority").notNull(), // 'hod', 'ahod', 'lead'
+  departmentSignOffId: varchar("department_sign_off_id").notNull().references(() => departments.id), // Department that signs off on this step
   description: text("description"),
   expectedDurationMinutes: integer("expected_duration_minutes"),
   attachmentUrl: text("attachment_url"), // Optional reference photo or guide
@@ -1135,7 +1132,6 @@ export const insertProgramStepSchema = createInsertSchema(programSteps).omit({
 }).extend({
   stepType: z.enum(programTypes),
   conditions: z.enum(stepConditions).optional(),
-  signOffAuthority: z.enum(signOffAuthorities),
 });
 
 export type InsertProgramStep = z.infer<typeof insertProgramStepSchema>;
@@ -1179,7 +1175,7 @@ export const stepStatusRecords = pgTable("step_status_records", {
   stepId: varchar("step_id").notNull().references(() => programSteps.id, { onDelete: "cascade" }),
   status: text("status").notNull().default('not_started'), // 'not_started', 'in_progress', 'complete'
   signedOffBy: varchar("signed_off_by").references(() => users.id),
-  signedOffRole: text("signed_off_role"), // 'hod', 'ahod', 'lead'
+  signedOffDepartmentId: varchar("signed_off_department_id").references(() => departments.id), // Department that signed off
   signedOffAt: timestamp("signed_off_at"),
   note: text("note"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -1194,7 +1190,6 @@ export const insertStepStatusRecordSchema = createInsertSchema(stepStatusRecords
   updatedAt: true,
 }).extend({
   status: z.enum(stepStatuses).optional(),
-  signedOffRole: z.enum(signOffAuthorities).optional(),
 });
 
 export type InsertStepStatusRecord = z.infer<typeof insertStepStatusRecordSchema>;

@@ -46,12 +46,6 @@ const stepTypeLabels: Record<string, string> = {
   show_validation: "Show Validation",
 };
 
-const authorityLabels: Record<string, string> = {
-  hod: "HOD",
-  ahod: "AHOD",
-  lead: "Lead",
-};
-
 const programSchema = z.object({
   name: z.string().min(1, "Name is required"),
   competencyId: z.string().min(1, "Competency Goal is required"),
@@ -63,7 +57,7 @@ const stepSchema = z.object({
   departmentId: z.string().min(1, "Department is required"),
   stepType: z.string().min(1, "Step type is required"),
   conditions: z.string().optional(),
-  signOffAuthority: z.string().min(1, "Sign-off authority is required"),
+  departmentSignOffId: z.string().min(1, "Sign-off department is required"),
   description: z.string().optional(),
   expectedDurationMinutes: z.coerce.number().optional(),
   sortOrder: z.coerce.number(),
@@ -147,7 +141,7 @@ export default function TrainingPrograms() {
       departmentId: "",
       stepType: "",
       conditions: "",
-      signOffAuthority: "",
+      departmentSignOffId: "",
       description: "",
       expectedDurationMinutes: undefined,
       sortOrder: 0,
@@ -178,7 +172,7 @@ export default function TrainingPrograms() {
         departmentId: editingStep.departmentId,
         stepType: editingStep.stepType,
         conditions: editingStep.conditions || "",
-        signOffAuthority: editingStep.signOffAuthority,
+        departmentSignOffId: editingStep.departmentSignOffId,
         description: editingStep.description || "",
         expectedDurationMinutes: editingStep.expectedDurationMinutes || undefined,
         sortOrder: editingStep.sortOrder,
@@ -189,7 +183,7 @@ export default function TrainingPrograms() {
         departmentId: "",
         stepType: "",
         conditions: "",
-        signOffAuthority: "",
+        departmentSignOffId: "",
         description: "",
         expectedDurationMinutes: undefined,
         sortOrder: steps.length,
@@ -712,6 +706,7 @@ export default function TrainingPrograms() {
         <div className="space-y-3">
           {sortedSteps.map((step, index) => {
             const department = departments.find((d) => d.id === step.departmentId);
+            const signOffDepartment = departments.find((d) => d.id === step.departmentSignOffId);
             return (
               <Card key={step.id} data-testid={`step-card-${step.id}`}>
                 <CardHeader>
@@ -725,7 +720,7 @@ export default function TrainingPrograms() {
                         <div className="flex flex-wrap gap-2">
                           <Badge variant="secondary">{stepTypeLabels[step.stepType]}</Badge>
                           <Badge variant="outline">{department?.name}</Badge>
-                          <Badge variant="outline">Sign-off: {authorityLabels[step.signOffAuthority]}</Badge>
+                          <Badge variant="outline">Sign-off: {signOffDepartment?.name}</Badge>
                           {step.conditions && (
                             <Badge variant="outline">
                               {step.conditions === 'work_lights' ? 'Work Lights' : 'Show Conditions'}
@@ -873,20 +868,22 @@ export default function TrainingPrograms() {
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={stepForm.control}
-                  name="signOffAuthority"
+                  name="departmentSignOffId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Sign-off Authority *</FormLabel>
+                      <FormLabel>Sign-off Department *</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger data-testid="select-authority">
-                            <SelectValue placeholder="Select authority" />
+                          <SelectTrigger data-testid="select-sign-off-department">
+                            <SelectValue placeholder="Select department" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="hod">HOD</SelectItem>
-                          <SelectItem value="ahod">AHOD</SelectItem>
-                          <SelectItem value="lead">Lead</SelectItem>
+                          {departments.map((dept) => (
+                            <SelectItem key={dept.id} value={dept.id}>
+                              {dept.name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
