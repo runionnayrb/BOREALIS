@@ -94,6 +94,19 @@ export default function TrainingPrograms() {
     queryKey: ["/api/departments"],
   });
 
+  // Fetch specific program by ID from URL (including templates)
+  const { data: programFromUrl } = useQuery<TrainingProgram>({
+    queryKey: ["/api/training-programs", params.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/training-programs/${params.id}`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch program");
+      return response.json();
+    },
+    enabled: !!params.id,
+  });
+
   const { data: steps = [], isLoading: loadingSteps } = useQuery<ProgramStep[]>({
     queryKey: ["/api/training-programs", selectedProgram?.id, "steps"],
     queryFn: async () => {
@@ -108,16 +121,14 @@ export default function TrainingPrograms() {
 
   // Handle URL parameter to auto-select program
   useEffect(() => {
-    if (params.id && programs.length > 0) {
-      const program = programs.find((p) => p.id === params.id);
-      if (program && program.id !== selectedProgram?.id) {
-        setSelectedProgram(program);
-      }
+    if (params.id && programFromUrl && programFromUrl.id !== selectedProgram?.id) {
+      // Use programFromUrl (fetched by ID, includes templates)
+      setSelectedProgram(programFromUrl);
     } else if (!params.id && selectedProgram) {
       // Clear selection when navigating back to list view
       setSelectedProgram(null);
     }
-  }, [params.id, programs]);
+  }, [params.id, programFromUrl]);
 
   // Forms
   const programForm = useForm<z.infer<typeof programSchema>>({
@@ -234,11 +245,12 @@ export default function TrainingPrograms() {
     mutationFn: async (data: any) => {
       const payload = {
         ...data,
+        programId: selectedProgram!.id,
         conditions: data.conditions || null,
         description: data.description || null,
         expectedDurationMinutes: data.expectedDurationMinutes || null,
       };
-      return apiRequest("POST", `/api/training-programs/${selectedProgram!.id}/steps`, payload);
+      return apiRequest("POST", `/api/program-steps`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-programs", selectedProgram?.id, "steps"] });
@@ -258,7 +270,7 @@ export default function TrainingPrograms() {
         description: data.description || null,
         expectedDurationMinutes: data.expectedDurationMinutes || null,
       };
-      return apiRequest("PATCH", `/api/training-programs/${selectedProgram!.id}/steps/${id}`, payload);
+      return apiRequest("PATCH", `/api/program-steps/${id}`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-programs", selectedProgram?.id, "steps"] });
@@ -273,7 +285,7 @@ export default function TrainingPrograms() {
 
   const deleteStepMutation = useMutation({
     mutationFn: async (id: string) =>
-      apiRequest("DELETE", `/api/training-programs/${selectedProgram!.id}/steps/${id}`),
+      apiRequest("DELETE", `/api/program-steps/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-programs", selectedProgram?.id, "steps"] });
       toast({ title: "Step deleted successfully" });
@@ -641,12 +653,6 @@ export default function TrainingPrograms() {
               <Badge variant="secondary" data-testid="badge-completed-detail">Completed</Badge>
             )}
           </div>
-          {competency && (
-            <p className="text-muted-foreground mt-1 flex items-center gap-1">
-              <Award className="w-3 h-3" />
-              Awards: {competency.name}
-            </p>
-          )}
         </div>
         <div className="flex items-center gap-2">
           {selectedProgram.isTemplate === 0 && (
