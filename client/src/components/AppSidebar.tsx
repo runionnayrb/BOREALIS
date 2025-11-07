@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { FileText, Plus, Settings, ChevronRight, ClipboardCheck, CheckSquare, Users, CalendarDays, Info, GraduationCap, Award, MapPin, Shield, AlertTriangle } from "lucide-react";
+import { FileText, Plus, Settings, ChevronRight, ChevronDown, ClipboardCheck, CheckSquare, Users, CalendarDays, Info, GraduationCap, Award, MapPin, Shield, AlertTriangle } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import type { UserGroup } from "@shared/schema";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type UserPermission = {
   id: string;
@@ -38,6 +39,9 @@ export default function AppSidebar() {
   const [location] = useLocation();
   const { user } = useAuth();
   const [changelogOpen, setChangelogOpen] = useState(false);
+  const [lineupsOpen, setLineupsOpen] = useState(true);
+  const [scheduleOpen, setScheduleOpen] = useState(true);
+  const [attendanceOpen, setAttendanceOpen] = useState(true);
   
   // Fetch user permissions from database
   const { data: permissions, isLoading: isLoadingPermissions } = useQuery<UserPermission[]>({
@@ -332,104 +336,107 @@ export default function AppSidebar() {
                 </SidebarMenuItem>
               )}
 
-              {/* Lineups with sub-menu - only show if user has permission */}
+              {/* Lineup with sub-menu - only show if user has permission */}
               {canView('lineups') && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={location.startsWith("/lineups")} data-testid="nav-lineups">
-                    <Link href="/lineups" className="flex items-center gap-3">
-                      <Users className="w-4 h-4" />
-                      <span>Lineups</span>
-                    </Link>
-                  </SidebarMenuButton>
-                  <SidebarMenuSub>
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton asChild isActive={location === "/lineups" || location.startsWith("/lineups/new") || (location.startsWith("/lineups/") && !location.includes("/training-programs") && !location.includes("/competencies") && !location.includes("/positions") && !location.includes("/rules") && !location.includes("/restrictions"))} data-testid="nav-lineups-builder">
-                        <Link href="/lineups" className="flex items-center gap-3">
-                          <span>Builder</span>
-                        </Link>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                    {canView('lineups_training_programs') && (
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={location.startsWith("/lineups/training-programs")} data-testid="nav-lineups-training-programs">
-                          <Link href="/lineups/training-programs" className="flex items-center gap-3">
-                            <GraduationCap className="w-4 h-4" />
-                            <span>Training Programs</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    )}
-                    {canView('lineups_competencies') && (
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={location.startsWith("/lineups/competencies")} data-testid="nav-lineups-competencies">
-                          <Link href="/lineups/competencies" className="flex items-center gap-3">
-                            <Award className="w-4 h-4" />
-                            <span>Competencies</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    )}
-                    {canView('lineups_positions') && (
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={location.startsWith("/lineups/positions")} data-testid="nav-lineups-positions">
-                          <Link href="/lineups/positions" className="flex items-center gap-3">
-                            <MapPin className="w-4 h-4" />
-                            <span>Positions</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    )}
-                    {canView('lineups_rules') && (
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={location.startsWith("/lineups/rules")} data-testid="nav-lineups-rules">
-                          <Link href="/lineups/rules" className="flex items-center gap-3">
-                            <Shield className="w-4 h-4" />
-                            <span>Rules & Automation</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    )}
-                    {canView('lineups_restrictions') && (
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={location.startsWith("/lineups/restrictions")} data-testid="nav-lineups-restrictions">
-                          <Link href="/lineups/restrictions" className="flex items-center gap-3">
-                            <AlertTriangle className="w-4 h-4" />
-                            <span>Restrictions</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    )}
-                  </SidebarMenuSub>
-                </SidebarMenuItem>
+                <Collapsible open={lineupsOpen} onOpenChange={setLineupsOpen}>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton isActive={location.startsWith("/lineups")} data-testid="nav-lineups">
+                        <Users className="w-4 h-4" />
+                        <span>Lineup</span>
+                        {lineupsOpen ? <ChevronDown className="w-4 h-4 ml-auto" /> : <ChevronRight className="w-4 h-4 ml-auto" />}
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {canView('lineups_training_programs') && (
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild isActive={location.startsWith("/lineups/training-programs")} data-testid="nav-lineups-training-programs">
+                              <Link href="/lineups/training-programs" className="flex items-center gap-3">
+                                <GraduationCap className="w-4 h-4" />
+                                <span>Training Programs</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        )}
+                        {canView('lineups_competencies') && (
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild isActive={location.startsWith("/lineups/competencies")} data-testid="nav-lineups-competencies">
+                              <Link href="/lineups/competencies" className="flex items-center gap-3">
+                                <Award className="w-4 h-4" />
+                                <span>Competencies</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        )}
+                        {canView('lineups_positions') && (
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild isActive={location.startsWith("/lineups/positions")} data-testid="nav-lineups-positions">
+                              <Link href="/lineups/positions" className="flex items-center gap-3">
+                                <MapPin className="w-4 h-4" />
+                                <span>Positions</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        )}
+                        {canView('lineups_rules') && (
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild isActive={location.startsWith("/lineups/rules")} data-testid="nav-lineups-rules">
+                              <Link href="/lineups/rules" className="flex items-center gap-3">
+                                <Shield className="w-4 h-4" />
+                                <span>Rules & Automation</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        )}
+                        {canView('lineups_restrictions') && (
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild isActive={location.startsWith("/lineups/restrictions")} data-testid="nav-lineups-restrictions">
+                              <Link href="/lineups/restrictions" className="flex items-center gap-3">
+                                <AlertTriangle className="w-4 h-4" />
+                                <span>Restrictions</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        )}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
               )}
 
               {/* Schedule with sub-menu - only show if user has permission */}
               {canView('schedules') && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={location.startsWith("/schedule")} data-testid="nav-schedule">
-                    <Link href="/schedule/full" className="flex items-center gap-3">
-                      <CalendarDays className="w-4 h-4" />
-                      <span>Schedule</span>
-                      <span className="text-xs text-muted-foreground">(Coming Soon)</span>
-                    </Link>
-                  </SidebarMenuButton>
-                  <SidebarMenuSub>
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton asChild isActive={location === "/schedule/full"} data-testid="nav-schedule-full">
-                        <Link href="/schedule/full" className="flex items-center gap-3">
-                          <span>Full Schedule</span>
-                        </Link>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton asChild isActive={location === "/schedule/artists"} data-testid="nav-schedule-artists">
-                        <Link href="/schedule/artists" className="flex items-center gap-3">
-                          <span>By Artist</span>
-                        </Link>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  </SidebarMenuSub>
-                </SidebarMenuItem>
+                <Collapsible open={scheduleOpen} onOpenChange={setScheduleOpen}>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton isActive={location.startsWith("/schedule")} data-testid="nav-schedule">
+                        <CalendarDays className="w-4 h-4" />
+                        <span>Schedule</span>
+                        <span className="text-xs text-muted-foreground">(Coming Soon)</span>
+                        {scheduleOpen ? <ChevronDown className="w-4 h-4 ml-auto" /> : <ChevronRight className="w-4 h-4 ml-auto" />}
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild isActive={location === "/schedule/full"} data-testid="nav-schedule-full">
+                            <Link href="/schedule/full" className="flex items-center gap-3">
+                              <span>Full Schedule</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild isActive={location === "/schedule/artists"} data-testid="nav-schedule-artists">
+                            <Link href="/schedule/artists" className="flex items-center gap-3">
+                              <span>By Artist</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
               )}
 
               {/* Attendance - only show if user has permission */}
