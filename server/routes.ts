@@ -52,6 +52,7 @@ import {
   insertUserPermissionSchema,
   updateUserPermissionSchema,
   insertSystemSettingSchema,
+  insertTrainingProgramSchema,
   featureNames,
 } from "@shared/schema";
 
@@ -2567,11 +2568,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/training-programs", canCreateLineupsTrainingPrograms, async (req, res) => {
     try {
-      const program = await storage.createTrainingProgram({ ...req.body, createdBy: req.user?.id });
+      console.log("Creating training program with data:", JSON.stringify(req.body, null, 2));
+      const validation = insertTrainingProgramSchema.safeParse(req.body);
+      if (!validation.success) {
+        console.error("Validation failed:", validation.error.issues);
+        return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+      }
+      const program = await storage.createTrainingProgram({ ...validation.data, createdBy: req.user?.id });
       res.status(201).json(program);
     } catch (error: any) {
       console.error("Error creating training program:", error);
-      res.status(500).json({ error: "Failed to create training program" });
+      console.error("Error stack:", error.stack);
+      res.status(500).json({ error: "Failed to create training program", details: error.message });
     }
   });
 
