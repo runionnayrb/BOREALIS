@@ -37,7 +37,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Plus, Edit, Trash2, AlertTriangle, ShieldAlert, Link2 } from "lucide-react";
-import type { LineupRule, PositionTrack } from "@shared/schema";
+import type { LineupRule, PositionTrack, TrackPosition, Position, Scene, Act, Cue, Department } from "@shared/schema";
 
 const ruleSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -293,8 +293,88 @@ export default function RulesAutomation() {
     return <Badge variant="secondary">{typeMap[ruleType] || ruleType}</Badge>;
   };
 
+  // Fetch track positions for selected track
+  const { data: trackPositions = [] } = useQuery<TrackPosition[]>({
+    queryKey: ["/api/position-tracks", selectedTrack?.id, "positions"],
+    queryFn: async () => {
+      if (!selectedTrack) return [];
+      const res = await fetch(`/api/position-tracks/${selectedTrack.id}/positions`);
+      if (!res.ok) throw new Error("Failed to fetch track positions");
+      return res.json();
+    },
+    enabled: !!selectedTrack,
+  });
+
+  // Fetch all positions
+  const { data: allPositions = [] } = useQuery<Position[]>({
+    queryKey: ["/api/positions"],
+    enabled: !!selectedTrack,
+  });
+
+  // Fetch metadata for displaying positions
+  const { data: scenes = [] } = useQuery<Scene[]>({
+    queryKey: ["/api/scenes"],
+    enabled: !!selectedTrack,
+  });
+
+  const { data: acts = [] } = useQuery<Act[]>({
+    queryKey: ["/api/acts"],
+    enabled: !!selectedTrack,
+  });
+
+  const { data: cues = [] } = useQuery<Cue[]>({
+    queryKey: ["/api/cues"],
+    enabled: !!selectedTrack,
+  });
+
+  const { data: departments = [] } = useQuery<Department[]>({
+    queryKey: ["/api/departments"],
+    enabled: !!selectedTrack,
+  });
+
+  // Add position to track mutation
+  const addPositionToTrackMutation = useMutation({
+    mutationFn: async (positionId: string) =>
+      apiRequest(`/api/position-tracks/${selectedTrack!.id}/positions`, "POST", {
+        positionId,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/position-tracks", selectedTrack!.id, "positions"],
+      });
+      toast({ title: "Position added to track" });
+    },
+    onError: () => {
+      toast({ title: "Failed to add position to track", variant: "destructive" });
+    },
+  });
+
+  // Remove position from track mutation
+  const removePositionFromTrackMutation = useMutation({
+    mutationFn: async (trackPositionId: string) =>
+      apiRequest(`/api/track-positions/${trackPositionId}`, "DELETE"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/position-tracks", selectedTrack!.id, "positions"],
+      });
+      toast({ title: "Position removed from track" });
+    },
+    onError: () => {
+      toast({ title: "Failed to remove position from track", variant: "destructive" });
+    },
+  });
+
   if (selectedTrack && activeTab === "tracks") {
-    // Position Track detail view (to be implemented in Task 17)
+    // Get positions that are in the track
+    const positionsInTrack = allPositions.filter((pos) =>
+      trackPositions.some((tp) => tp.positionId === pos.id)
+    );
+
+    // Get positions that are not in the track
+    const availablePositions = allPositions.filter(
+      (pos) => !trackPositions.some((tp) => tp.positionId === pos.id)
+    );
+
     return (
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
@@ -309,13 +389,115 @@ export default function RulesAutomation() {
             <h2 className="text-2xl font-bold mt-2" data-testid="text-track-name">
               {selectedTrack.name}
             </h2>
+            {selectedTrack.description && (
+              <p className="text-muted-foreground">{selectedTrack.description}</p>
+            )}
+          </div>
+          <div>
+            {selectedTrack.autoAssign === 1 && (
+              <Badge variant="secondary">Auto-Assign Enabled</Badge>
+            )}
           </div>
         </div>
+
         <Card>
-          <CardContent className="p-6">
-            <p className="text-muted-foreground">
-              Position management for this track will be implemented in Task 17.
-            </p>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Positions in Track</CardTitle>
+              {availablePositions.length > 0 && (
+                <Select
+                  onValueChange={(positionId) =>
+                    addPositionToTrackMutation.mutate(positionId)
+                  }
+                  disabled={addPositionToTrackMutation.isPending}
+                >
+                  <SelectTrigger className="w-[250px]" data-testid="select-add-position">
+                    <SelectValue placeholder="Add position..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availablePositions.filter(p => p.id).map((position) => (
+                      <SelectItem key={position.id} value={String(position.id)}>
+                        {position.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {positionsInTrack.length === 0 ? (
+              <p className="text-muted-foreground">
+                No positions in this track yet. Add positions to enable auto-assignment.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {positionsInTrack.map((position) => {
+                  const trackPosition = trackPositions.find(
+                    (tp) => tp.positionId === position.id
+                  );
+                  const scene = scenes.find((s) => s.id === position.sceneId);
+                  const act = acts.find((a) => a.id === position.actId);
+                  const cue = cues.find((c) => c.id === position.cueId);
+                  const department = departments.find((d) => d.id === position.departmentId);
+                  
+                  return (
+                    <div
+                      key={position.id}
+                      className="flex items-center justify-between p-3 border rounded-md"
+                      data-testid={`track-position-${position.id}`}
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium">{position.name}</p>
+                        <div className="flex gap-2 mt-1 flex-wrap">
+                          {scene && (
+                            <Badge variant="outline" className="text-xs">
+                              Scene: {scene.name}
+                            </Badge>
+                          )}
+                          {act && (
+                            <Badge variant="outline" className="text-xs">
+                              Act: {act.name}
+                            </Badge>
+                          )}
+                          {cue && (
+                            <Badge variant="outline" className="text-xs">
+                              Cue: {cue.name}
+                            </Badge>
+                          )}
+                          {department && (
+                            <Badge variant="outline" className="text-xs">
+                              {department.name}
+                            </Badge>
+                          )}
+                          {position.maxAssignees && (
+                            <Badge variant="secondary" className="text-xs">
+                              Max: {position.maxAssignees}
+                            </Badge>
+                          )}
+                        </div>
+                        {position.description && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {position.description}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() =>
+                          removePositionFromTrackMutation.mutate(trackPosition!.id)
+                        }
+                        disabled={removePositionFromTrackMutation.isPending}
+                        data-testid={`button-remove-position-${position.id}`}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
