@@ -818,7 +818,15 @@ export default function TrainingPrograms() {
               : null;
             
             return (
-              <Card key={step.id} className="p-4" data-testid={`step-card-${step.id}`}>
+              <Card 
+                key={step.id} 
+                className="p-4 cursor-pointer hover-elevate" 
+                onClick={() => {
+                  setEditingStep(step);
+                  setStepDialogOpen(true);
+                }}
+                data-testid={`step-card-${step.id}`}
+              >
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <span className="text-muted-foreground font-semibold text-base shrink-0">#{index + 1}</span>
@@ -844,7 +852,10 @@ export default function TrainingPrograms() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => signOffStepMutation.mutate(step.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            signOffStepMutation.mutate(step.id);
+                          }}
                           disabled={signOffStepMutation.isPending}
                           className="shrink-0"
                           data-testid={`button-sign-off-${step.id}`}
@@ -854,31 +865,22 @@ export default function TrainingPrograms() {
                         </Button>
                       )
                     )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setEditingStep(step);
-                        setStepDialogOpen(true);
-                      }}
-                      className="shrink-0"
-                      data-testid={`button-edit-step-${step.id}`}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setItemToDelete({ type: 'step', id: step.id });
-                        setDeleteConfirmOpen(true);
-                      }}
-                      className="shrink-0"
-                      data-testid={`button-delete-step-${step.id}`}
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
                   </div>
+                </div>
+                <div className="mt-3 pt-3 border-t">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setItemToDelete({ type: 'step', id: step.id });
+                      setDeleteConfirmOpen(true);
+                    }}
+                    data-testid={`button-delete-step-${step.id}`}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2 text-destructive" />
+                    Delete
+                  </Button>
                 </div>
               </Card>
             );
