@@ -3137,6 +3137,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/departments/:departmentId/roles", canEditSettingsDepartments, async (req, res) => {
+    try {
+      const { technicianId, roleType } = req.body;
+      const role = await storage.createDepartmentRole({
+        departmentId: req.params.departmentId,
+        technicianId,
+        roleType,
+      });
+      res.status(201).json(role);
+    } catch (error: any) {
+      console.error("Error creating department role:", error);
+      res.status(500).json({ error: "Failed to create department role" });
+    }
+  });
+
+  app.patch("/api/department-roles/:id", canEditSettingsDepartments, async (req, res) => {
+    try {
+      const { roleType } = req.body;
+      const role = await storage.updateDepartmentRole(req.params.id, { roleType });
+      if (!role) {
+        return res.status(404).json({ error: "Department role not found" });
+      }
+      res.json(role);
+    } catch (error: any) {
+      console.error("Error updating department role:", error);
+      res.status(500).json({ error: "Failed to update department role" });
+    }
+  });
+
+  app.delete("/api/department-roles/:id", canEditSettingsDepartments, async (req, res) => {
+    try {
+      await storage.deleteDepartmentRole(req.params.id);
+      res.sendStatus(204);
+    } catch (error: any) {
+      console.error("Error deleting department role:", error);
+      res.status(500).json({ error: "Failed to delete department role" });
+    }
+  });
+
   app.put("/api/departments/:departmentId/roles", canEditSettingsDepartments, async (req, res) => {
     try {
       const { roles } = req.body;
