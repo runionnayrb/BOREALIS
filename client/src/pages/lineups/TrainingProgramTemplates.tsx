@@ -22,10 +22,11 @@ export default function TrainingProgramTemplates() {
   });
 
   const createFromTemplateMutation = useMutation({
-    mutationFn: async (templateId: string) => {
+    mutationFn: async ({ templateId, name }: { templateId: string; name: string }) => {
       const response = await apiRequest<TrainingProgram>(
         "POST",
-        `/api/training-programs/${templateId}/create-from-template`
+        `/api/training-programs/${templateId}/create-from-template`,
+        { name }
       );
       return response;
     },
@@ -33,7 +34,7 @@ export default function TrainingProgramTemplates() {
       queryClient.invalidateQueries({ queryKey: ["/api/training-programs"] });
       toast({
         title: "Program Created",
-        description: `Created active program from template`,
+        description: `Created active program "${newProgram.name}"`,
       });
       setLocation(`/lineups/training-programs/${newProgram.id}`);
     },
@@ -46,10 +47,10 @@ export default function TrainingProgramTemplates() {
     },
   });
 
-  const handleCreateFromTemplate = (e: React.MouseEvent, templateId: string) => {
+  const handleCreateFromTemplate = (e: React.MouseEvent, template: TrainingProgram) => {
     e.preventDefault();
     e.stopPropagation();
-    createFromTemplateMutation.mutate(templateId);
+    createFromTemplateMutation.mutate({ templateId: template.id, name: template.name });
   };
 
   if (isLoading) {
@@ -111,7 +112,7 @@ export default function TrainingProgramTemplates() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={(e) => handleCreateFromTemplate(e, template.id)}
+                          onClick={(e) => handleCreateFromTemplate(e, template)}
                           disabled={createFromTemplateMutation.isPending}
                           data-testid={`button-create-from-template-${template.id}`}
                         >
