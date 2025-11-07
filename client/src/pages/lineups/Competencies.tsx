@@ -43,14 +43,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Plus, Edit, Trash2, Award, Calendar } from "lucide-react";
-import type { Competency, Department, Scene, Act, Cue } from "@shared/schema";
+import type { Competency, Scene, Act, Cue } from "@shared/schema";
 
 const competencySchema = z.object({
   name: z.string().min(1, "Name is required"),
   sceneId: z.string().min(1).optional().or(z.literal(undefined)),
   actId: z.string().min(1).optional().or(z.literal(undefined)),
   cueId: z.string().min(1).optional().or(z.literal(undefined)),
-  departmentId: z.string().min(1).optional().or(z.literal(undefined)),
   description: z.string().optional(),
   expirationDays: z.coerce.number().min(1, "Must be at least 1 day").default(90),
 });
@@ -65,10 +64,6 @@ export default function Competencies() {
   // Fetch data
   const { data: competencies = [], isLoading } = useQuery<Competency[]>({
     queryKey: ["/api/competencies"],
-  });
-
-  const { data: departments = [] } = useQuery<Department[]>({
-    queryKey: ["/api/departments"],
   });
 
   const { data: scenes = [] } = useQuery<Scene[]>({
@@ -91,7 +86,6 @@ export default function Competencies() {
       sceneId: undefined,
       actId: undefined,
       cueId: undefined,
-      departmentId: undefined,
       description: "",
       expirationDays: 90,
     },
@@ -105,7 +99,6 @@ export default function Competencies() {
         sceneId: editingCompetency.sceneId || undefined,
         actId: editingCompetency.actId || undefined,
         cueId: editingCompetency.cueId || undefined,
-        departmentId: editingCompetency.departmentId || undefined,
         description: editingCompetency.description || "",
         expirationDays: editingCompetency.expirationDays,
       });
@@ -115,7 +108,6 @@ export default function Competencies() {
         sceneId: undefined,
         actId: undefined,
         cueId: undefined,
-        departmentId: undefined,
         description: "",
         expirationDays: 90,
       });
@@ -130,10 +122,9 @@ export default function Competencies() {
         sceneId: data.sceneId || null,
         actId: data.actId || null,
         cueId: data.cueId || null,
-        departmentId: data.departmentId || null,
         description: data.description || null,
       };
-      return apiRequest("/api/competencies", "POST", payload);
+      return apiRequest("POST", "/api/competencies", payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/competencies"] });
@@ -152,10 +143,9 @@ export default function Competencies() {
         sceneId: data.sceneId || null,
         actId: data.actId || null,
         cueId: data.cueId || null,
-        departmentId: data.departmentId || null,
         description: data.description || null,
       };
-      return apiRequest(`/api/competencies/${id}`, "PATCH", payload);
+      return apiRequest("PATCH", `/api/competencies/${id}`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/competencies"] });
@@ -169,7 +159,7 @@ export default function Competencies() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => apiRequest(`/api/competencies/${id}`, "DELETE"),
+    mutationFn: async (id: string) => apiRequest("DELETE", `/api/competencies/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/competencies"] });
       toast({ title: "Competency deleted successfully" });
@@ -241,7 +231,6 @@ export default function Competencies() {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Department</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Expiration</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -249,17 +238,9 @@ export default function Competencies() {
             </TableHeader>
             <TableBody>
               {competencies.map((competency) => {
-                const department = departments.find((d) => d.id === competency.departmentId);
                 return (
                   <TableRow key={competency.id} data-testid={`competency-row-${competency.id}`}>
                     <TableCell className="font-medium">{competency.name}</TableCell>
-                    <TableCell>
-                      {department ? (
-                        <Badge variant="outline">{department.name}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">All</span>
-                      )}
-                    </TableCell>
                     <TableCell className="max-w-md">
                       <span className="text-sm text-muted-foreground line-clamp-2">
                         {competency.description || "—"}
@@ -340,7 +321,7 @@ export default function Competencies() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Scene</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={(value) => field.onChange(value || undefined)} value={field.value || ""}>
                         <FormControl>
                           <SelectTrigger data-testid="select-scene">
                             <SelectValue placeholder="Select scene" />
@@ -365,7 +346,7 @@ export default function Competencies() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Act</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={(value) => field.onChange(value || undefined)} value={field.value || ""}>
                         <FormControl>
                           <SelectTrigger data-testid="select-act">
                             <SelectValue placeholder="Select act" />
@@ -390,7 +371,7 @@ export default function Competencies() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Cue</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={(value) => field.onChange(value || undefined)} value={field.value || ""}>
                         <FormControl>
                           <SelectTrigger data-testid="select-cue">
                             <SelectValue placeholder="Select cue" />
@@ -409,34 +390,6 @@ export default function Competencies() {
                   )}
                 />
               </div>
-
-              <FormField
-                control={form.control}
-                name="departmentId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Department</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-department">
-                          <SelectValue placeholder="All departments" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {departments.map((dept) => (
-                          <SelectItem key={dept.id} value={dept.id}>
-                            {dept.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Leave blank if this competency applies to all departments
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               <FormField
                 control={form.control}
