@@ -1156,7 +1156,7 @@ export default function TrainingPrograms() {
                       data-testid="button-delete-step"
                     >
                       <Trash2 className="w-4 h-4 mr-2 text-destructive" />
-                      Delete
+                      Delete Step
                     </Button>
                   )}
                 </div>
