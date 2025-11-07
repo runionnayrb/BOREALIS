@@ -172,7 +172,7 @@ export default function TrainingPrograms() {
   // Mutations
   const createProgramMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("/api/training-programs", "POST", data);
+      return apiRequest("POST", "/api/training-programs", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-programs"] });
@@ -186,7 +186,7 @@ export default function TrainingPrograms() {
 
   const updateProgramMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      return apiRequest(`/api/training-programs/${id}`, "PATCH", data);
+      return apiRequest("PATCH", `/api/training-programs/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-programs"] });
@@ -200,7 +200,7 @@ export default function TrainingPrograms() {
   });
 
   const deleteProgramMutation = useMutation({
-    mutationFn: async (id: string) => apiRequest(`/api/training-programs/${id}`, "DELETE"),
+    mutationFn: async (id: string) => apiRequest("DELETE", `/api/training-programs/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-programs"] });
       toast({ title: "Training program deleted successfully" });
@@ -221,7 +221,7 @@ export default function TrainingPrograms() {
         description: data.description || null,
         expectedDurationMinutes: data.expectedDurationMinutes || null,
       };
-      return apiRequest(`/api/training-programs/${selectedProgram!.id}/steps`, "POST", payload);
+      return apiRequest("POST", `/api/training-programs/${selectedProgram!.id}/steps`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-programs", selectedProgram?.id, "steps"] });
@@ -241,7 +241,7 @@ export default function TrainingPrograms() {
         description: data.description || null,
         expectedDurationMinutes: data.expectedDurationMinutes || null,
       };
-      return apiRequest(`/api/training-programs/${selectedProgram!.id}/steps/${id}`, "PATCH", payload);
+      return apiRequest("PATCH", `/api/training-programs/${selectedProgram!.id}/steps/${id}`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-programs", selectedProgram?.id, "steps"] });
@@ -256,7 +256,7 @@ export default function TrainingPrograms() {
 
   const deleteStepMutation = useMutation({
     mutationFn: async (id: string) =>
-      apiRequest(`/api/training-programs/${selectedProgram!.id}/steps/${id}`, "DELETE"),
+      apiRequest("DELETE", `/api/training-programs/${selectedProgram!.id}/steps/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-programs", selectedProgram?.id, "steps"] });
       toast({ title: "Step deleted successfully" });
@@ -269,17 +269,11 @@ export default function TrainingPrograms() {
   });
 
   const handleSubmitProgram = (values: z.infer<typeof programSchema>) => {
-    console.log("Submitting program with values:", values);
-    console.log("Form errors:", programForm.formState.errors);
     if (editingProgram) {
       updateProgramMutation.mutate({ id: editingProgram.id, data: values });
     } else {
       createProgramMutation.mutate(values);
     }
-  };
-
-  const handleProgramFormError = (errors: any) => {
-    console.log("Program form validation errors:", errors);
   };
 
   const handleSubmitStep = (values: z.infer<typeof stepSchema>) => {
@@ -423,7 +417,7 @@ export default function TrainingPrograms() {
               </DialogDescription>
             </DialogHeader>
             <Form {...programForm}>
-              <form onSubmit={programForm.handleSubmit(handleSubmitProgram, handleProgramFormError)} className="space-y-4">
+              <form onSubmit={programForm.handleSubmit(handleSubmitProgram)} className="space-y-4">
                 <FormField
                   control={programForm.control}
                   name="name"
@@ -500,12 +494,6 @@ export default function TrainingPrograms() {
                   <Button
                     type="submit"
                     disabled={createProgramMutation.isPending || updateProgramMutation.isPending}
-                    onClick={() => {
-                      console.log("Submit button clicked!");
-                      console.log("Form state:", programForm.formState);
-                      console.log("Form values:", programForm.getValues());
-                      console.log("Form errors:", programForm.formState.errors);
-                    }}
                     data-testid="button-save-program"
                   >
                     {editingProgram ? "Update" : "Create"} Program
