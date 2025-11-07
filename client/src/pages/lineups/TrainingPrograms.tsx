@@ -17,6 +17,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -34,7 +35,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Plus, Edit, Trash2, ChevronRight, Award, Layers, AlertCircle } from "lucide-react";
-import type { TrainingProgram, ProgramStep, Competency, Department, Scene, Act, Cue } from "@shared/schema";
+import type { TrainingProgram, ProgramStep, Competency, Department } from "@shared/schema";
 
 const stepTypeLabels: Record<string, string> = {
   induction: "Induction",
@@ -49,19 +50,9 @@ const authorityLabels: Record<string, string> = {
   lead: "Lead",
 };
 
-const colorTagLabels: Record<string, { label: string; color: string }> = {
-  green: { label: "Act", color: "bg-green-500" },
-  yellow: { label: "Cue", color: "bg-yellow-500" },
-  orange: { label: "Acrobatic Cue", color: "bg-orange-500" },
-};
-
 const programSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  sceneId: z.string().optional(),
-  actId: z.string().optional(),
-  cueId: z.string().optional(),
-  competencyId: z.string().optional(),
-  colorTag: z.string().optional(),
+  competencyId: z.string().min(1).optional().or(z.literal(undefined)),
   isTemplate: z.coerce.number(),
 });
 
@@ -71,7 +62,7 @@ const stepSchema = z.object({
   stepType: z.string().min(1, "Step type is required"),
   conditions: z.string().optional(),
   signOffAuthority: z.string().min(1, "Sign-off authority is required"),
-  notes: z.string().optional(),
+  description: z.string().optional(),
   expectedDurationMinutes: z.coerce.number().optional(),
   sortOrder: z.coerce.number(),
 });
@@ -99,18 +90,6 @@ export default function TrainingPrograms() {
     queryKey: ["/api/departments"],
   });
 
-  const { data: scenes = [] } = useQuery<Scene[]>({
-    queryKey: ["/api/scenes"],
-  });
-
-  const { data: acts = [] } = useQuery<Act[]>({
-    queryKey: ["/api/acts"],
-  });
-
-  const { data: cues = [] } = useQuery<Cue[]>({
-    queryKey: ["/api/cues"],
-  });
-
   const { data: steps = [], isLoading: loadingSteps } = useQuery<ProgramStep[]>({
     queryKey: ["/api/training-programs", selectedProgram?.id, "steps"],
     queryFn: async () => {
@@ -128,11 +107,7 @@ export default function TrainingPrograms() {
     resolver: zodResolver(programSchema),
     defaultValues: {
       name: "",
-      sceneId: "",
-      actId: "",
-      cueId: "",
-      competencyId: "",
-      colorTag: "",
+      competencyId: undefined,
       isTemplate: 0,
     },
   });
@@ -145,7 +120,7 @@ export default function TrainingPrograms() {
       stepType: "",
       conditions: "",
       signOffAuthority: "",
-      notes: "",
+      description: "",
       expectedDurationMinutes: undefined,
       sortOrder: 0,
     },
@@ -156,21 +131,13 @@ export default function TrainingPrograms() {
     if (editingProgram) {
       programForm.reset({
         name: editingProgram.name,
-        sceneId: editingProgram.sceneId || "",
-        actId: editingProgram.actId || "",
-        cueId: editingProgram.cueId || "",
-        competencyId: editingProgram.competencyId || "",
-        colorTag: editingProgram.colorTag || "",
+        competencyId: editingProgram.competencyId || undefined,
         isTemplate: editingProgram.isTemplate,
       });
     } else {
       programForm.reset({
         name: "",
-        sceneId: "",
-        actId: "",
-        cueId: "",
-        competencyId: "",
-        colorTag: "",
+        competencyId: undefined,
         isTemplate: 0,
       });
     }
@@ -184,7 +151,7 @@ export default function TrainingPrograms() {
         stepType: editingStep.stepType,
         conditions: editingStep.conditions || "",
         signOffAuthority: editingStep.signOffAuthority,
-        notes: editingStep.notes || "",
+        description: editingStep.description || "",
         expectedDurationMinutes: editingStep.expectedDurationMinutes || undefined,
         sortOrder: editingStep.sortOrder,
       });
@@ -195,7 +162,7 @@ export default function TrainingPrograms() {
         stepType: "",
         conditions: "",
         signOffAuthority: "",
-        notes: "",
+        description: "",
         expectedDurationMinutes: undefined,
         sortOrder: steps.length,
       });
@@ -207,11 +174,7 @@ export default function TrainingPrograms() {
     mutationFn: async (data: any) => {
       const payload = {
         ...data,
-        sceneId: data.sceneId || null,
-        actId: data.actId || null,
-        cueId: data.cueId || null,
         competencyId: data.competencyId || null,
-        colorTag: data.colorTag || null,
       };
       return apiRequest("/api/training-programs", "POST", payload);
     },
@@ -229,11 +192,7 @@ export default function TrainingPrograms() {
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       const payload = {
         ...data,
-        sceneId: data.sceneId || null,
-        actId: data.actId || null,
-        cueId: data.cueId || null,
         competencyId: data.competencyId || null,
-        colorTag: data.colorTag || null,
       };
       return apiRequest(`/api/training-programs/${id}`, "PATCH", payload);
     },
@@ -267,7 +226,7 @@ export default function TrainingPrograms() {
       const payload = {
         ...data,
         conditions: data.conditions || null,
-        notes: data.notes || null,
+        description: data.description || null,
         expectedDurationMinutes: data.expectedDurationMinutes || null,
       };
       return apiRequest(`/api/training-programs/${selectedProgram!.id}/steps`, "POST", payload);
@@ -287,7 +246,7 @@ export default function TrainingPrograms() {
       const payload = {
         ...data,
         conditions: data.conditions || null,
-        notes: data.notes || null,
+        description: data.description || null,
         expectedDurationMinutes: data.expectedDurationMinutes || null,
       };
       return apiRequest(`/api/training-programs/${selectedProgram!.id}/steps/${id}`, "PATCH", payload);
@@ -389,9 +348,6 @@ export default function TrainingPrograms() {
           <div className="grid gap-4">
             {programs.map((program) => {
               const competency = competencies.find((c) => c.id === program.competencyId);
-              const scene = scenes.find((s) => s.id === program.sceneId);
-              const act = acts.find((a) => a.id === program.actId);
-              const cue = cues.find((c) => c.id === program.cueId);
               
               return (
                 <Card
@@ -408,27 +364,12 @@ export default function TrainingPrograms() {
                           {program.isTemplate === 1 && (
                             <Badge variant="secondary" data-testid="badge-template">Template</Badge>
                           )}
-                          {program.colorTag && colorTagLabels[program.colorTag] && (
-                            <Badge 
-                              className={`${colorTagLabels[program.colorTag].color} text-white`}
-                              data-testid={`badge-color-${program.colorTag}`}
-                            >
-                              {colorTagLabels[program.colorTag].label}
-                            </Badge>
-                          )}
                         </CardTitle>
-                        <CardDescription className="mt-2 space-y-1">
+                        <CardDescription className="mt-2">
                           {competency && (
                             <div className="flex items-center gap-1">
                               <Award className="w-3 h-3" />
                               <span>Awards: {competency.name}</span>
-                            </div>
-                          )}
-                          {(scene || act || cue) && (
-                            <div className="text-xs">
-                              {scene && `Scene: ${scene.name}`}
-                              {act && `Act: ${act.name}`}
-                              {cue && `Cue: ${cue.name}`}
                             </div>
                           )}
                         </CardDescription>
@@ -499,132 +440,33 @@ export default function TrainingPrograms() {
                   )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={programForm.control}
-                    name="competencyId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Competency Goal</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-competency">
-                              <SelectValue placeholder="Select competency" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {competencies.map((comp) => (
-                              <SelectItem key={comp.id} value={comp.id}>
-                                {comp.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={programForm.control}
-                    name="colorTag"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Color Tag</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-color-tag">
-                              <SelectValue placeholder="Select tag" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="green">Green (Act)</SelectItem>
-                            <SelectItem value="yellow">Yellow (Cue)</SelectItem>
-                            <SelectItem value="orange">Orange (Acrobatic Cue)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <FormField
-                    control={programForm.control}
-                    name="sceneId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Scene</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-scene">
-                              <SelectValue placeholder="Select scene" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {scenes.map((scene) => (
-                              <SelectItem key={scene.id} value={scene.id}>
-                                {scene.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={programForm.control}
-                    name="actId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Act</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-act">
-                              <SelectValue placeholder="Select act" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {acts.map((act) => (
-                              <SelectItem key={act.id} value={act.id}>
-                                {act.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={programForm.control}
-                    name="cueId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cue</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-cue">
-                              <SelectValue placeholder="Select cue" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {cues.map((cue) => (
-                              <SelectItem key={cue.id} value={cue.id}>
-                                {cue.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={programForm.control}
+                  name="competencyId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Competency Goal</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-competency">
+                            <SelectValue placeholder="Select competency" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {competencies.map((comp) => (
+                            <SelectItem key={comp.id} value={comp.id}>
+                              {comp.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        The competency this training program will award upon completion
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={programForm.control}
@@ -777,8 +619,8 @@ export default function TrainingPrograms() {
                             <Badge variant="outline">{step.expectedDurationMinutes} min</Badge>
                           )}
                         </div>
-                        {step.notes && (
-                          <p className="text-sm mt-2">{step.notes}</p>
+                        {step.description && (
+                          <p className="text-sm mt-2">{step.description}</p>
                         )}
                       </CardDescription>
                     </div>
@@ -986,12 +828,12 @@ export default function TrainingPrograms() {
 
               <FormField
                 control={stepForm.control}
-                name="notes"
+                name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Notes</FormLabel>
+                    <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Textarea {...field} rows={3} data-testid="input-notes" />
+                      <Textarea {...field} rows={3} placeholder="Describe what skill/competency this step validates" data-testid="input-description" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

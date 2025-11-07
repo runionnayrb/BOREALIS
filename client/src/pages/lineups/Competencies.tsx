@@ -43,10 +43,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Plus, Edit, Trash2, Award, Calendar } from "lucide-react";
-import type { Competency, Department } from "@shared/schema";
+import type { Competency, Department, Scene, Act, Cue } from "@shared/schema";
 
 const competencySchema = z.object({
   name: z.string().min(1, "Name is required"),
+  sceneId: z.string().min(1).optional().or(z.literal(undefined)),
+  actId: z.string().min(1).optional().or(z.literal(undefined)),
+  cueId: z.string().min(1).optional().or(z.literal(undefined)),
   departmentId: z.string().min(1).optional().or(z.literal(undefined)),
   description: z.string().optional(),
   expirationDays: z.coerce.number().min(1, "Must be at least 1 day").default(90),
@@ -68,11 +71,26 @@ export default function Competencies() {
     queryKey: ["/api/departments"],
   });
 
+  const { data: scenes = [] } = useQuery<Scene[]>({
+    queryKey: ["/api/scenes"],
+  });
+
+  const { data: acts = [] } = useQuery<Act[]>({
+    queryKey: ["/api/acts"],
+  });
+
+  const { data: cues = [] } = useQuery<Cue[]>({
+    queryKey: ["/api/cues"],
+  });
+
   // Form
   const form = useForm<z.infer<typeof competencySchema>>({
     resolver: zodResolver(competencySchema),
     defaultValues: {
       name: "",
+      sceneId: undefined,
+      actId: undefined,
+      cueId: undefined,
       departmentId: undefined,
       description: "",
       expirationDays: 90,
@@ -84,6 +102,9 @@ export default function Competencies() {
     if (editingCompetency) {
       form.reset({
         name: editingCompetency.name,
+        sceneId: editingCompetency.sceneId || undefined,
+        actId: editingCompetency.actId || undefined,
+        cueId: editingCompetency.cueId || undefined,
         departmentId: editingCompetency.departmentId || undefined,
         description: editingCompetency.description || "",
         expirationDays: editingCompetency.expirationDays,
@@ -91,6 +112,9 @@ export default function Competencies() {
     } else {
       form.reset({
         name: "",
+        sceneId: undefined,
+        actId: undefined,
+        cueId: undefined,
         departmentId: undefined,
         description: "",
         expirationDays: 90,
@@ -103,6 +127,9 @@ export default function Competencies() {
     mutationFn: async (data: any) => {
       const payload = {
         ...data,
+        sceneId: data.sceneId || null,
+        actId: data.actId || null,
+        cueId: data.cueId || null,
         departmentId: data.departmentId || null,
         description: data.description || null,
       };
@@ -122,6 +149,9 @@ export default function Competencies() {
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       const payload = {
         ...data,
+        sceneId: data.sceneId || null,
+        actId: data.actId || null,
+        cueId: data.cueId || null,
         departmentId: data.departmentId || null,
         description: data.description || null,
       };
@@ -296,12 +326,89 @@ export default function Competencies() {
                   <FormItem>
                     <FormLabel>Competency Name *</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="e.g., Aerial Silk - Level 1" data-testid="input-name" />
+                      <Input {...field} placeholder="e.g., Hair Hanging - Validated" data-testid="input-name" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              <div className="grid grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="sceneId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Scene</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-scene">
+                            <SelectValue placeholder="Select scene" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {scenes.map((scene) => (
+                            <SelectItem key={scene.id} value={scene.id}>
+                              {scene.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="actId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Act</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-act">
+                            <SelectValue placeholder="Select act" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {acts.map((act) => (
+                            <SelectItem key={act.id} value={act.id}>
+                              {act.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="cueId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cue</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-cue">
+                            <SelectValue placeholder="Select cue" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {cues.map((cue) => (
+                            <SelectItem key={cue.id} value={cue.id}>
+                              {cue.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
                 control={form.control}

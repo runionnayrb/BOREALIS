@@ -913,6 +913,9 @@ export type DepartmentRole = typeof departmentRoles.$inferSelect;
 export const competencies = pgTable("competencies", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  sceneId: varchar("scene_id").references(() => scenes.id),
+  actId: varchar("act_id").references(() => acts.id),
+  cueId: varchar("cue_id").references(() => cues.id),
   departmentId: varchar("department_id").references(() => departments.id),
   description: text("description"),
   expirationDays: integer("expiration_days").notNull().default(90), // Days until competency expires
@@ -1074,11 +1077,7 @@ export type ProgramType = typeof programTypes[number];
 export const trainingPrograms = pgTable("training_programs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
-  sceneId: varchar("scene_id").references(() => scenes.id),
-  actId: varchar("act_id").references(() => acts.id),
-  cueId: varchar("cue_id").references(() => cues.id),
   competencyId: varchar("competency_id").references(() => competencies.id), // Competency awarded upon completion
-  colorTag: text("color_tag"), // 'green' for Act, 'yellow' for Cue, 'orange' for Acrobatic Cue
   isTemplate: integer("is_template").notNull().default(0), // 1 = template, 0 = active program
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -1110,7 +1109,7 @@ export const programSteps = pgTable("program_steps", {
   conditions: text("conditions"), // 'work_lights', 'show_conditions'
   prerequisiteStepIds: text("prerequisite_step_ids").array(), // Array of step IDs that must be completed first
   signOffAuthority: text("sign_off_authority").notNull(), // 'hod', 'ahod', 'lead'
-  notes: text("notes"),
+  description: text("description"),
   expectedDurationMinutes: integer("expected_duration_minutes"),
   attachmentUrl: text("attachment_url"), // Optional reference photo or guide
   sortOrder: integer("sort_order").notNull().default(0),
