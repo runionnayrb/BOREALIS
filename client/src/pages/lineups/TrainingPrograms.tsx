@@ -52,7 +52,7 @@ const authorityLabels: Record<string, string> = {
 
 const programSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  competencyId: z.string().min(1).optional().or(z.literal(undefined)),
+  competencyId: z.string().min(1, "Competency Goal is required"),
   isTemplate: z.coerce.number(),
 });
 
@@ -107,7 +107,7 @@ export default function TrainingPrograms() {
     resolver: zodResolver(programSchema),
     defaultValues: {
       name: "",
-      competencyId: undefined,
+      competencyId: "",
       isTemplate: 0,
     },
   });
@@ -131,13 +131,13 @@ export default function TrainingPrograms() {
     if (editingProgram) {
       programForm.reset({
         name: editingProgram.name,
-        competencyId: editingProgram.competencyId || undefined,
+        competencyId: editingProgram.competencyId || "",
         isTemplate: editingProgram.isTemplate,
       });
     } else {
       programForm.reset({
         name: "",
-        competencyId: undefined,
+        competencyId: "",
         isTemplate: 0,
       });
     }
@@ -172,11 +172,7 @@ export default function TrainingPrograms() {
   // Mutations
   const createProgramMutation = useMutation({
     mutationFn: async (data: any) => {
-      const payload = {
-        ...data,
-        competencyId: data.competencyId || null,
-      };
-      return apiRequest("/api/training-programs", "POST", payload);
+      return apiRequest("/api/training-programs", "POST", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-programs"] });
@@ -190,11 +186,7 @@ export default function TrainingPrograms() {
 
   const updateProgramMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      const payload = {
-        ...data,
-        competencyId: data.competencyId || null,
-      };
-      return apiRequest(`/api/training-programs/${id}`, "PATCH", payload);
+      return apiRequest(`/api/training-programs/${id}`, "PATCH", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-programs"] });
@@ -445,7 +437,7 @@ export default function TrainingPrograms() {
                   name="competencyId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Competency Goal</FormLabel>
+                      <FormLabel>Competency Goal *</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-competency">
