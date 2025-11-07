@@ -2664,6 +2664,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/program-steps/:id/sign-off", canEditLineupsTrainingPrograms, async (req, res) => {
+    try {
+      if (!req.user?.id) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+
+      const step = await storage.getProgramStep(req.params.id);
+      if (!step) {
+        return res.status(404).json({ error: "Program step not found" });
+      }
+
+      const userAssignments = await storage.getTechnicianDepartments(req.user.id);
+      const userDepartmentIds = userAssignments.map((a) => a.departmentId);
+
+      const signOffDept = await storage.getDepartment(step.departmentSignOffId);
+      
+      let canSignOff = false;
+      if (signOffDept?.name === "Stage Management" && signOffDept.type === "artistic") {
+        canSignOff = userDepartmentIds.includes(step.departmentSignOffId);
+      } else {
+        const roles = await storage.getDepartmentRoles(step.departmentSignOffId);
+        const userRoles = roles.filter((r) => r.technicianId === req.user!.id);
+        canSignOff = userRoles.some((r) => ['hod', 'ahod', 'lead'].includes(r.roleType));
+      }
+
+      if (!canSignOff) {
+        return res.status(403).json({ error: "You do not have permission to sign off this step" });
+      }
+
+      const updatedStep = await storage.updateProgramStep(req.params.id, {
+        signedOffByUserId: req.user.id,
+        signedOffAt: new Date(),
+      });
+
+      res.json(updatedStep);
+    } catch (error: any) {
+      console.error("Error signing off step:", error);
+      res.status(500).json({ error: "Failed to sign off step" });
+    }
+  });
+
   // Program Artists
   app.get("/api/training-programs/:programId/artists", canViewLineupsTrainingPrograms, async (req, res) => {
     try {

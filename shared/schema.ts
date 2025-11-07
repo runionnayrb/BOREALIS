@@ -1121,6 +1121,8 @@ export const programSteps = pgTable("program_steps", {
   expectedDurationMinutes: integer("expected_duration_minutes"),
   attachmentUrl: text("attachment_url"), // Optional reference photo or guide
   sortOrder: integer("sort_order").notNull().default(0),
+  signedOffByUserId: varchar("signed_off_by_user_id").references(() => users.id), // User who signed off this step
+  signedOffAt: timestamp("signed_off_at"), // When the step was signed off
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

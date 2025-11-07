@@ -324,6 +324,23 @@ export default function TrainingPrograms() {
     },
   });
 
+  const signOffStepMutation = useMutation({
+    mutationFn: async (stepId: string) => {
+      return apiRequest("PATCH", `/api/program-steps/${stepId}/sign-off`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-programs", selectedProgram?.id, "steps"] });
+      toast({ title: "Step signed off successfully" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to sign off step",
+        description: error.message || "You may not have permission to sign off this step",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSubmitProgram = (values: z.infer<typeof programSchema>) => {
     if (editingProgram) {
       updateProgramMutation.mutate({ id: editingProgram.id, data: values });
@@ -418,8 +435,6 @@ export default function TrainingPrograms() {
             ) : (
               <div className="grid gap-4">
                 {activePrograms.map((program) => {
-                  const competency = competencies.find((c) => c.id === program.competencyId);
-                  
                   return (
                     <Card
                       key={program.id}
@@ -428,19 +443,14 @@ export default function TrainingPrograms() {
                       data-testid={`program-card-${program.id}`}
                     >
                       <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <CardTitle>{program.name}</CardTitle>
-                            <CardDescription className="mt-2">
-                              {competency && (
-                                <div className="flex items-center gap-1">
-                                  <Award className="w-3 h-3" />
-                                  <span>Awards: {competency.name}</span>
-                                </div>
-                              )}
-                            </CardDescription>
+                        <div className="flex items-center justify-between">
+                          <CardTitle>{program.name}</CardTitle>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" data-testid="badge-status-active">
+                              Active
+                            </Badge>
+                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
                           </div>
-                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
                         </div>
                       </CardHeader>
                     </Card>
@@ -465,8 +475,6 @@ export default function TrainingPrograms() {
             ) : (
               <div className="grid gap-4">
                 {completedPrograms.map((program) => {
-                  const competency = competencies.find((c) => c.id === program.competencyId);
-                  
                   return (
                     <Card
                       key={program.id}
@@ -475,22 +483,14 @@ export default function TrainingPrograms() {
                       data-testid={`program-card-${program.id}`}
                     >
                       <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <CardTitle className="flex items-center gap-2">
-                              {program.name}
-                              <Badge variant="secondary" data-testid="badge-completed">Completed</Badge>
-                            </CardTitle>
-                            <CardDescription className="mt-2">
-                              {competency && (
-                                <div className="flex items-center gap-1">
-                                  <Award className="w-3 h-3" />
-                                  <span>Awards: {competency.name}</span>
-                                </div>
-                              )}
-                            </CardDescription>
+                        <div className="flex items-center justify-between">
+                          <CardTitle>{program.name}</CardTitle>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" data-testid="badge-status-completed">
+                              Completed
+                            </Badge>
+                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
                           </div>
-                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
                         </div>
                       </CardHeader>
                     </Card>
