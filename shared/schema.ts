@@ -1089,6 +1089,7 @@ export const trainingPrograms = pgTable("training_programs", {
   name: text("name").notNull(),
   competencyId: varchar("competency_id").references(() => competencies.id), // Competency awarded upon completion
   isTemplate: integer("is_template").notNull().default(0), // 1 = template, 0 = active program
+  status: text("status").notNull().default('active'), // 'active' | 'completed'
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   createdBy: varchar("created_by").references(() => users.id),

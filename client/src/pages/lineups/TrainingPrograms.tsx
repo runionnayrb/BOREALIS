@@ -6,6 +6,7 @@ import { z } from "zod";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -34,7 +35,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Plus, Edit, Trash2, ChevronRight, Award, Layers, AlertCircle } from "lucide-react";
+import { Plus, Edit, Trash2, ChevronRight, Award, Layers, AlertCircle, FileText } from "lucide-react";
+import { Link, useParams, useLocation } from "wouter";
 import type { TrainingProgram, ProgramStep, Competency, Department } from "@shared/schema";
 
 const stepTypeLabels: Record<string, string> = {
@@ -69,6 +71,8 @@ const stepSchema = z.object({
 
 export default function TrainingPrograms() {
   const { toast } = useToast();
+  const params = useParams<{ id?: string }>();
+  const [, setLocation] = useLocation();
   const [programDialogOpen, setProgramDialogOpen] = useState(false);
   const [stepDialogOpen, setStepDialogOpen] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState<TrainingProgram | null>(null);
@@ -101,6 +105,19 @@ export default function TrainingPrograms() {
     },
     enabled: !!selectedProgram?.id,
   });
+
+  // Handle URL parameter to auto-select program
+  useEffect(() => {
+    if (params.id && programs.length > 0) {
+      const program = programs.find((p) => p.id === params.id);
+      if (program && program.id !== selectedProgram?.id) {
+        setSelectedProgram(program);
+      }
+    } else if (!params.id && selectedProgram) {
+      // Clear selection when navigating back to list view
+      setSelectedProgram(null);
+    }
+  }, [params.id, programs]);
 
   // Forms
   const programForm = useForm<z.infer<typeof programSchema>>({
@@ -302,6 +319,10 @@ export default function TrainingPrograms() {
     );
   }
 
+  // Filter programs by status
+  const activePrograms = programs.filter((p) => p.status === 'active');
+  const completedPrograms = programs.filter((p) => p.status === 'completed');
+
   // List view
   if (!selectedProgram) {
     return (
@@ -313,93 +334,133 @@ export default function TrainingPrograms() {
               Manage training programs and validation requirements for artist competencies
             </p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingProgram(null);
-              setProgramDialogOpen(true);
-            }}
-            data-testid="button-add-training-program"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Program
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link href="/lineups/training-programs/templates">
+              <Button variant="outline" data-testid="button-view-templates">
+                <FileText className="w-4 h-4 mr-2" />
+                View Templates
+              </Button>
+            </Link>
+            <Button
+              onClick={() => {
+                setEditingProgram(null);
+                setProgramDialogOpen(true);
+              }}
+              data-testid="button-add-training-program"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Program
+            </Button>
+          </div>
         </div>
 
-        {programs.length === 0 ? (
-          <Card>
-            <CardContent className="py-8">
-              <div className="text-center">
-                <Layers className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">
-                  No training programs yet. Create your first program to get started.
-                </p>
+        <Tabs defaultValue="active" className="w-full">
+          <TabsList>
+            <TabsTrigger value="active" data-testid="tab-active-programs">
+              Active ({activePrograms.length})
+            </TabsTrigger>
+            <TabsTrigger value="completed" data-testid="tab-completed-programs">
+              Completed ({completedPrograms.length})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="active" className="mt-6">
+            {activePrograms.length === 0 ? (
+              <Card>
+                <CardContent className="py-8">
+                  <div className="text-center">
+                    <Layers className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">
+                      No active training programs. Create a new program to get started.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4">
+                {activePrograms.map((program) => {
+                  const competency = competencies.find((c) => c.id === program.competencyId);
+                  
+                  return (
+                    <Card
+                      key={program.id}
+                      className="hover-elevate cursor-pointer"
+                      onClick={() => setSelectedProgram(program)}
+                      data-testid={`program-card-${program.id}`}
+                    >
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <CardTitle>{program.name}</CardTitle>
+                            <CardDescription className="mt-2">
+                              {competency && (
+                                <div className="flex items-center gap-1">
+                                  <Award className="w-3 h-3" />
+                                  <span>Awards: {competency.name}</span>
+                                </div>
+                              )}
+                            </CardDescription>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  );
+                })}
               </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4">
-            {programs.map((program) => {
-              const competency = competencies.find((c) => c.id === program.competencyId);
-              
-              return (
-                <Card
-                  key={program.id}
-                  className="hover-elevate cursor-pointer"
-                  onClick={() => setSelectedProgram(program)}
-                  data-testid={`program-card-${program.id}`}
-                >
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="flex items-center gap-2">
-                          {program.name}
-                          {program.isTemplate === 1 && (
-                            <Badge variant="secondary" data-testid="badge-template">Template</Badge>
-                          )}
-                        </CardTitle>
-                        <CardDescription className="mt-2">
-                          {competency && (
-                            <div className="flex items-center gap-1">
-                              <Award className="w-3 h-3" />
-                              <span>Awards: {competency.name}</span>
-                            </div>
-                          )}
-                        </CardDescription>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingProgram(program);
-                            setProgramDialogOpen(true);
-                          }}
-                          data-testid={`button-edit-program-${program.id}`}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setItemToDelete({ type: 'program', id: program.id });
-                            setDeleteConfirmOpen(true);
-                          }}
-                          data-testid={`button-delete-program-${program.id}`}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                    </div>
-                  </CardHeader>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+            )}
+          </TabsContent>
+
+          <TabsContent value="completed" className="mt-6">
+            {completedPrograms.length === 0 ? (
+              <Card>
+                <CardContent className="py-8">
+                  <div className="text-center">
+                    <Layers className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">
+                      No completed training programs yet.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4">
+                {completedPrograms.map((program) => {
+                  const competency = competencies.find((c) => c.id === program.competencyId);
+                  
+                  return (
+                    <Card
+                      key={program.id}
+                      className="hover-elevate cursor-pointer"
+                      onClick={() => setSelectedProgram(program)}
+                      data-testid={`program-card-${program.id}`}
+                    >
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <CardTitle className="flex items-center gap-2">
+                              {program.name}
+                              <Badge variant="secondary" data-testid="badge-completed">Completed</Badge>
+                            </CardTitle>
+                            <CardDescription className="mt-2">
+                              {competency && (
+                                <div className="flex items-center gap-1">
+                                  <Award className="w-3 h-3" />
+                                  <span>Awards: {competency.name}</span>
+                                </div>
+                              )}
+                            </CardDescription>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
 
         {/* Program Dialog */}
         <Dialog open={programDialogOpen} onOpenChange={(open) => {
@@ -541,6 +602,20 @@ export default function TrainingPrograms() {
 
   // Detail view
   const sortedSteps = [...steps].sort((a, b) => a.sortOrder - b.sortOrder);
+  const competency = competencies.find((c) => c.id === selectedProgram.competencyId);
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async (status: 'active' | 'completed') => {
+      return apiRequest("PATCH", `/api/training-programs/${selectedProgram.id}`, { status });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-programs"] });
+      toast({ title: "Program status updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update program status", variant: "destructive" });
+    },
+  });
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -548,27 +623,68 @@ export default function TrainingPrograms() {
         <div>
           <Button
             variant="ghost"
-            onClick={() => setSelectedProgram(null)}
+            onClick={() => {
+              setSelectedProgram(null);
+              setLocation("/lineups/training-programs");
+            }}
             className="mb-2"
             data-testid="button-back-to-list"
           >
             ← Back to Programs
           </Button>
-          <h1 className="text-3xl font-bold">{selectedProgram.name}</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage training steps and validation requirements
-          </p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold">{selectedProgram.name}</h1>
+            {selectedProgram.isTemplate === 1 && (
+              <Badge variant="secondary" data-testid="badge-template">Template</Badge>
+            )}
+            {selectedProgram.status === 'completed' && (
+              <Badge variant="secondary" data-testid="badge-completed-detail">Completed</Badge>
+            )}
+          </div>
+          {competency && (
+            <p className="text-muted-foreground mt-1 flex items-center gap-1">
+              <Award className="w-3 h-3" />
+              Awards: {competency.name}
+            </p>
+          )}
         </div>
-        <Button
-          onClick={() => {
-            setEditingStep(null);
-            setStepDialogOpen(true);
-          }}
-          data-testid="button-add-step"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Step
-        </Button>
+        <div className="flex items-center gap-2">
+          {selectedProgram.isTemplate === 0 && (
+            <Select
+              value={selectedProgram.status}
+              onValueChange={(value: 'active' | 'completed') => updateStatusMutation.mutate(value)}
+            >
+              <SelectTrigger className="w-[180px]" data-testid="select-program-status">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+          <Button
+            variant="outline"
+            onClick={() => {
+              setEditingProgram(selectedProgram);
+              setProgramDialogOpen(true);
+            }}
+            data-testid="button-edit-program-detail"
+          >
+            <Edit className="w-4 h-4 mr-2" />
+            Edit
+          </Button>
+          <Button
+            onClick={() => {
+              setEditingStep(null);
+              setStepDialogOpen(true);
+            }}
+            data-testid="button-add-step"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Step
+          </Button>
+        </div>
       </div>
 
       {loadingSteps ? (
@@ -647,6 +763,22 @@ export default function TrainingPrograms() {
           })}
         </div>
       )}
+
+      {/* Delete Program Button */}
+      <div className="flex justify-start pt-4">
+        <Button
+          variant="outline"
+          onClick={() => {
+            setItemToDelete({ type: 'program', id: selectedProgram.id });
+            setDeleteConfirmOpen(true);
+          }}
+          data-testid="button-delete-program-detail"
+          className="text-destructive hover:text-destructive"
+        >
+          <Trash2 className="w-4 h-4 mr-2" />
+          Delete Program
+        </Button>
+      </div>
 
       {/* Step Dialog */}
       <Dialog open={stepDialogOpen} onOpenChange={(open) => {

@@ -18,6 +18,7 @@ import TickSheetPage from "@/pages/attendance/TickSheet";
 import LineupsList from "@/pages/LineupsList";
 import LineupBuilder from "@/pages/LineupBuilder";
 import TrainingPrograms from "@/pages/lineups/TrainingPrograms";
+import TrainingProgramTemplates from "@/pages/lineups/TrainingProgramTemplates";
 import Competencies from "@/pages/lineups/Competencies";
 import Positions from "@/pages/lineups/Positions";
 import RulesAutomation from "@/pages/lineups/RulesAutomation";
@@ -84,6 +85,8 @@ function AuthenticatedApp() {
               <Route path="/report/:id" component={ReportEditor} />
               <Route path="/attendance/dashboard" component={AttendanceDashboard} />
               <Route path="/attendance/tickoff" component={TickSheetPage} />
+              <Route path="/lineups/training-programs/templates" component={TrainingProgramTemplates} />
+              <Route path="/lineups/training-programs/:id" component={TrainingPrograms} />
               <Route path="/lineups/training-programs" component={TrainingPrograms} />
               <Route path="/lineups/competencies" component={Competencies} />
               <Route path="/lineups/positions" component={Positions} />

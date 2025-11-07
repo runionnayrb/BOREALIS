@@ -1688,6 +1688,7 @@ export class DatabaseStorage implements IStorage {
   // Training Programs
   async getAllTrainingPrograms(): Promise<TrainingProgram[]> {
     return await db.select().from(trainingPrograms)
+      .where(eq(trainingPrograms.isTemplate, 0))
       .orderBy(desc(trainingPrograms.createdAt));
   }
 
