@@ -867,21 +867,6 @@ export default function TrainingPrograms() {
                     )}
                   </div>
                 </div>
-                <div className="mt-3 pt-3 border-t">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setItemToDelete({ type: 'step', id: step.id });
-                      setDeleteConfirmOpen(true);
-                    }}
-                    data-testid={`button-delete-step-${step.id}`}
-                  >
-                    <Trash2 className="w-4 h-4 mr-2 text-destructive" />
-                    Delete
-                  </Button>
-                </div>
               </Card>
             );
           })}
@@ -1157,22 +1142,41 @@ export default function TrainingPrograms() {
                 )}
               />
 
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setStepDialogOpen(false)}
-                  data-testid="button-cancel-step"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={createStepMutation.isPending || updateStepMutation.isPending}
-                  data-testid="button-save-step"
-                >
-                  {editingStep ? "Update" : "Add"} Step
-                </Button>
+              <DialogFooter className="flex items-center justify-between">
+                <div>
+                  {editingStep && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        setItemToDelete({ type: 'step', id: editingStep.id });
+                        setDeleteConfirmOpen(true);
+                        setStepDialogOpen(false);
+                      }}
+                      data-testid="button-delete-step"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2 text-destructive" />
+                      Delete
+                    </Button>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setStepDialogOpen(false)}
+                    data-testid="button-cancel-step"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={createStepMutation.isPending || updateStepMutation.isPending}
+                    data-testid="button-save-step"
+                  >
+                    {editingStep ? "Update" : "Add"} Step
+                  </Button>
+                </div>
               </DialogFooter>
             </form>
           </Form>
