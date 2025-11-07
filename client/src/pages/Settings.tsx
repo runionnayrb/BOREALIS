@@ -147,6 +147,8 @@ export default function Settings() {
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [selectedDepartmentForRoles, setSelectedDepartmentForRoles] = useState<Department | null>(null);
   const [roleToEdit, setRoleToEdit] = useState<any | null>(null);
+  const [selectedTechnicianForRole, setSelectedTechnicianForRole] = useState<string>("");
+  const [selectedRoleType, setSelectedRoleType] = useState<string>("");
 
   const { toast} = useToast();
   const { user } = useAuth();
@@ -884,6 +886,8 @@ export default function Settings() {
         queryClient.invalidateQueries({ queryKey: ["/api/departments", selectedDepartmentForRoles.id, "roles"] });
       }
       setRoleToEdit(null);
+      setSelectedTechnicianForRole("");
+      setSelectedRoleType("");
       toast({ title: "Role assigned successfully" });
     },
   });
@@ -899,6 +903,8 @@ export default function Settings() {
         queryClient.invalidateQueries({ queryKey: ["/api/departments", selectedDepartmentForRoles.id, "roles"] });
       }
       setRoleToEdit(null);
+      setSelectedTechnicianForRole("");
+      setSelectedRoleType("");
       toast({ title: "Role updated successfully" });
     },
   });
@@ -3567,6 +3573,8 @@ export default function Settings() {
               if (!open) {
                 setSelectedDepartmentForRoles(null);
                 setRoleToEdit(null);
+                setSelectedTechnicianForRole("");
+                setSelectedRoleType("");
               }
             }}>
               <DialogContent className="max-w-2xl">
@@ -3594,7 +3602,10 @@ export default function Settings() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => setRoleToEdit(role)}
+                                  onClick={() => {
+                                    setRoleToEdit(role);
+                                    setSelectedRoleType(role.roleType);
+                                  }}
                                   data-testid={`button-edit-role-${role.id}`}
                                 >
                                   <Edit className="w-4 h-4" />
@@ -3619,28 +3630,40 @@ export default function Settings() {
                     <h3 className="font-medium">{roleToEdit ? "Edit Role" : "Assign New Role"}</h3>
                     <form onSubmit={(e) => {
                       e.preventDefault();
-                      const formData = new FormData(e.currentTarget);
-                      const technicianId = formData.get("technicianId") as string;
-                      const roleType = formData.get("roleType") as string;
                       
                       if (roleToEdit) {
                         updateDepartmentRoleMutation.mutate({
                           id: roleToEdit.id,
                           departmentId: selectedDepartmentForRoles!.id,
-                          roleType,
+                          roleType: selectedRoleType,
                         });
                       } else {
+                        if (!selectedTechnicianForRole || !selectedRoleType) {
+                          toast({
+                            title: "Error",
+                            description: "Please select both a technician and a role",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
                         createDepartmentRoleMutation.mutate({
                           departmentId: selectedDepartmentForRoles!.id,
-                          technicianId,
-                          roleType,
+                          technicianId: selectedTechnicianForRole,
+                          roleType: selectedRoleType,
                         });
                       }
-                      e.currentTarget.reset();
+                      
+                      // Reset form
+                      setSelectedTechnicianForRole("");
+                      setSelectedRoleType("");
+                      setRoleToEdit(null);
                     }}>
                       <div className="flex gap-2">
                         {!roleToEdit && (
-                          <Select name="technicianId" required>
+                          <Select 
+                            value={selectedTechnicianForRole} 
+                            onValueChange={setSelectedTechnicianForRole}
+                          >
                             <SelectTrigger data-testid="select-technician">
                               <SelectValue placeholder="Select technician" />
                             </SelectTrigger>
@@ -3653,14 +3676,17 @@ export default function Settings() {
                             </SelectContent>
                           </Select>
                         )}
-                        <Select name="roleType" required defaultValue={roleToEdit?.roleType}>
+                        <Select 
+                          value={selectedRoleType} 
+                          onValueChange={setSelectedRoleType}
+                        >
                           <SelectTrigger data-testid="select-role-type">
                             <SelectValue placeholder="Select role" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="HOD" data-testid="option-hod">HOD (Head of Department)</SelectItem>
-                            <SelectItem value="AHOD" data-testid="option-ahod">AHOD (Assistant HOD)</SelectItem>
-                            <SelectItem value="Lead" data-testid="option-lead">Lead</SelectItem>
+                            <SelectItem value="hod" data-testid="option-hod">HOD (Head of Department)</SelectItem>
+                            <SelectItem value="ahod" data-testid="option-ahod">AHOD (Assistant HOD)</SelectItem>
+                            <SelectItem value="lead" data-testid="option-lead">Lead</SelectItem>
                           </SelectContent>
                         </Select>
                         <Button 
@@ -3674,7 +3700,11 @@ export default function Settings() {
                           <Button
                             type="button"
                             variant="outline"
-                            onClick={() => setRoleToEdit(null)}
+                            onClick={() => {
+                              setRoleToEdit(null);
+                              setSelectedTechnicianForRole("");
+                              setSelectedRoleType("");
+                            }}
                             data-testid="button-cancel-edit-role"
                           >
                             Cancel
