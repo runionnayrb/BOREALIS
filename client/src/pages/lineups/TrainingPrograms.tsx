@@ -505,7 +505,7 @@ export default function TrainingPrograms() {
                     name="competencyId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Awards Competency</FormLabel>
+                        <FormLabel>Competency Goal</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-competency">
