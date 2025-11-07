@@ -1893,6 +1893,12 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  async getCompetencyArtists(competencyId: string): Promise<ArtistCompetency[]> {
+    return await db.select().from(artistCompetencies)
+      .where(eq(artistCompetencies.competencyId, competencyId))
+      .orderBy(asc(artistCompetencies.createdAt));
+  }
+
   async createArtistCompetency(competency: InsertArtistCompetency): Promise<ArtistCompetency> {
     const result = await db.insert(artistCompetencies).values(competency).returning();
     return result[0];

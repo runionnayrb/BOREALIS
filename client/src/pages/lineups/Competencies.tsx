@@ -42,8 +42,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Plus, Edit, Trash2, Award, Calendar } from "lucide-react";
-import type { Competency, Scene, Act, Cue } from "@shared/schema";
+import { Plus, Edit, Trash2, Award, Calendar, Users, X } from "lucide-react";
+import type { Competency, Scene, Act, Cue, Artist, ArtistCompetency } from "@shared/schema";
 
 const competencySchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -69,6 +69,8 @@ export default function Competencies() {
   const [editingCompetency, setEditingCompetency] = useState<Competency | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [competencyToDelete, setCompetencyToDelete] = useState<string | null>(null);
+  const [artistDialogOpen, setArtistDialogOpen] = useState(false);
+  const [selectedCompetencyForArtists, setSelectedCompetencyForArtists] = useState<Competency | null>(null);
 
   // Fetch data
   const { data: competencies = [], isLoading } = useQuery<Competency[]>({
@@ -85,6 +87,22 @@ export default function Competencies() {
 
   const { data: cuesData = [] } = useQuery<Cue[]>({
     queryKey: ["/api/cues"],
+  });
+
+  const { data: artists = [] } = useQuery<Artist[]>({
+    queryKey: ["/api/artists"],
+  });
+
+  const { data: artistCompetencies = [] } = useQuery<ArtistCompetency[]>({
+    queryKey: ["/api/artist-competencies", selectedCompetencyForArtists?.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/artist-competencies?competencyId=${selectedCompetencyForArtists!.id}`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch artist competencies");
+      return response.json();
+    },
+    enabled: !!selectedCompetencyForArtists?.id,
   });
 
   // Sort by show flow sequence (sortOrder)
@@ -185,6 +203,37 @@ export default function Competencies() {
     },
   });
 
+  const addArtistToCompetencyMutation = useMutation({
+    mutationFn: async (artistId: string) => {
+      if (!selectedCompetencyForArtists) throw new Error("No competency selected");
+      return apiRequest("POST", "/api/artist-competencies", {
+        artistId,
+        competencyId: selectedCompetencyForArtists.id,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artist-competencies", selectedCompetencyForArtists?.id] });
+      toast({ title: "Artist competency granted successfully" });
+      setArtistDialogOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to grant competency to artist", variant: "destructive" });
+    },
+  });
+
+  const removeArtistCompetencyMutation = useMutation({
+    mutationFn: async (artistCompetencyId: string) => {
+      return apiRequest("DELETE", `/api/artist-competencies/${artistCompetencyId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artist-competencies", selectedCompetencyForArtists?.id] });
+      toast({ title: "Artist competency removed successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to remove artist competency", variant: "destructive" });
+    },
+  });
+
   const handleSubmit = (values: z.infer<typeof competencySchema>) => {
     if (editingCompetency) {
       updateMutation.mutate({ id: editingCompetency.id, data: values });
@@ -268,6 +317,17 @@ export default function Competencies() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedCompetencyForArtists(competency);
+                            setArtistDialogOpen(true);
+                          }}
+                          data-testid={`button-assign-artists-${competency.id}`}
+                        >
+                          <Users className="w-4 h-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -515,6 +575,83 @@ export default function Competencies() {
               Delete
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Artist Assignment Dialog */}
+      <Dialog open={artistDialogOpen} onOpenChange={(open) => {
+        setArtistDialogOpen(open);
+        if (!open) setSelectedCompetencyForArtists(null);
+      }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Manage Artists for {selectedCompetencyForArtists?.name}</DialogTitle>
+            <DialogDescription>
+              Grant or revoke this competency for artists
+            </DialogDescription>
+          </DialogHeader>
+          
+          {/* Currently Assigned Artists */}
+          <div className="space-y-4">
+            <h3 className="font-medium">Assigned Artists</h3>
+            {artistCompetencies.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No artists have this competency yet</p>
+            ) : (
+              <div className="space-y-2">
+                {artistCompetencies.map((ac) => {
+                  const artist = artists.find((a) => a.id === ac.artistId);
+                  if (!artist) return null;
+                  return (
+                    <div key={ac.id} className="flex items-center justify-between p-3 border rounded">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        <span>{artist.firstName} {artist.lastName}</span>
+                        {ac.expired === 1 && (
+                          <Badge variant="destructive">Expired</Badge>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeArtistCompetencyMutation.mutate(ac.id)}
+                        disabled={removeArtistCompetencyMutation.isPending}
+                        data-testid={`button-remove-artist-competency-${ac.id}`}
+                      >
+                        <X className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Add New Artists */}
+          <div className="space-y-4">
+            <h3 className="font-medium">Grant Competency to Artist</h3>
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {artists
+                .filter((artist) => !artistCompetencies.some((ac) => ac.artistId === artist.id))
+                .map((artist) => (
+                  <Button
+                    key={artist.id}
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => addArtistToCompetencyMutation.mutate(artist.id)}
+                    disabled={addArtistToCompetencyMutation.isPending}
+                    data-testid={`button-grant-competency-${artist.id}`}
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    {artist.firstName} {artist.lastName}
+                  </Button>
+                ))}
+              {artists.filter((artist) => !artistCompetencies.some((ac) => ac.artistId === artist.id)).length === 0 && (
+                <p className="text-center text-muted-foreground py-4">
+                  All artists already have this competency
+                </p>
+              )}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

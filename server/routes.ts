@@ -3250,6 +3250,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/artist-competencies", canViewLineupsCompetencies, async (req, res) => {
+    try {
+      const { competencyId } = req.query;
+      if (!competencyId) {
+        return res.status(400).json({ error: "competencyId query parameter is required" });
+      }
+      const artistCompetencies = await storage.getCompetencyArtists(competencyId as string);
+      res.json(artistCompetencies);
+    } catch (error: any) {
+      console.error("Error fetching artist competencies:", error);
+      res.status(500).json({ error: "Failed to fetch artist competencies" });
+    }
+  });
+
   app.post("/api/artist-competencies", canEditLineupsCompetencies, async (req, res) => {
     try {
       const competency = await storage.createArtistCompetency({ ...req.body, grantedBy: req.user?.id });

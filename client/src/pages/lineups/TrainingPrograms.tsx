@@ -35,9 +35,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Plus, Edit, Trash2, ChevronRight, Award, Layers, AlertCircle, FileText } from "lucide-react";
+import { Plus, Edit, Trash2, ChevronRight, Award, Layers, AlertCircle, FileText, Users, X } from "lucide-react";
 import { Link, useParams, useLocation } from "wouter";
-import type { TrainingProgram, ProgramStep, Competency, Department } from "@shared/schema";
+import type { TrainingProgram, ProgramStep, Competency, Department, Artist, ProgramArtist } from "@shared/schema";
 
 const stepTypeLabels: Record<string, string> = {
   choreography: "Choreography",
@@ -71,6 +71,7 @@ export default function TrainingPrograms() {
   const [, setLocation] = useLocation();
   const [programDialogOpen, setProgramDialogOpen] = useState(false);
   const [stepDialogOpen, setStepDialogOpen] = useState(false);
+  const [artistDialogOpen, setArtistDialogOpen] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState<TrainingProgram | null>(null);
   const [editingProgram, setEditingProgram] = useState<TrainingProgram | null>(null);
   const [editingStep, setEditingStep] = useState<ProgramStep | null>(null);
@@ -88,6 +89,10 @@ export default function TrainingPrograms() {
 
   const { data: departments = [] } = useQuery<Department[]>({
     queryKey: ["/api/departments"],
+  });
+
+  const { data: artists = [] } = useQuery<Artist[]>({
+    queryKey: ["/api/artists"],
   });
 
   // Fetch specific program by ID from URL (including templates)
@@ -110,6 +115,18 @@ export default function TrainingPrograms() {
         credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to fetch steps");
+      return response.json();
+    },
+    enabled: !!selectedProgram?.id,
+  });
+
+  const { data: programArtists = [] } = useQuery<ProgramArtist[]>({
+    queryKey: ["/api/training-programs", selectedProgram?.id, "artists"],
+    queryFn: async () => {
+      const response = await fetch(`/api/training-programs/${selectedProgram!.id}/artists`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch program artists");
       return response.json();
     },
     enabled: !!selectedProgram?.id,
@@ -338,6 +355,38 @@ export default function TrainingPrograms() {
         description: error.message || "You may not have permission to sign off this step",
         variant: "destructive",
       });
+    },
+  });
+
+  const addArtistMutation = useMutation({
+    mutationFn: async (artistId: string) => {
+      if (!selectedProgram) throw new Error("No program selected");
+      return apiRequest("POST", "/api/program-artists", {
+        programId: selectedProgram.id,
+        artistId,
+        status: "not_started",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-programs", selectedProgram?.id, "artists"] });
+      toast({ title: "Artist added to program successfully" });
+      setArtistDialogOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to add artist to program", variant: "destructive" });
+    },
+  });
+
+  const removeArtistMutation = useMutation({
+    mutationFn: async (programArtistId: string) => {
+      return apiRequest("DELETE", `/api/program-artists/${programArtistId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-programs", selectedProgram?.id, "artists"] });
+      toast({ title: "Artist removed from program successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to remove artist from program", variant: "destructive" });
     },
   });
 
@@ -813,6 +862,70 @@ export default function TrainingPrograms() {
         </div>
       )}
 
+      {/* Artists Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <Users className="w-6 h-6" />
+            Assigned Artists
+          </h2>
+          {selectedProgram.status === 'active' && (
+            <Button
+              onClick={() => setArtistDialogOpen(true)}
+              data-testid="button-add-artist"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Artist
+            </Button>
+          )}
+        </div>
+
+        {programArtists.length === 0 ? (
+          <Card>
+            <CardContent className="py-8">
+              <div className="text-center">
+                <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">
+                  No artists assigned yet. Add artists to track their progress through this training program.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {programArtists.map((programArtist) => {
+              const artist = artists.find((a) => a.id === programArtist.artistId);
+              if (!artist) return null;
+              return (
+                <Card key={programArtist.id} data-testid={`artist-card-${artist.id}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-medium">{artist.firstName} {artist.lastName}</p>
+                        <Badge variant="outline" className="mt-1">
+                          {programArtist.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </Badge>
+                      </div>
+                      {selectedProgram.status === 'active' && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeArtistMutation.mutate(programArtist.id)}
+                          disabled={removeArtistMutation.isPending}
+                          data-testid={`button-remove-artist-${artist.id}`}
+                        >
+                          <X className="w-4 h-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Delete Program Button */}
       <div className="flex justify-start pt-4">
         <Button
@@ -1037,6 +1150,40 @@ export default function TrainingPrograms() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Artist Assignment Dialog */}
+      <Dialog open={artistDialogOpen} onOpenChange={setArtistDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Artist to Program</DialogTitle>
+            <DialogDescription>
+              Select artists to assign to this training program
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 max-h-[400px] overflow-y-auto">
+            {artists
+              .filter((artist) => !programArtists.some((pa) => pa.artistId === artist.id))
+              .map((artist) => (
+                <Button
+                  key={artist.id}
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => addArtistMutation.mutate(artist.id)}
+                  disabled={addArtistMutation.isPending}
+                  data-testid={`button-select-artist-${artist.id}`}
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  {artist.firstName} {artist.lastName}
+                </Button>
+              ))}
+            {artists.filter((artist) => !programArtists.some((pa) => pa.artistId === artist.id)).length === 0 && (
+              <p className="text-center text-muted-foreground py-8">
+                All artists are already assigned to this program
+              </p>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
