@@ -1412,6 +1412,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(statusList);
   });
 
+  // Helper function to check if a sign-in time is late (after 17:00 Dubai time)
+  function isSignInLate(signInTime: Date | string | null): boolean {
+    if (!signInTime) return false;
+    
+    // Convert to Date object if it's a string
+    const date = typeof signInTime === 'string' ? new Date(signInTime) : signInTime;
+    
+    // Validate the date
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid sign-in time:', signInTime);
+      return false;
+    }
+    
+    // Get the hour in Dubai timezone
+    const dubaiHour = parseInt(date.toLocaleString('en-US', {
+      timeZone: 'Asia/Dubai',
+      hour: 'numeric',
+      hour12: false
+    }));
+    
+    return dubaiHour >= 17; // 5 PM (17:00) or later
+  }
+
   app.get("/api/attendance/week", requireRole('stage_management', 'admin'), async (req, res) => {
     
     const validation = z.object({
@@ -1440,14 +1463,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       dateArray.push(d.toISOString().split('T')[0]);
     }
     
-    // Group records by artist and date
-    const artistRecordsMap = new Map<string, Map<string, typeof records[0]>>();
+    // Group records by artist and date, and add isLate flag
+    const artistRecordsMap = new Map<string, Map<string, any>>();
     
     records.forEach(record => {
       if (!artistRecordsMap.has(record.artistId)) {
         artistRecordsMap.set(record.artistId, new Map());
       }
-      artistRecordsMap.get(record.artistId)!.set(record.date, record);
+      // Add isLate flag to each record based on Dubai timezone
+      const recordWithLateFlag = {
+        ...record,
+        isLate: isSignInLate(record.signInTime),
+      };
+      artistRecordsMap.get(record.artistId)!.set(record.date, recordWithLateFlag);
     });
     
     // Build response with artist data, one record per day (null if absent)

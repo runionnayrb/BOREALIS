@@ -20,6 +20,7 @@ interface AttendanceRecord {
   signedInBy: string;
   latitude: number;
   longitude: number;
+  isLate?: boolean; // Server-provided flag for late sign-ins (after 17:00 Dubai time)
 }
 
 interface AttendanceStatus {
@@ -481,21 +482,30 @@ export default function AttendanceDashboard() {
                               <span className="text-sm font-medium">{getArtistDisplayName(weekRecord.artist)}</span>
                             </div>
                           </td>
-                          {weekRecord.records.map((record, i) => (
-                            <td key={i} className="text-center p-2">
-                              {record && record.signInTime ? (
-                                <Badge variant="default" className="text-xs" data-testid={`badge-present-${weekRecord.artist.id}-${i}`}>
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  Present
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="text-xs" data-testid={`badge-absent-${weekRecord.artist.id}-${i}`}>
-                                  <XCircle className="w-3 h-3 mr-1" />
-                                  Absent
-                                </Badge>
-                              )}
-                            </td>
-                          ))}
+                          {weekRecord.records.map((record, i) => {
+                            return (
+                              <td key={i} className="text-center p-2">
+                                {record && record.signInTime ? (
+                                  record.isLate ? (
+                                    <Badge variant="destructive" className="text-xs" data-testid={`badge-late-${weekRecord.artist.id}-${i}`}>
+                                      <CheckCircle className="w-3 h-3 mr-1" />
+                                      Late
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="default" className="text-xs" data-testid={`badge-present-${weekRecord.artist.id}-${i}`}>
+                                      <CheckCircle className="w-3 h-3 mr-1" />
+                                      Present
+                                    </Badge>
+                                  )
+                                ) : (
+                                  <Badge variant="outline" className="text-xs" data-testid={`badge-absent-${weekRecord.artist.id}-${i}`}>
+                                    <XCircle className="w-3 h-3 mr-1" />
+                                    Absent
+                                  </Badge>
+                                )}
+                              </td>
+                            );
+                          })}
                         </tr>
                       ))}
                     </tbody>
