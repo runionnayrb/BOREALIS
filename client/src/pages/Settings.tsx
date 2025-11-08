@@ -996,6 +996,8 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/artists"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/attendance/today"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/attendance/week"] });
       setArtistDialogOpen(false);
       setEditTarget(null);
       toast({ title: "Artist updated successfully" });
@@ -1037,6 +1039,8 @@ export default function Settings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/artists"] });
       queryClient.invalidateQueries({ queryKey: ["/api/artists/archived"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/attendance/today"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/attendance/week"] });
       setArtistDialogOpen(false);
       setEditTarget(null);
       setArchiveDialogOpen(false);
@@ -1058,6 +1062,8 @@ export default function Settings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/artists"] });
       queryClient.invalidateQueries({ queryKey: ["/api/artists/archived"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/attendance/today"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/attendance/week"] });
       toast({ title: "Artist unarchived successfully" });
     },
     onError: (error: any) => {
