@@ -72,8 +72,8 @@ export default function AttendanceDashboard() {
         title: "Signed Out",
         description: "Artist has been manually signed out.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/attendance/today"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/attendance/week"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/attendance/today"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/attendance/week"], refetchType: 'all' });
     },
     onError: (error: any) => {
       toast({
@@ -93,8 +93,8 @@ export default function AttendanceDashboard() {
         title: "Signed In",
         description: "Artist has been manually signed in.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/attendance/today"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/attendance/week"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/attendance/today"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/attendance/week"], refetchType: 'all' });
     },
     onError: (error: any) => {
       toast({
@@ -119,8 +119,8 @@ export default function AttendanceDashboard() {
         const message = JSON.parse(event.data);
         
         if (message.type === "attendance_update" || message.type === "artist_status_update") {
-          queryClient.invalidateQueries({ queryKey: ["/api/attendance/today"] });
-          queryClient.invalidateQueries({ queryKey: ["/api/attendance/week"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/attendance/today"], refetchType: 'all' });
+          queryClient.invalidateQueries({ queryKey: ["/api/attendance/week"], refetchType: 'all' });
         }
       } catch (error) {
         console.error("Error parsing WebSocket message:", error);
