@@ -4983,7 +4983,6 @@ export default function Settings() {
                     </DialogContent>
                   </Dialog>
                 </div>
-              </div>
               {renderGroupedArtisticStaff()}
               <div className="mt-6 flex justify-center">
                 <Button 
