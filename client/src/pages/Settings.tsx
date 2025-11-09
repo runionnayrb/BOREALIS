@@ -44,7 +44,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import type { 
-  Scene, Act, Cue, Department, LocationType, Location, ArtistGroup, Artist, Technician, ReportTemplate, SafeUser, UserGroup, DepartmentRole
+  Scene, Act, Cue, Department, LocationType, Location, ArtistGroup, Artist, Technician, ArtisticStaff, ReportTemplate, SafeUser, UserGroup, DepartmentRole
 } from "@shared/schema";
 import { cueTypes, type CueType } from "@shared/schema";
 
@@ -56,6 +56,7 @@ type SimpleItem = {
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("acts");
+  const [peopleSubTab, setPeopleSubTab] = useState<'artists' | 'artistic-staff' | 'technicians'>('artists');
   const [sceneDialogOpen, setSceneDialogOpen] = useState(false);
   const [sceneFormOpen, setSceneFormOpen] = useState(false);
   const [actDialogOpen, setActDialogOpen] = useState(false);
@@ -65,6 +66,7 @@ export default function Settings() {
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   const [artistDialogOpen, setArtistDialogOpen] = useState(false);
+  const [artisticStaffDialogOpen, setArtisticStaffDialogOpen] = useState(false);
   const [techDialogOpen, setTechDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ type: string; id: string } | null>(null);
@@ -107,6 +109,9 @@ export default function Settings() {
   // Technician department assignments
   const [selectedTechnicianDepartmentIds, setSelectedTechnicianDepartmentIds] = useState<string[]>([]);
   
+  // Artistic staff department assignments
+  const [selectedArtisticStaffDepartmentIds, setSelectedArtisticStaffDepartmentIds] = useState<string[]>([]);
+  
   // Department type selection
   const [selectedDepartmentType, setSelectedDepartmentType] = useState<'technical' | 'artistic'>("technical");
   
@@ -126,8 +131,14 @@ export default function Settings() {
   // User linking state for technicians
   const [selectedLinkedTechUserId, setSelectedLinkedTechUserId] = useState<string | null>(null);
   
+  // User linking state for artistic staff
+  const [selectedLinkedArtisticStaffUserId, setSelectedLinkedArtisticStaffUserId] = useState<string | null>(null);
+  
   // Status state for technicians
   const [selectedTechnicianStatus, setSelectedTechnicianStatus] = useState<string>("active");
+  
+  // Status state for artistic staff
+  const [selectedArtisticStaffStatus, setSelectedArtisticStaffStatus] = useState<string>("active");
   
   // Archive artist confirmation dialog
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
@@ -137,11 +148,18 @@ export default function Settings() {
   const [archiveTechDialogOpen, setArchiveTechDialogOpen] = useState(false);
   const [technicianToArchive, setTechnicianToArchive] = useState<string | null>(null);
   
+  // Archive artistic staff confirmation dialog
+  const [archiveArtisticStaffDialogOpen, setArchiveArtisticStaffDialogOpen] = useState(false);
+  const [artisticStaffToArchive, setArtisticStaffToArchive] = useState<string | null>(null);
+  
   // View archived artists dialog
   const [viewArchivedDialogOpen, setViewArchivedDialogOpen] = useState(false);
   
   // View archived technicians dialog
   const [viewArchivedTechniciansDialogOpen, setViewArchivedTechniciansDialogOpen] = useState(false);
+  
+  // View archived artistic staff dialog
+  const [viewArchivedArtisticStaffDialogOpen, setViewArchivedArtisticStaffDialogOpen] = useState(false);
   
   // Department roles management
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
@@ -176,6 +194,12 @@ export default function Settings() {
   });
   const techniciansQuery = useQuery<Technician[]>({ queryKey: ["/api/technicians"] });
   const technicians = techniciansQuery.data || [];
+  const artisticStaffQuery = useQuery<ArtisticStaff[]>({ queryKey: ["/api/artistic-staff"] });
+  const artisticStaff = artisticStaffQuery.data || [];
+  const archivedArtisticStaffQuery = useQuery<ArtisticStaff[]>({ 
+    queryKey: ["/api/artistic-staff/archived"],
+    enabled: viewArchivedArtisticStaffDialogOpen,
+  });
   const { data: reportTemplate } = useQuery<ReportTemplate | null>({ queryKey: ["/api/report-template"] });
   const usersQuery = useQuery<SafeUser[]>({ queryKey: ["/api/users"] });
   const users = usersQuery.data || [];
@@ -506,6 +530,46 @@ export default function Settings() {
         });
     }
   }, [editTarget, techDialogOpen]);
+
+  // Load artistic staff departments when editing artistic staff
+  useEffect(() => {
+    // Reset state immediately to prevent leaking old state when switching artistic staff
+    setSelectedArtisticStaffDepartmentIds([]);
+    
+    if (editTarget?.type === "artistic-staff" && editTarget.id && artisticStaffDialogOpen) {
+      fetch(`/api/artistic-staff/${editTarget.id}/departments`, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        }
+      })
+        .then(async res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) throw new Error('Response is not JSON');
+          return res.json();
+        })
+        .then(data => {
+          setSelectedArtisticStaffDepartmentIds(data.map((asd: any) => asd.departmentId));
+        })
+        .catch(err => {
+          console.error("Error loading artistic staff departments:", err);
+          setSelectedArtisticStaffDepartmentIds([]);
+        });
+    }
+  }, [editTarget, artisticStaffDialogOpen]);
+
+  // Load artistic staff status when editing artistic staff
+  useEffect(() => {
+    if (editTarget?.type === "artistic-staff" && editTarget.data) {
+      setSelectedArtisticStaffStatus(editTarget.data.status || "active");
+      setSelectedLinkedArtisticStaffUserId(editTarget.data.userId || null);
+    } else if (!editTarget || editTarget.type !== "artistic-staff") {
+      // Reset to defaults when not editing artistic staff
+      setSelectedArtisticStaffStatus("active");
+      setSelectedLinkedArtisticStaffUserId(null);
+    }
+  }, [editTarget]);
 
   // Reset uploaded photo URL when opening artist dialog or changing edit target
   useEffect(() => {
@@ -1185,6 +1249,120 @@ export default function Settings() {
         title: error.message || "Failed to update technician", 
         variant: "destructive" 
       });
+    },
+  });
+
+  // Artistic Staff mutations
+  const createArtisticStaffMutation = useMutation({
+    mutationFn: async (data: { firstName: string; lastName: string; preferredName: string; role?: string; photoUrl?: string; status: string; departmentIds: string[] }) => {
+      const staff: any = await apiRequest("POST", "/api/artistic-staff", {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        preferredName: data.preferredName,
+        role: data.role,
+        photoUrl: data.photoUrl,
+        status: data.status,
+      });
+      // Set department assignments
+      if (data.departmentIds.length > 0) {
+        await apiRequest("PUT", `/api/artistic-staff/${staff.id}/departments`, {
+          departmentIds: data.departmentIds,
+        });
+      }
+      return staff;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artistic-staff"] });
+      setArtisticStaffDialogOpen(false);
+      setSelectedArtisticStaffDepartmentIds([]);
+      setUploadedPhotoUrl(null);
+      toast({ title: "Artistic staff member created successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: error.message || "Failed to create artistic staff member", 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const updateArtisticStaffMutation = useMutation({
+    mutationFn: async (data: { id: string; firstName: string; lastName: string; preferredName: string; role?: string; photoUrl?: string; status: string; departmentIds: string[]; userId?: string | null }) => {
+      const staff = await apiRequest("PATCH", `/api/artistic-staff/${data.id}`, {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        preferredName: data.preferredName,
+        role: data.role,
+        photoUrl: data.photoUrl,
+        status: data.status,
+        userId: data.userId,
+      });
+      // Set department assignments
+      await apiRequest("PUT", `/api/artistic-staff/${data.id}/departments`, {
+        departmentIds: data.departmentIds,
+      });
+      return staff;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artistic-staff"] });
+      setArtisticStaffDialogOpen(false);
+      setEditTarget(null);
+      setSelectedArtisticStaffDepartmentIds([]);
+      setUploadedPhotoUrl(null);
+      toast({ title: "Artistic staff member updated successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: error.message || "Failed to update artistic staff member", 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const archiveArtisticStaffMutation = useMutation({
+    mutationFn: async (staffId: string) => {
+      return await apiRequest("POST", `/api/artistic-staff/${staffId}/archive`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artistic-staff"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/artistic-staff/archived"] });
+      setArtisticStaffDialogOpen(false);
+      setEditTarget(null);
+      setArchiveArtisticStaffDialogOpen(false);
+      setArtisticStaffToArchive(null);
+      toast({ title: "Artistic staff member archived successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: error.message || "Failed to archive artistic staff member", 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const unarchiveArtisticStaffMutation = useMutation({
+    mutationFn: async (staffId: string) => {
+      return await apiRequest("POST", `/api/artistic-staff/${staffId}/unarchive`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artistic-staff"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/artistic-staff/archived"] });
+      toast({ title: "Artistic staff member unarchived successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: error.message || "Failed to unarchive artistic staff member", 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const reorderArtisticStaffMutation = useMutation({
+    mutationFn: async (staffIds: string[]) => {
+      return await apiRequest("PUT", "/api/artistic-staff/reorder", { staffIds });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artistic-staff"] });
     },
   });
 
@@ -2047,6 +2225,123 @@ export default function Settings() {
           </div>
         </SortableContext>
       </DndContext>
+    );
+  };
+
+  const renderGroupedArtisticStaff = () => {
+    // Show loading state only on initial load
+    if (artisticStaffQuery.isLoading) {
+      return (
+        <Card className="p-6 text-center text-muted-foreground">
+          <p>Loading...</p>
+        </Card>
+      );
+    }
+    
+    // Show empty state when no artistic staff exist
+    if (artisticStaff.length === 0) {
+      return (
+        <Card className="p-6 text-center text-muted-foreground">
+          <p>No artistic staff yet. Click the button above to create one.</p>
+        </Card>
+      );
+    }
+
+    // Group artistic staff by their departments (artistic type only)
+    const artisticDepartments = departments.filter(d => d.type === 'artistic');
+    
+    return (
+      <div className="space-y-6" data-testid="list-artistic-staff">
+        {artisticDepartments.map((dept) => {
+          // Find all artistic staff assigned to this department
+          const staffInDept = artisticStaff.filter(staff => 
+            // We need to check if this staff member is assigned to this department
+            // This will be determined by the department assignments
+            true // Placeholder - will be filtered properly when we fetch department assignments
+          );
+          
+          // For now, show all staff members (we'll implement department filtering when backend is ready)
+          return (
+            <div key={dept.id} className="space-y-2">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  {dept.name}
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {artisticStaff.map((staff) => (
+                  <Card 
+                    key={staff.id} 
+                    className="p-4 hover-elevate cursor-pointer"
+                    onClick={() => {
+                      setEditTarget({ type: "artistic-staff", id: staff.id, data: staff });
+                      setArtisticStaffDialogOpen(true);
+                    }}
+                    data-testid={`card-artistic-staff-${staff.id}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={staff.photoUrl || undefined} alt={staff.preferredName} />
+                        <AvatarFallback>
+                          {staff.firstName[0]}{staff.lastName[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold truncate">{staff.preferredName}</h4>
+                        {staff.role && (
+                          <p className="text-sm text-muted-foreground truncate">{staff.role}</p>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+        
+        {/* Show staff with no departments */}
+        {artisticStaff.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                All Artistic Staff
+              </h3>
+              <span className="text-xs text-muted-foreground">
+                ({artisticStaff.length})
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {artisticStaff.map((staff) => (
+                <Card 
+                  key={staff.id} 
+                  className="p-4 hover-elevate cursor-pointer"
+                  onClick={() => {
+                    setEditTarget({ type: "artistic-staff", id: staff.id, data: staff });
+                    setArtisticStaffDialogOpen(true);
+                  }}
+                  data-testid={`card-artistic-staff-${staff.id}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={staff.photoUrl || undefined} alt={staff.preferredName} />
+                      <AvatarFallback>
+                        {staff.firstName[0]}{staff.lastName[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold truncate">{staff.preferredName}</h4>
+                      {staff.role && (
+                        <p className="text-sm text-muted-foreground truncate">{staff.role}</p>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -3955,11 +4250,11 @@ export default function Settings() {
           </TabsContent>
 
           <TabsContent value="people" className="space-y-4">
-            <Tabs defaultValue="artists">
+            <Tabs value={peopleSubTab} onValueChange={setPeopleSubTab}>
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="artists">Artists</TabsTrigger>
-                <TabsTrigger value="artistic">Artistic</TabsTrigger>
-                <TabsTrigger value="technical">Technical</TabsTrigger>
+                <TabsTrigger value="artistic-staff">Artistic</TabsTrigger>
+                <TabsTrigger value="technicians">Technical</TabsTrigger>
               </TabsList>
               <TabsContent value="artists" className="space-y-4 mt-4">
                 <div className="flex items-center justify-between">
@@ -4361,26 +4656,26 @@ export default function Settings() {
                 </Button>
               </div>
               </TabsContent>
-              <TabsContent value="artistic" className="space-y-4 mt-4">
+              <TabsContent value="artistic-staff" className="space-y-4 mt-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">Artistic Staff</h2>
                   <Dialog 
-                    open={techDialogOpen} 
+                    open={artisticStaffDialogOpen} 
                     onOpenChange={(open) => {
-                      setTechDialogOpen(open);
+                      setArtisticStaffDialogOpen(open);
                       if (!open) {
                         setEditTarget(null);
                         setUploadedPhotoUrl(null);
-                        setSelectedTechnicianStatus("active");
-                        setSelectedLinkedTechUserId(null);
-                        setSelectedTechnicianDepartmentIds([]);
+                        setSelectedArtisticStaffStatus("active");
+                        setSelectedLinkedArtisticStaffUserId(null);
+                        setSelectedArtisticStaffDepartmentIds([]);
                       }
                     }}
                   >
                     <DialogTrigger asChild>
-                      <Button data-testid="button-add-technician">
+                      <Button data-testid="button-add-artistic-staff">
                         <Plus className="w-4 h-4 mr-2" />
-                        Artistic Staff
+                        Add Artistic Staff
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
@@ -4389,7 +4684,7 @@ export default function Settings() {
                           e.preventDefault();
                           
                           // Validate at least one department is selected
-                          if (selectedTechnicianDepartmentIds.length === 0) {
+                          if (selectedArtisticStaffDepartmentIds.length === 0) {
                             toast({
                               title: "Please select at least one department",
                               variant: "destructive"
@@ -4403,10 +4698,10 @@ export default function Settings() {
                           const preferredName = (formData.get("preferredName") as string) || undefined;
                           const role = (formData.get("role") as string) || undefined;
                           const photoUrl = (formData.get("photoUrl") as string) || undefined;
-                          const status = selectedTechnicianStatus as "active" | "out" | "archived";
+                          const status = selectedArtisticStaffStatus as "active" | "out" | "archived";
 
-                          if (editTarget?.type === "technician") {
-                            updateTechMutation.mutate({
+                          if (editTarget?.type === "artistic-staff") {
+                            updateArtisticStaffMutation.mutate({
                               id: editTarget.id,
                               firstName,
                               lastName,
@@ -4414,77 +4709,77 @@ export default function Settings() {
                               role,
                               photoUrl,
                               status,
-                              departmentIds: selectedTechnicianDepartmentIds,
+                              departmentIds: selectedArtisticStaffDepartmentIds,
                               userId: editTarget?.data?.userId ?? null,
                             });
                           } else {
-                            createTechMutation.mutate({
+                            createArtisticStaffMutation.mutate({
                               firstName,
                               lastName,
                               preferredName,
                               role,
                               photoUrl,
                               status,
-                              departmentIds: selectedTechnicianDepartmentIds,
+                              departmentIds: selectedArtisticStaffDepartmentIds,
                             });
                           }
                         }}
                       >
                         <DialogHeader>
-                          <DialogTitle>{editTarget?.type === "technician" ? "Edit Artistic Staff" : "Add Artistic Staff"}</DialogTitle>
+                          <DialogTitle>{editTarget?.type === "artistic-staff" ? "Edit Artistic Staff" : "Add Artistic Staff"}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label htmlFor="tech-firstName">First Name</Label>
+                              <Label htmlFor="artistic-staff-firstName">First Name</Label>
                               <Input
-                                id="tech-firstName"
+                                id="artistic-staff-firstName"
                                 name="firstName"
                                 placeholder="First name"
                                 required
-                                defaultValue={editTarget?.type === "technician" ? editTarget.data.firstName : ""}
-                                data-testid="input-technician-firstName"
+                                defaultValue={editTarget?.type === "artistic-staff" ? editTarget.data.firstName : ""}
+                                data-testid="input-artistic-staff-firstName"
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label htmlFor="tech-lastName">Last Name</Label>
+                              <Label htmlFor="artistic-staff-lastName">Last Name</Label>
                               <Input
-                                id="tech-lastName"
+                                id="artistic-staff-lastName"
                                 name="lastName"
                                 placeholder="Last name"
                                 required
-                                defaultValue={editTarget?.type === "technician" ? editTarget.data.lastName : ""}
-                                data-testid="input-technician-lastName"
+                                defaultValue={editTarget?.type === "artistic-staff" ? editTarget.data.lastName : ""}
+                                data-testid="input-artistic-staff-lastName"
                               />
                             </div>
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="tech-preferredName">Preferred Name (Optional)</Label>
+                            <Label htmlFor="artistic-staff-preferredName">Preferred Name (Optional)</Label>
                             <Input
-                              id="tech-preferredName"
+                              id="artistic-staff-preferredName"
                               name="preferredName"
                               placeholder="Preferred name or nickname"
-                              defaultValue={editTarget?.type === "technician" ? editTarget.data.preferredName || "" : ""}
-                              data-testid="input-technician-preferredName"
+                              defaultValue={editTarget?.type === "artistic-staff" ? editTarget.data.preferredName || "" : ""}
+                              data-testid="input-artistic-staff-preferredName"
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="tech-role">Role</Label>
+                            <Label htmlFor="artistic-staff-role">Role</Label>
                             <Input
-                              id="tech-role"
+                              id="artistic-staff-role"
                               name="role"
                               placeholder="e.g., Head Coach"
-                              defaultValue={editTarget?.type === "technician" ? editTarget.data.role || "" : ""}
-                              data-testid="input-technician-role"
+                              defaultValue={editTarget?.type === "artistic-staff" ? editTarget.data.role || "" : ""}
+                              data-testid="input-artistic-staff-role"
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="tech-status">Status</Label>
+                            <Label htmlFor="artistic-staff-status">Status</Label>
                             <Select
-                              value={selectedTechnicianStatus}
-                              onValueChange={setSelectedTechnicianStatus}
+                              value={selectedArtisticStaffStatus}
+                              onValueChange={setSelectedArtisticStaffStatus}
                             >
-                              <SelectTrigger id="tech-status" data-testid="select-technician-status">
+                              <SelectTrigger id="artistic-staff-status" data-testid="select-artistic-staff-status">
                                 <SelectValue placeholder="Select status" />
                               </SelectTrigger>
                               <SelectContent>
@@ -4498,10 +4793,10 @@ export default function Settings() {
                             <Label>Departments (Multiple)</Label>
                             <Popover>
                               <PopoverTrigger asChild>
-                                <Button variant="outline" className="w-full justify-start text-left font-normal" data-testid="select-artistic-departments">
-                                  {selectedTechnicianDepartmentIds.length > 0 ? (
+                                <Button variant="outline" className="w-full justify-start text-left font-normal" data-testid="select-artistic-staff-departments">
+                                  {selectedArtisticStaffDepartmentIds.length > 0 ? (
                                     <span className="truncate">
-                                      {selectedTechnicianDepartmentIds.map(id => {
+                                      {selectedArtisticStaffDepartmentIds.map(id => {
                                         const dept = departments.find(d => d.id === id);
                                         return dept?.name;
                                       }).join(", ")}
@@ -4516,18 +4811,18 @@ export default function Settings() {
                                   {[...departments].filter(d => d.type === 'artistic').sort((a, b) => a.name.localeCompare(b.name)).map((dept) => (
                                     <div key={dept.id} className="flex items-center space-x-2">
                                       <Checkbox
-                                        id={`artistic-dept-${dept.id}`}
-                                        checked={selectedTechnicianDepartmentIds.includes(dept.id)}
+                                        id={`artistic-staff-dept-${dept.id}`}
+                                        checked={selectedArtisticStaffDepartmentIds.includes(dept.id)}
                                         onCheckedChange={(checked) => {
                                           if (checked) {
-                                            setSelectedTechnicianDepartmentIds([...selectedTechnicianDepartmentIds, dept.id]);
+                                            setSelectedArtisticStaffDepartmentIds([...selectedArtisticStaffDepartmentIds, dept.id]);
                                           } else {
-                                            setSelectedTechnicianDepartmentIds(selectedTechnicianDepartmentIds.filter(id => id !== dept.id));
+                                            setSelectedArtisticStaffDepartmentIds(selectedArtisticStaffDepartmentIds.filter(id => id !== dept.id));
                                           }
                                         }}
-                                        data-testid={`checkbox-artistic-dept-${dept.id}`}
+                                        data-testid={`checkbox-artistic-staff-dept-${dept.id}`}
                                       />
-                                      <label htmlFor={`artistic-dept-${dept.id}`} className="text-sm cursor-pointer">
+                                      <label htmlFor={`artistic-staff-dept-${dept.id}`} className="text-sm cursor-pointer">
                                         {dept.name}
                                       </label>
                                     </div>
@@ -4536,7 +4831,7 @@ export default function Settings() {
                               </PopoverContent>
                             </Popover>
                           </div>
-                          {editTarget?.type === "technician" && editTarget.data.photoUrl && !uploadedPhotoUrl && (
+                          {editTarget?.type === "artistic-staff" && editTarget.data.photoUrl && !uploadedPhotoUrl && (
                             <div className="space-y-2">
                               <Label>Current Photo</Label>
                               <div className="flex items-center gap-2">
@@ -4557,14 +4852,14 @@ export default function Settings() {
                                 <Avatar className="h-16 w-16">
                                   <AvatarImage src={uploadedPhotoUrl} alt="New photo" />
                                   <AvatarFallback>
-                                    {editTarget?.type === "technician" ? editTarget.data.firstName[0] + editTarget.data.lastName[0] : "??"}
+                                    {editTarget?.type === "artistic-staff" ? editTarget.data.firstName[0] + editTarget.data.lastName[0] : "??"}
                                   </AvatarFallback>
                                 </Avatar>
                                 <span className="text-sm text-muted-foreground">This photo will be uploaded</span>
                               </div>
                             </div>
                           )}
-                          <input type="hidden" name="photoUrl" value={uploadedPhotoUrl || (editTarget?.type === "technician" ? editTarget.data.photoUrl || "" : "")} />
+                          <input type="hidden" name="photoUrl" value={uploadedPhotoUrl || (editTarget?.type === "artistic-staff" ? editTarget.data.photoUrl || "" : "")} />
                           <div className="space-y-2">
                             <Label>Upload Photo (Optional)</Label>
                             <PhotoUploader
@@ -4573,7 +4868,7 @@ export default function Settings() {
                               }}
                             />
                           </div>
-                          {editTarget?.type === "technician" && editTarget.data.photoUrl && (
+                          {editTarget?.type === "artistic-staff" && editTarget.data.photoUrl && (
                             <Button
                               type="button"
                               variant="outline"
@@ -4588,7 +4883,7 @@ export default function Settings() {
                               Delete Current Photo
                             </Button>
                           )}
-                          {editTarget?.type === "technician" && isStageManager && (
+                          {editTarget?.type === "artistic-staff" && isStageManager && (
                             <div className="space-y-2 pt-2 border-t">
                               <Label>Linked User Account</Label>
                               {editTarget.data.userId ? (
@@ -4606,11 +4901,11 @@ export default function Settings() {
                                       size="sm"
                                       onClick={() => {
                                         if (confirm("Are you sure you want to unlink this user account?")) {
-                                          unlinkUserFromTechnicianMutation.mutate(editTarget.id);
+                                          unlinkUserFromArtisticStaffMutation.mutate(editTarget.id);
                                         }
                                       }}
-                                      disabled={unlinkUserFromTechnicianMutation.isPending}
-                                      data-testid="button-unlink-tech-user"
+                                      disabled={unlinkUserFromArtisticStaffMutation.isPending}
+                                      data-testid="button-unlink-artistic-staff-user"
                                     >
                                       Unlink
                                     </Button>
@@ -4622,15 +4917,15 @@ export default function Settings() {
                               ) : (
                                 <div className="space-y-2">
                                   <Select
-                                    value={selectedLinkedTechUserId || ""}
-                                    onValueChange={(value) => setSelectedLinkedTechUserId(value || null)}
+                                    value={selectedLinkedArtisticStaffUserId || ""}
+                                    onValueChange={(value) => setSelectedLinkedArtisticStaffUserId(value || null)}
                                   >
-                                    <SelectTrigger data-testid="select-link-tech-user">
+                                    <SelectTrigger data-testid="select-link-artistic-staff-user">
                                       <SelectValue placeholder="Select user account to link..." />
                                     </SelectTrigger>
                                     <SelectContent>
                                       {users
-                                        .filter(u => !technicians.some(a => a.userId === u.id))
+                                        .filter(u => !artisticStaff.some(a => a.userId === u.id))
                                         .map(u => (
                                           <SelectItem key={u.id} value={u.id} data-testid={`option-user-${u.id}`}>
                                             {u.name} ({u.email})
@@ -4638,21 +4933,21 @@ export default function Settings() {
                                         ))}
                                     </SelectContent>
                                   </Select>
-                                  {selectedLinkedTechUserId && (
+                                  {selectedLinkedArtisticStaffUserId && (
                                     <Button
                                       type="button"
                                       variant="outline"
                                       size="sm"
                                       onClick={() => {
-                                        if (editTarget?.type === "technician") {
-                                          linkUserToTechnicianMutation.mutate({ 
-                                            technicianId: editTarget.id, 
-                                            userId: selectedLinkedTechUserId 
+                                        if (editTarget?.type === "artistic-staff") {
+                                          linkUserToArtisticStaffMutation.mutate({ 
+                                            artisticStaffId: editTarget.id, 
+                                            userId: selectedLinkedArtisticStaffUserId 
                                           });
                                         }
                                       }}
-                                      disabled={linkUserToTechnicianMutation.isPending}
-                                      data-testid="button-link-tech-user"
+                                      disabled={linkUserToArtisticStaffMutation.isPending}
+                                      data-testid="button-link-artistic-staff-user"
                                     >
                                       Link User Account
                                     </Button>
@@ -4665,42 +4960,43 @@ export default function Settings() {
                             </div>
                           )}
                         </div>
-                        <DialogFooter>
-                          {editTarget?.type === "technician" && (
+                        <DialogFooter className="flex justify-between items-center gap-2">
+                          {editTarget?.type === "artistic-staff" && (
                             <Button 
                               type="button"
                               variant="destructive"
                               onClick={() => {
-                                setTechnicianToArchive(editTarget.id);
-                                setArchiveTechDialogOpen(true);
+                                setArtisticStaffToArchive(editTarget.id);
+                                setArchiveArtisticStaffDialogOpen(true);
                               }}
-                              data-testid="button-archive-technician"
+                              data-testid="button-archive-artistic-staff"
                             >
                               Archive
                             </Button>
                           )}
                           <div className="flex-1"></div>
-                          <Button type="submit" disabled={createTechMutation.isPending || updateTechMutation.isPending} data-testid="button-save-technician">
-                            {(createTechMutation.isPending || updateTechMutation.isPending) ? "Saving..." : editTarget?.type === "technician" ? "Update Artistic Staff" : "Save Artistic Staff"}
+                          <Button type="submit" disabled={createArtisticStaffMutation.isPending || updateArtisticStaffMutation.isPending} data-testid="button-save-artistic-staff">
+                            {(createArtisticStaffMutation.isPending || updateArtisticStaffMutation.isPending) ? "Saving..." : editTarget?.type === "artistic-staff" ? "Update Artistic Staff" : "Save Artistic Staff"}
                           </Button>
                         </DialogFooter>
                       </form>
                     </DialogContent>
                   </Dialog>
                 </div>
-                {renderGroupedTechnicians('artistic')}
-                <div className="mt-6 flex justify-center">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setViewArchivedTechniciansDialogOpen(true)}
-                    data-testid="button-view-archived-artistic-staff"
-                  >
-                    <Archive className="w-4 h-4 mr-2" />
-                    View Archived Staff
-                  </Button>
-                </div>
+              </div>
+              {renderGroupedArtisticStaff()}
+              <div className="mt-6 flex justify-center">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setViewArchivedArtisticStaffDialogOpen(true)}
+                  data-testid="button-view-archived-artistic-staff"
+                >
+                  <Archive className="w-4 h-4 mr-2" />
+                  View Archived Staff
+                </Button>
+              </div>
               </TabsContent>
-              <TabsContent value="technical" className="space-y-4 mt-4">
+              <TabsContent value="technicians" className="space-y-4 mt-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">Technical Staff</h2>
                   <Dialog 
@@ -5423,6 +5719,96 @@ export default function Settings() {
                         onClick={() => unarchiveArtistMutation.mutate(artist.id)}
                         disabled={unarchiveArtistMutation.isPending}
                         data-testid={`button-unarchive-${artist.id}`}
+                      >
+                        Unarchive
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={archiveArtisticStaffDialogOpen} onOpenChange={setArchiveArtisticStaffDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive this artistic staff member?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will archive the artistic staff profile and their linked user account, removing them from all lists in the app. You can unarchive them later if needed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-archive-artistic-staff">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (artisticStaffToArchive) {
+                  archiveArtisticStaffMutation.mutate(artisticStaffToArchive);
+                }
+              }} 
+              className="bg-destructive hover:bg-destructive/90"
+              data-testid="button-confirm-archive-artistic-staff"
+            >
+              Archive
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={viewArchivedArtisticStaffDialogOpen} onOpenChange={setViewArchivedArtisticStaffDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Archived Artistic Staff</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 overflow-y-auto max-h-[calc(80vh-8rem)] pr-2">
+            {archivedArtisticStaffQuery.isLoading && (
+              <div className="text-center py-8 text-muted-foreground">
+                Loading archived artistic staff...
+              </div>
+            )}
+            {archivedArtisticStaffQuery.isError && (
+              <div className="text-center py-8 text-destructive">
+                Failed to load archived artistic staff
+              </div>
+            )}
+            {archivedArtisticStaffQuery.data && archivedArtisticStaffQuery.data.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No archived artistic staff
+              </div>
+            )}
+            {archivedArtisticStaffQuery.data && archivedArtisticStaffQuery.data.length > 0 && (
+              <div className="space-y-2">
+                {archivedArtisticStaffQuery.data.map((staff) => (
+                  <Card key={staff.id} className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="w-12 h-12">
+                          <AvatarImage src={staff.photoUrl || undefined} />
+                          <AvatarFallback>
+                            {staff.firstName[0]}{staff.lastName[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">
+                            {staff.firstName} {staff.lastName}
+                            {staff.preferredName && ` (${staff.preferredName})`}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {staff.role || "No role specified"}
+                          </p>
+                          {staff.archivedAt && (
+                            <p className="text-xs text-muted-foreground">
+                              Archived on {new Date(staff.archivedAt).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => unarchiveArtisticStaffMutation.mutate(staff.id)}
+                        disabled={unarchiveArtisticStaffMutation.isPending}
+                        data-testid={`button-unarchive-artistic-staff-${staff.id}`}
                       >
                         Unarchive
                       </Button>

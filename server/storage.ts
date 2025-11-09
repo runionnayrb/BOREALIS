@@ -20,6 +20,8 @@ import {
   type SceneArtist, type InsertSceneArtist, sceneArtists,
   type Technician, type InsertTechnician, technicians,
   type TechnicianDepartment, type InsertTechnicianDepartment, technicianDepartments,
+  type ArtisticStaff, type InsertArtisticStaff, artisticStaff,
+  type ArtisticStaffDepartment, type InsertArtisticStaffDepartment, artisticStaffDepartments,
   type ReportTemplate, type InsertReportTemplate, reportTemplate,
   type Report, type InsertReport, reports,
   type Training, type InsertTraining, trainings,
@@ -187,6 +189,23 @@ export interface IStorage {
   getTechnicianDepartments(technicianId: string): Promise<TechnicianDepartment[]>;
   setTechnicianDepartments(technicianId: string, departmentIds: string[]): Promise<void>;
   getTechniciansByDepartment(departmentId: string): Promise<Technician[]>;
+  
+  // Artistic Staff
+  getAllArtisticStaff(): Promise<ArtisticStaff[]>;
+  getArtisticStaff(id: string): Promise<ArtisticStaff | undefined>;
+  getArtisticStaffByUserId(userId: string): Promise<ArtisticStaff | undefined>;
+  createArtisticStaff(artisticStaff: InsertArtisticStaff): Promise<ArtisticStaff>;
+  updateArtisticStaff(id: string, updates: Partial<InsertArtisticStaff>): Promise<ArtisticStaff | undefined>;
+  deleteArtisticStaff(id: string): Promise<void>;
+  archiveArtisticStaffWithUser(artisticStaffId: string): Promise<void>;
+  unarchiveArtisticStaffWithUser(artisticStaffId: string): Promise<void>;
+  getAllArchivedArtisticStaff(): Promise<ArtisticStaff[]>;
+  reorderArtisticStaff(artisticStaffIds: string[]): Promise<void>;
+  
+  // Artistic Staff Departments
+  getArtisticStaffDepartments(artisticStaffId: string): Promise<ArtisticStaffDepartment[]>;
+  setArtisticStaffDepartments(artisticStaffId: string, departmentIds: string[]): Promise<void>;
+  getArtisticStaffByDepartment(departmentId: string): Promise<ArtisticStaff[]>;
   
   // Report Template
   getReportTemplate(): Promise<ReportTemplate | undefined>;
@@ -989,6 +1008,142 @@ export class DatabaseStorage implements IStorage {
     // Re-sort based on the order from techDepts
     const techMap = new Map(techniciansData.map(t => [t.id, t]));
     return technicianIds.map(id => techMap.get(id)!).filter(Boolean);
+  }
+
+  // Artistic Staff
+  async getAllArtisticStaff(): Promise<ArtisticStaff[]> {
+    return await db.select().from(artisticStaff).where(isNull(artisticStaff.archivedAt)).orderBy(asc(artisticStaff.sortOrder));
+  }
+
+  async getArtisticStaff(id: string): Promise<ArtisticStaff | undefined> {
+    const result = await db.select().from(artisticStaff).where(eq(artisticStaff.id, id));
+    return result[0];
+  }
+
+  async getArtisticStaffByUserId(userId: string): Promise<ArtisticStaff | undefined> {
+    const result = await db.select().from(artisticStaff).where(eq(artisticStaff.userId, userId));
+    return result[0];
+  }
+
+  async createArtisticStaff(staff: InsertArtisticStaff): Promise<ArtisticStaff> {
+    const result = await db.insert(artisticStaff).values(staff).returning();
+    return result[0];
+  }
+
+  async updateArtisticStaff(id: string, updates: Partial<InsertArtisticStaff>): Promise<ArtisticStaff | undefined> {
+    const result = await db.update(artisticStaff).set(updates).where(eq(artisticStaff.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteArtisticStaff(id: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx.delete(artisticStaffDepartments).where(eq(artisticStaffDepartments.artisticStaffId, id));
+      await tx.delete(artisticStaff).where(eq(artisticStaff.id, id));
+    });
+  }
+
+  async archiveArtisticStaffWithUser(artisticStaffId: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      const staff = await tx.select().from(artisticStaff).where(eq(artisticStaff.id, artisticStaffId)).limit(1);
+      if (!staff[0]) {
+        throw new Error("Artistic staff not found");
+      }
+
+      await tx.update(artisticStaff).set({ archivedAt: sql`now()` }).where(eq(artisticStaff.id, artisticStaffId));
+
+      if (staff[0].userId) {
+        await tx.update(users).set({ archivedAt: sql`now()` }).where(eq(users.id, staff[0].userId));
+      }
+    });
+  }
+
+  async unarchiveArtisticStaffWithUser(artisticStaffId: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      const staff = await tx.select().from(artisticStaff).where(eq(artisticStaff.id, artisticStaffId)).limit(1);
+      if (!staff[0]) {
+        throw new Error("Artistic staff not found");
+      }
+
+      await tx.update(artisticStaff).set({ archivedAt: null }).where(eq(artisticStaff.id, artisticStaffId));
+
+      if (staff[0].userId) {
+        await tx.update(users).set({ archivedAt: null }).where(eq(users.id, staff[0].userId));
+      }
+    });
+  }
+
+  async getAllArchivedArtisticStaff(): Promise<ArtisticStaff[]> {
+    return await db.select().from(artisticStaff).where(isNotNull(artisticStaff.archivedAt)).orderBy(asc(artisticStaff.sortOrder));
+  }
+
+  async reorderArtisticStaff(artisticStaffIds: string[]): Promise<void> {
+    await db.transaction(async (tx) => {
+      for (let i = 0; i < artisticStaffIds.length; i++) {
+        await tx.update(artisticStaff).set({ sortOrder: i }).where(eq(artisticStaff.id, artisticStaffIds[i]));
+      }
+    });
+  }
+
+  // Artistic Staff Departments
+  async getArtisticStaffDepartments(artisticStaffId: string): Promise<ArtisticStaffDepartment[]> {
+    return await db.select().from(artisticStaffDepartments).where(eq(artisticStaffDepartments.artisticStaffId, artisticStaffId));
+  }
+
+  async setArtisticStaffDepartments(artisticStaffId: string, departmentIds: string[]): Promise<void> {
+    await db.transaction(async (tx) => {
+      const staffExists = await tx.select().from(artisticStaff).where(eq(artisticStaff.id, artisticStaffId)).limit(1);
+      if (staffExists.length === 0) {
+        throw new Error(`Artistic staff ${artisticStaffId} not found`);
+      }
+
+      if (departmentIds.length > 0) {
+        const deptResults = await tx.select().from(departments).where(
+          inArray(departments.id, departmentIds)
+        );
+        if (deptResults.length !== departmentIds.length) {
+          throw new Error('One or more departments not found');
+        }
+
+        const invalidDepts = deptResults.filter(d => d.type !== 'artistic');
+        if (invalidDepts.length > 0) {
+          throw new Error(`Departments must be of type 'artistic': ${invalidDepts.map(d => d.name).join(', ')}`);
+        }
+      }
+
+      const existingAssignments = await tx.select().from(artisticStaffDepartments).where(eq(artisticStaffDepartments.artisticStaffId, artisticStaffId));
+      const existingMap = new Map(existingAssignments.map(a => [a.departmentId, a.sortOrder]));
+
+      await tx.delete(artisticStaffDepartments).where(eq(artisticStaffDepartments.artisticStaffId, artisticStaffId));
+
+      if (departmentIds.length > 0) {
+        const newAssignments = await Promise.all(departmentIds.map(async (departmentId) => {
+          if (existingMap.has(departmentId)) {
+            return { artisticStaffId, departmentId, sortOrder: existingMap.get(departmentId)! };
+          }
+          const maxSortOrder = await tx.select({ max: sql<number>`COALESCE(MAX(${artisticStaffDepartments.sortOrder}), -1)` })
+            .from(artisticStaffDepartments)
+            .where(eq(artisticStaffDepartments.departmentId, departmentId));
+          return { artisticStaffId, departmentId, sortOrder: (maxSortOrder[0]?.max ?? -1) + 1 };
+        }));
+        
+        await tx.insert(artisticStaffDepartments).values(newAssignments);
+      }
+    });
+  }
+
+  async getArtisticStaffByDepartment(departmentId: string): Promise<ArtisticStaff[]> {
+    const staffDepts = await db.select()
+      .from(artisticStaffDepartments)
+      .where(eq(artisticStaffDepartments.departmentId, departmentId))
+      .orderBy(asc(artisticStaffDepartments.sortOrder));
+    
+    if (staffDepts.length === 0) return [];
+    
+    const staffIds = staffDepts.map(sd => sd.artisticStaffId);
+    const staffData = await db.select().from(artisticStaff).where(inArray(artisticStaff.id, staffIds));
+    
+    const staffMap = new Map(staffData.map(s => [s.id, s]));
+    return staffIds.map(id => staffMap.get(id)!).filter(Boolean);
   }
 
   // Report Template

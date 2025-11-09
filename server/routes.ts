@@ -44,6 +44,7 @@ import {
   insertArtistGroupSchema,
   insertArtistSchema,
   insertTechnicianSchema,
+  insertArtisticStaffSchema,
   insertReportTemplateSchema,
   insertReportSchema,
   insertTrainingSchema,
@@ -1181,6 +1182,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     await storage.reorderTechniciansInDepartment(req.params.id, validation.data.technicianIds);
     res.sendStatus(204);
+  });
+
+  // Artistic Staff routes
+  app.get("/api/artistic-staff", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const artisticStaff = await storage.getAllArtisticStaff();
+    res.json(artisticStaff);
+  });
+
+  app.get("/api/artistic-staff/archived", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const archivedStaff = await storage.getAllArchivedArtisticStaff();
+    res.json(archivedStaff);
+  });
+
+  app.get("/api/artistic-staff/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const staff = await storage.getArtisticStaff(req.params.id);
+    if (!staff) return res.sendStatus(404);
+    res.json(staff);
+  });
+
+  app.post("/api/artistic-staff", requireRole('stage_management', 'admin'), async (req, res) => {
+    const validation = insertArtisticStaffSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const staff = await storage.createArtisticStaff(validation.data);
+    res.json(staff);
+  });
+
+  app.patch("/api/artistic-staff/:id", requireRole('stage_management', 'admin'), async (req, res) => {
+    const validation = insertArtisticStaffSchema.partial().safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const staff = await storage.updateArtisticStaff(req.params.id, validation.data);
+    if (!staff) return res.sendStatus(404);
+    res.json(staff);
+  });
+
+  app.delete("/api/artistic-staff/:id", requireRole('stage_management', 'admin'), async (req, res) => {
+    await storage.deleteArtisticStaff(req.params.id);
+    res.sendStatus(204);
+  });
+
+  app.post("/api/artistic-staff/:id/archive", requireRole('stage_management', 'admin'), async (req, res) => {
+    try {
+      await storage.archiveArtisticStaffWithUser(req.params.id);
+      res.sendStatus(204);
+    } catch (error) {
+      return res.status(404).json({ error: error instanceof Error ? error.message : "Artistic staff not found" });
+    }
+  });
+
+  app.post("/api/artistic-staff/:id/unarchive", requireRole('stage_management', 'admin'), async (req, res) => {
+    try {
+      await storage.unarchiveArtisticStaffWithUser(req.params.id);
+      res.sendStatus(204);
+    } catch (error) {
+      return res.status(404).json({ error: error instanceof Error ? error.message : "Artistic staff not found" });
+    }
+  });
+
+  app.put("/api/artistic-staff/reorder", requireRole('stage_management', 'admin'), async (req, res) => {
+    const validation = z.object({
+      artisticStaffIds: z.array(z.string()),
+    }).safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    await storage.reorderArtisticStaff(validation.data.artisticStaffIds);
+    res.sendStatus(204);
+  });
+
+  // Artistic Staff Departments routes
+  app.get("/api/artistic-staff/:id/departments", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const departments = await storage.getArtisticStaffDepartments(req.params.id);
+    res.json(departments);
+  });
+
+  app.put("/api/artistic-staff/:id/departments", requireRole('stage_management', 'admin'), async (req, res) => {
+    const validation = z.object({
+      departmentIds: z.array(z.string()),
+    }).safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    try {
+      await storage.setArtisticStaffDepartments(req.params.id, validation.data.departmentIds);
+      const departments = await storage.getArtisticStaffDepartments(req.params.id);
+      res.json(departments);
+    } catch (error) {
+      return res.status(400).json({ error: error instanceof Error ? error.message : "Failed to set departments" });
+    }
   });
 
   // Attendance routes
