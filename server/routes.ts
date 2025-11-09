@@ -159,12 +159,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(sanitizedUsers);
   });
 
+  app.get("/api/users/unlinked-profiles", requireRole('stage_management', 'admin'), async (req, res) => {
+    const artists = await storage.getUnlinkedArtists();
+    const artisticStaff = await storage.getUnlinkedArtisticStaff();
+    const technicians = await storage.getUnlinkedTechnicians();
+    
+    res.json({ artists, artisticStaff, technicians });
+  });
+
   const createUserSchema = z.object({
-    name: z.string().min(1),
+    firstName: z.string().min(1),
+    lastName: z.string().min(1),
+    preferredName: z.string().min(1),
     email: z.string().email(),
-    position: z.string().min(1),
+    role: z.string().min(1),
     password: z.string().min(6),
-    userGroupId: z.string().nullable().optional(),
+    profileType: z.enum(['artist', 'artisticStaff', 'technician']).optional(),
+    profileId: z.string().optional(),
   });
 
   app.post("/api/users/create", requireRole('stage_management', 'admin'), async (req, res) => {
@@ -177,13 +188,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
 
-    // Normalize formatting: lowercase email, title case for names/positions
+    // Normalize formatting: lowercase email, title case for names
     const formattedData = {
+      firstName: toTitleCase(validation.data.firstName),
+      lastName: toTitleCase(validation.data.lastName),
+      preferredName: toTitleCase(validation.data.preferredName),
       email: validation.data.email.toLowerCase(),
-      name: toTitleCase(validation.data.name),
-      position: toTitleCase(validation.data.position),
+      role: validation.data.role,
       password: validation.data.password,
-      userGroupId: validation.data.userGroupId,
+      profileType: validation.data.profileType,
+      profileId: validation.data.profileId,
     };
 
     // Check if email already exists
@@ -195,20 +209,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Hash password
     const hashedPassword = await hashPassword(formattedData.password);
 
-    // Create user with default values (using type assertion for additional fields not in InsertUser)
+    // Create user with new fields
     const newUser = await storage.createUser({
+      firstName: formattedData.firstName,
+      lastName: formattedData.lastName,
+      preferredName: formattedData.preferredName,
       email: formattedData.email,
-      name: formattedData.name,
-      position: formattedData.position,
       password: hashedPassword,
       role: "stage_management",
     } as any);
 
-    // Update user with additional fields that aren't in InsertUser schema
-    const updatedUser = await storage.updateUser(newUser.id, {
-      userGroupId: formattedData.userGroupId || null,
+    // Update position field with role
+    await storage.updateUser(newUser.id, {
+      position: formattedData.role,
     });
 
+    // Link to profile if specified
+    if (formattedData.profileType && formattedData.profileId) {
+      if (formattedData.profileType === 'artist') {
+        await storage.updateArtist(formattedData.profileId, { userId: newUser.id });
+      } else if (formattedData.profileType === 'artisticStaff') {
+        await storage.updateArtisticStaff(formattedData.profileId, { userId: newUser.id });
+      } else if (formattedData.profileType === 'technician') {
+        await storage.updateTechnician(formattedData.profileId, { userId: newUser.id });
+      }
+    }
+
+    const updatedUser = await storage.getUser(newUser.id);
     res.status(201).json(sanitizeUser(updatedUser!));
   });
 

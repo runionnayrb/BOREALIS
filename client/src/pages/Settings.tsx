@@ -165,6 +165,10 @@ export default function Settings() {
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [selectedDepartmentForRoles, setSelectedDepartmentForRoles] = useState<Department | null>(null);
   const [roleToEdit, setRoleToEdit] = useState<any | null>(null);
+  
+  // Profile linking for create user
+  const [selectedProfileType, setSelectedProfileType] = useState<string | null>(null);
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [selectedTechnicianForRole, setSelectedTechnicianForRole] = useState<string>("");
   const [selectedRoleType, setSelectedRoleType] = useState<string>("");
 
@@ -204,6 +208,11 @@ export default function Settings() {
   const usersQuery = useQuery<SafeUser[]>({ queryKey: ["/api/users"] });
   const users = usersQuery.data || [];
   const { data: userGroups = [] } = useQuery<UserGroup[]>({ queryKey: ["/api/user-groups"] });
+  const { data: unlinkedProfiles } = useQuery<{ artists: Artist[], artisticStaff: ArtisticStaff[], technicians: Technician[] }>({ 
+    queryKey: ["/api/users/unlinked-profiles"],
+    enabled: createUserDialogOpen && isStageManager,
+    retry: false,
+  });
   
   // Fetch all technician-department assignments for grouping
   const { data: allTechnicianDepartments = [] } = useQuery<Array<{ technicianId: string; departmentId: string; sortOrder: number }>>({
@@ -1575,13 +1584,25 @@ export default function Settings() {
 
   // User create mutation
   const createUserMutation = useMutation({
-    mutationFn: async (data: { name: string; email: string; position: string; password: string; userGroupId?: string | null }) => {
+    mutationFn: async (data: { 
+      firstName: string; 
+      lastName: string; 
+      preferredName: string; 
+      email: string; 
+      role: string; 
+      password: string; 
+      profileType?: string; 
+      profileId?: string;
+    }) => {
       return await apiRequest("POST", "/api/users/create", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/unlinked-profiles"] });
       toast({ title: "User created successfully" });
       setCreateUserDialogOpen(false);
+      setSelectedProfileType(null);
+      setSelectedProfileId(null);
     },
   });
 
@@ -2521,7 +2542,7 @@ export default function Settings() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-6 mb-6">
+          <TabsList className={`grid w-full ${isStageManager ? 'grid-cols-6' : 'grid-cols-5'} mb-6`}>
             <TabsTrigger value="report-template" data-testid="tab-report-template">
               <FileText className="w-4 h-4 md:mr-2" />
               <span className="hidden md:inline">Template</span>
@@ -2542,10 +2563,12 @@ export default function Settings() {
               <Users className="w-4 h-4 md:mr-2" />
               <span className="hidden md:inline">People</span>
             </TabsTrigger>
-            <TabsTrigger value="users" data-testid="tab-users">
-              <Shield className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">Users</span>
-            </TabsTrigger>
+            {isStageManager && (
+              <TabsTrigger value="users" data-testid="tab-users">
+                <Shield className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Users</span>
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="report-template" className="space-y-4">
@@ -5423,7 +5446,13 @@ export default function Settings() {
               </Dialog>
                 <Dialog
                   open={createUserDialogOpen}
-                  onOpenChange={setCreateUserDialogOpen}
+                  onOpenChange={(open) => {
+                    setCreateUserDialogOpen(open);
+                    if (!open) {
+                      setSelectedProfileType(null);
+                      setSelectedProfileId(null);
+                    }
+                  }}
                 >
                   <DialogTrigger asChild>
                     <Button data-testid="button-create-user">
@@ -5436,18 +5465,22 @@ export default function Settings() {
                       onSubmit={(e) => {
                         e.preventDefault();
                         const formData = new FormData(e.currentTarget);
-                        const name = formData.get("name") as string;
+                        const firstName = formData.get("firstName") as string;
+                        const lastName = formData.get("lastName") as string;
+                        const preferredName = formData.get("preferredName") as string;
                         const email = formData.get("email") as string;
-                        const position = formData.get("position") as string;
+                        const role = formData.get("role") as string;
                         const password = formData.get("password") as string;
-                        const userGroupId = formData.get("userGroupId") as string;
 
                         createUserMutation.mutate({
-                          name,
+                          firstName,
+                          lastName,
+                          preferredName,
                           email,
-                          position,
+                          role,
                           password,
-                          userGroupId: userGroupId === "none" ? null : userGroupId,
+                          profileType: selectedProfileType || undefined,
+                          profileId: selectedProfileId || undefined,
                         });
                       }}
                     >
@@ -5456,12 +5489,30 @@ export default function Settings() {
                       </DialogHeader>
                       <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                          <Label>Name</Label>
+                          <Label>First Name</Label>
                           <Input 
-                            name="name" 
-                            placeholder="Full name" 
+                            name="firstName" 
+                            placeholder="First name" 
                             required
-                            data-testid="input-create-user-name" 
+                            data-testid="input-create-user-firstName" 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Last Name</Label>
+                          <Input 
+                            name="lastName" 
+                            placeholder="Last name" 
+                            required
+                            data-testid="input-create-user-lastName" 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Preferred Name</Label>
+                          <Input 
+                            name="preferredName" 
+                            placeholder="Preferred name" 
+                            required
+                            data-testid="input-create-user-preferredName" 
                           />
                         </div>
                         <div className="space-y-2">
@@ -5475,12 +5526,12 @@ export default function Settings() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>Position</Label>
+                          <Label>Role</Label>
                           <Input 
-                            name="position" 
-                            placeholder="Position/Role" 
+                            name="role" 
+                            placeholder="Role (e.g. Stage Manager, Coordinator)" 
                             required
-                            data-testid="input-create-user-position" 
+                            data-testid="input-create-user-role" 
                           />
                         </div>
                         <div className="space-y-2">
@@ -5495,21 +5546,59 @@ export default function Settings() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>User Group (Optional)</Label>
-                          <Select name="userGroupId" defaultValue="none">
-                            <SelectTrigger data-testid="select-create-user-group">
-                              <SelectValue placeholder="No group" />
+                          <Label>Link to Profile (Optional)</Label>
+                          <Select 
+                            value={selectedProfileType || "none"} 
+                            onValueChange={(value) => {
+                              setSelectedProfileType(value === "none" ? null : value);
+                              setSelectedProfileId(null);
+                            }}
+                          >
+                            <SelectTrigger data-testid="select-create-user-profileType">
+                              <SelectValue placeholder="None" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="none">No Group</SelectItem>
-                              {userGroups.map((group) => (
-                                <SelectItem key={group.id} value={group.id}>
-                                  {group.name}
-                                </SelectItem>
-                              ))}
+                              <SelectItem value="none">None</SelectItem>
+                              <SelectItem value="artist">Link to Artist</SelectItem>
+                              <SelectItem value="artisticStaff">Link to Artistic Staff</SelectItem>
+                              <SelectItem value="technician">Link to Technical Staff</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
+                        {selectedProfileType && selectedProfileType !== "none" && (
+                          <div className="space-y-2">
+                            <Label>
+                              {selectedProfileType === "artist" && "Select Artist"}
+                              {selectedProfileType === "artisticStaff" && "Select Artistic Staff"}
+                              {selectedProfileType === "technician" && "Select Technician"}
+                            </Label>
+                            <Select 
+                              value={selectedProfileId || ""} 
+                              onValueChange={setSelectedProfileId}
+                            >
+                              <SelectTrigger data-testid="select-create-user-profileId">
+                                <SelectValue placeholder="Select profile" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {selectedProfileType === "artist" && unlinkedProfiles?.artists.map((artist) => (
+                                  <SelectItem key={artist.id} value={artist.id}>
+                                    {artist.preferredName} ({artist.firstName} {artist.lastName})
+                                  </SelectItem>
+                                ))}
+                                {selectedProfileType === "artisticStaff" && unlinkedProfiles?.artisticStaff.map((staff) => (
+                                  <SelectItem key={staff.id} value={staff.id}>
+                                    {staff.preferredName} ({staff.firstName} {staff.lastName})
+                                  </SelectItem>
+                                ))}
+                                {selectedProfileType === "technician" && unlinkedProfiles?.technicians.map((tech) => (
+                                  <SelectItem key={tech.id} value={tech.id}>
+                                    {tech.preferredName} ({tech.firstName} {tech.lastName})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
                       </div>
                       <DialogFooter>
                         <Button 
@@ -5985,11 +6074,11 @@ export default function Settings() {
       <Dialog open={passwordResetDialogOpen} onOpenChange={setPasswordResetDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Password Reset Successful</DialogTitle>
+            <DialogTitle>Temporary Password Sent</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <p className="text-sm text-muted-foreground">
-              A temporary password has been generated for <strong>{resetPasswordUser?.name || resetPasswordUser?.email}</strong>. 
+              A temporary password has been sent for <strong>{resetPasswordUser?.preferredName || resetPasswordUser?.name || resetPasswordUser?.email}</strong>. 
               The user will be required to change their password upon next login.
             </p>
             <div className="space-y-2">
@@ -6131,7 +6220,7 @@ export default function Settings() {
                     data-testid={`button-reset-password-${userToEdit?.id}`}
                   >
                     <KeyRound className="w-4 h-4 mr-2" />
-                    {resetPasswordMutation.isPending ? "Resetting..." : "Reset Password"}
+                    {resetPasswordMutation.isPending ? "Sending..." : "Send Temporary Password"}
                   </Button>
                   <Button
                     type="button"

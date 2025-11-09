@@ -162,6 +162,7 @@ export interface IStorage {
   archiveArtistWithUser(artistId: string): Promise<void>;
   unarchiveArtistWithUser(artistId: string): Promise<void>;
   getAllArchivedArtists(): Promise<Artist[]>;
+  getUnlinkedArtists(): Promise<Artist[]>;
   
   // Act Artists
   getActArtists(actId: string): Promise<ActArtist[]>;
@@ -181,6 +182,7 @@ export interface IStorage {
   archiveTechnicianWithUser(technicianId: string): Promise<void>;
   unarchiveTechnicianWithUser(technicianId: string): Promise<void>;
   getAllArchivedTechnicians(): Promise<Technician[]>;
+  getUnlinkedTechnicians(): Promise<Technician[]>;
   linkUserToTechnician(technicianId: string, userId: string): Promise<void>;
   unlinkUserFromTechnician(technicianId: string): Promise<void>;
   reorderTechnicians(technicianIds: string[]): Promise<void>;
@@ -200,6 +202,7 @@ export interface IStorage {
   archiveArtisticStaffWithUser(artisticStaffId: string): Promise<void>;
   unarchiveArtisticStaffWithUser(artisticStaffId: string): Promise<void>;
   getAllArchivedArtisticStaff(): Promise<ArtisticStaff[]>;
+  getUnlinkedArtisticStaff(): Promise<ArtisticStaff[]>;
   reorderArtisticStaff(artisticStaffIds: string[]): Promise<void>;
   
   // Artistic Staff Departments
@@ -800,6 +803,12 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(artists).where(isNotNull(artists.archivedAt)).orderBy(asc(artists.sortOrder));
   }
 
+  async getUnlinkedArtists(): Promise<Artist[]> {
+    return await db.select().from(artists).where(
+      and(isNull(artists.userId), isNull(artists.archivedAt))
+    ).orderBy(asc(artists.sortOrder));
+  }
+
   async reorderArtists(artistIds: string[]): Promise<void> {
     await db.transaction(async (tx) => {
       for (let i = 0; i < artistIds.length; i++) {
@@ -905,6 +914,12 @@ export class DatabaseStorage implements IStorage {
 
   async getAllArchivedTechnicians(): Promise<Technician[]> {
     return await db.select().from(technicians).where(isNotNull(technicians.archivedAt)).orderBy(asc(technicians.sortOrder));
+  }
+
+  async getUnlinkedTechnicians(): Promise<Technician[]> {
+    return await db.select().from(technicians).where(
+      and(isNull(technicians.userId), isNull(technicians.archivedAt))
+    ).orderBy(asc(technicians.sortOrder));
   }
 
   async linkUserToTechnician(technicianId: string, userId: string): Promise<void> {
@@ -1074,6 +1089,12 @@ export class DatabaseStorage implements IStorage {
 
   async getAllArchivedArtisticStaff(): Promise<ArtisticStaff[]> {
     return await db.select().from(artisticStaff).where(isNotNull(artisticStaff.archivedAt)).orderBy(asc(artisticStaff.sortOrder));
+  }
+
+  async getUnlinkedArtisticStaff(): Promise<ArtisticStaff[]> {
+    return await db.select().from(artisticStaff).where(
+      and(isNull(artisticStaff.userId), isNull(artisticStaff.archivedAt))
+    ).orderBy(asc(artisticStaff.sortOrder));
   }
 
   async reorderArtisticStaff(artisticStaffIds: string[]): Promise<void> {
