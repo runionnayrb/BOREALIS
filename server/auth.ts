@@ -7,6 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
+import { requireRole } from "./middleware/roleAuth";
 
 declare global {
   namespace Express {
@@ -92,7 +93,7 @@ export function setupAuth(app: Express) {
     done(null, user);
   });
 
-  app.post("/api/register", async (req, res, next) => {
+  app.post("/api/register", requireRole('admin', 'stage_management'), async (req, res, next) => {
     // Define registration schema with required fields
     const registrationSchema = insertUserSchema.pick({
       email: true,
