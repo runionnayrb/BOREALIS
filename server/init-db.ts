@@ -37,9 +37,11 @@ export async function initializeDatabase() {
       await db.insert(users).values({
         email: adminEmail,
         password: hashedPassword,
+        firstName: "Bryan",
+        lastName: "Runion",
+        preferredName: "Bryan",
         name: "Bryan Runion",
         position: "Stage Manager",
-        pronouns: "he/him",
         role: "admin",
         active: 1,
         outlookConnected: 1,

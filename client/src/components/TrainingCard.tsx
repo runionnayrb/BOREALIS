@@ -151,7 +151,7 @@ export default function TrainingCard({
             <p className="text-sm text-foreground/80 mt-1 ml-5">
               {trainingArtists.length > 0
                 ? trainingArtists.map(artist => {
-                    const name = artist.stageName || `${artist.firstName} ${artist.lastName}`;
+                    const name = artist.preferredName || `${artist.firstName} ${artist.lastName}`;
                     return artist.role ? `${name} (${artist.role})` : name;
                   }).join(", ")
                 : "No Assigned Artists"}
@@ -172,7 +172,7 @@ export default function TrainingCard({
                         ? technicians.find(t => t.id === assignment.leadTechnicianId)
                         : null;
                       const leadName = leadTech 
-                        ? (leadTech.technicianName || `${leadTech.firstName} ${leadTech.lastName}`)
+                        ? (leadTech.preferredName || `${leadTech.firstName} ${leadTech.lastName}`)
                         : null;
                       
                       return leadName ? `${dept.name} (${leadName})` : dept.name;

@@ -35,14 +35,14 @@ const registerSchema = insertUserSchema.pick({
   password: true,
   firstName: true,
   lastName: true,
-  artistName: true,
+  preferredName: true,
   userGroupId: true,
 }).extend({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  artistName: z.string().min(1, "Artist name is required"),
+  preferredName: z.string().min(1, "Preferred name is required"),
   userGroupId: z.string().min(1, "Department is required"),
 });
 
@@ -94,7 +94,7 @@ export default function AuthPage() {
       password: "",
       firstName: "",
       lastName: "",
-      artistName: "",
+      preferredName: "",
       userGroupId: "",
     },
   });
@@ -192,12 +192,12 @@ export default function AuthPage() {
                     />
                     <FormField
                       control={registerForm.control}
-                      name="artistName"
+                      name="preferredName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-black">Artist Name</FormLabel>
+                          <FormLabel className="text-black">Preferred Name</FormLabel>
                           <FormControl>
-                            <Input {...field} data-testid="input-register-artist-name" className="bg-blue-50 border-gray-300 text-black" />
+                            <Input {...field} data-testid="input-register-preferred-name" className="bg-blue-50 border-gray-300 text-black" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

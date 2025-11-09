@@ -65,12 +65,12 @@ function getCallPosition(startTime: string, endTime: string) {
 }
 
 function getArtistDisplayName(artist: Artist): string {
-  return artist.stageName || `${artist.firstName} ${artist.lastName}`;
+  return artist.preferredName || `${artist.firstName} ${artist.lastName}`;
 }
 
 function getArtistInitials(artist: Artist): string {
-  if (artist.stageName) {
-    return artist.stageName.split(' ').map(n => n[0]).join('').substring(0, 2);
+  if (artist.preferredName) {
+    return artist.preferredName.split(' ').map(n => n[0]).join('').substring(0, 2);
   }
   return `${artist.firstName[0]}${artist.lastName[0]}`;
 }

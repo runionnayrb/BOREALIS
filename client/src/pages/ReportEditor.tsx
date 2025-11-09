@@ -79,8 +79,8 @@ function DepartmentLeadSelector({
   });
 
   const sortedTechnicians = [...deptTechnicians].sort((a, b) => 
-    (a.technicianName || `${a.firstName} ${a.lastName}`).localeCompare(
-      b.technicianName || `${b.firstName} ${b.lastName}`
+    (a.preferredName || `${a.firstName} ${a.lastName}`).localeCompare(
+      b.preferredName || `${b.firstName} ${b.lastName}`
     )
   );
 
@@ -99,7 +99,7 @@ function DepartmentLeadSelector({
             <SelectItem value="none">No lead assigned</SelectItem>
             {sortedTechnicians.map(tech => (
               <SelectItem key={tech.id} value={tech.id}>
-                {tech.technicianName || `${tech.firstName} ${tech.lastName}`}
+                {tech.preferredName || `${tech.firstName} ${tech.lastName}`}
               </SelectItem>
             ))}
           </SelectContent>
@@ -1337,7 +1337,7 @@ export default function ReportEditor() {
                                   return (
                                     <div key={artistId} className="flex items-center justify-between p-2 rounded hover-elevate">
                                       <div className="text-sm">
-                                        <div>{artist.stageName || `${artist.firstName} ${artist.lastName}`}</div>
+                                        <div>{artist.preferredName || `${artist.firstName} ${artist.lastName}`}</div>
                                         {artist.role && <div className="text-xs text-muted-foreground">{artist.role}</div>}
                                       </div>
                                       {editingTraining && (

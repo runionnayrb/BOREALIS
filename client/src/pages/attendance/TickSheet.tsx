@@ -25,7 +25,7 @@ interface TickSheetMark {
 }
 
 function getArtistDisplayName(artist: Artist): string {
-  return artist.stageName || `${artist.firstName} ${artist.lastName}`;
+  return artist.preferredName || `${artist.firstName} ${artist.lastName}`;
 }
 
 export default function TickSheetPage() {

@@ -30,10 +30,9 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   firstName: text("first_name"),
   lastName: text("last_name"),
-  artistName: text("artist_name"), // Stage name for artist accounts
+  preferredName: text("preferred_name").notNull(),
   name: text("name"), // Full name (kept for backwards compatibility)
   position: text("position"),
-  pronouns: text("pronouns"),
   role: text("role").notNull().default('stage_management'), // admin, stage_management, coaching, performance_wellness, read_only
   active: integer("active").notNull().default(1), // 1 = active, 0 = inactive
   userGroupId: varchar("user_group_id").references(() => userGroups.id),
@@ -50,11 +49,10 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
   firstName: true,
   lastName: true,
-  artistName: true,
+  preferredName: true,
   userGroupId: true,
   name: true,
   position: true,
-  pronouns: true,
   role: true,
 });
 
@@ -214,7 +212,7 @@ export const artists = pgTable("artists", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
-  stageName: text("stage_name"),
+  preferredName: text("preferred_name").notNull(),
   role: text("role"),
   photoUrl: text("photo_url"),
   pinCode: text("pin_code"), // Set by artist on first sign-in
@@ -371,7 +369,7 @@ export const technicians = pgTable("technicians", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
-  technicianName: text("technician_name"),
+  preferredName: text("preferred_name").notNull(),
   role: text("role"),
   photoUrl: text("photo_url"),
   userId: varchar("user_id").references(() => users.id), // Linked user account for authentication
@@ -408,6 +406,49 @@ export const insertTechnicianDepartmentSchema = createInsertSchema(technicianDep
 
 export type InsertTechnicianDepartment = z.infer<typeof insertTechnicianDepartmentSchema>;
 export type TechnicianDepartment = typeof technicianDepartments.$inferSelect;
+
+// Artistic Staff
+export const artisticStaff = pgTable("artistic_staff", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  preferredName: text("preferred_name").notNull(),
+  role: text("role"),
+  photoUrl: text("photo_url"),
+  userId: varchar("user_id").references(() => users.id), // Linked user account for authentication
+  status: text("status").notNull().default('active'), // active, out, archived
+  sortOrder: integer("sort_order").notNull().default(0),
+  archivedAt: timestamp("archived_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertArtisticStaffSchema = createInsertSchema(artisticStaff).omit({
+  id: true,
+  createdAt: true,
+  sortOrder: true,
+  archivedAt: true,
+});
+
+export type InsertArtisticStaff = z.infer<typeof insertArtisticStaffSchema>;
+export type ArtisticStaff = typeof artisticStaff.$inferSelect;
+
+// Artistic Staff Departments (junction table for many-to-many relationship)
+export const artisticStaffDepartments = pgTable("artistic_staff_departments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  artisticStaffId: varchar("artistic_staff_id").notNull().references(() => artisticStaff.id),
+  departmentId: varchar("department_id").notNull().references(() => departments.id),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertArtisticStaffDepartmentSchema = createInsertSchema(artisticStaffDepartments).omit({
+  id: true,
+  createdAt: true,
+  sortOrder: true,
+});
+
+export type InsertArtisticStaffDepartment = z.infer<typeof insertArtisticStaffDepartmentSchema>;
+export type ArtisticStaffDepartment = typeof artisticStaffDepartments.$inferSelect;
 
 // Report Template
 export const reportTemplate = pgTable("report_template", {

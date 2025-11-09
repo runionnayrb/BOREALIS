@@ -187,7 +187,7 @@ export default function ReportsList() {
         const artist = artists.find(a => a.id === ta.artistId);
         if (artist?.firstName.toLowerCase().includes(query) ||
             artist?.lastName.toLowerCase().includes(query) ||
-            artist?.stageName?.toLowerCase().includes(query)) {
+            artist?.preferredName?.toLowerCase().includes(query)) {
           return true;
         }
       }
@@ -208,7 +208,7 @@ export default function ReportsList() {
           const technician = technicians.find(t => t.id === assignment.leadTechnicianId);
           if (technician?.firstName.toLowerCase().includes(query) ||
               technician?.lastName.toLowerCase().includes(query) ||
-              technician?.technicianName?.toLowerCase().includes(query)) {
+              technician?.preferredName?.toLowerCase().includes(query)) {
             return true;
           }
         }

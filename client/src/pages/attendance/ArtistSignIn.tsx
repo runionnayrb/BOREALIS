@@ -26,7 +26,7 @@ interface AttendanceRecord {
 }
 
 function getArtistDisplayName(artist: PublicArtist): string {
-  return artist.stageName || `${artist.firstName} ${artist.lastName}`;
+  return artist.preferredName || `${artist.firstName} ${artist.lastName}`;
 }
 
 export default function ArtistSignIn() {

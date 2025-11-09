@@ -134,8 +134,8 @@ export default function LineupBuilder() {
   const artistsByGroup = artists
     .sort((a, b) => {
       // First get display names
-      const aName = a.stageName || `${a.firstName} ${a.lastName}`;
-      const bName = b.stageName || `${b.firstName} ${b.lastName}`;
+      const aName = a.preferredName || `${a.firstName} ${a.lastName}`;
+      const bName = b.preferredName || `${b.firstName} ${b.lastName}`;
       return aName.localeCompare(bName);
     })
     .reduce((acc, artist) => {
@@ -476,9 +476,9 @@ export default function LineupBuilder() {
                             </div>
                             <div className="space-y-1">
                               {groupArtists.map((artist) => {
-                                const displayName = artist.stageName || `${artist.firstName} ${artist.lastName}`;
-                                const initials = artist.stageName 
-                                  ? artist.stageName.split(' ').map(n => n[0]).join('')
+                                const displayName = artist.preferredName || `${artist.firstName} ${artist.lastName}`;
+                                const initials = artist.preferredName 
+                                  ? artist.preferredName.split(' ').map(n => n[0]).join('')
                                   : `${artist.firstName[0]}${artist.lastName[0]}`;
                                 
                                 return (

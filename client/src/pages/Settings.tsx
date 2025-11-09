@@ -776,7 +776,7 @@ export default function Settings() {
   });
 
   const createArtistMutation = useMutation({
-    mutationFn: async (data: { firstName: string; lastName: string; stageName?: string; role?: string; photoUrl?: string; status?: string; artistGroupId?: string; pinCode?: string }) => {
+    mutationFn: async (data: { firstName: string; lastName: string; preferredName?: string; role?: string; photoUrl?: string; status?: string; artistGroupId?: string; pinCode?: string }) => {
       return await apiRequest("POST", "/api/artists", data);
     },
     onSuccess: () => {
@@ -787,11 +787,11 @@ export default function Settings() {
   });
 
   const createTechMutation = useMutation({
-    mutationFn: async (data: { firstName: string; lastName: string; technicianName?: string; role?: string; photoUrl?: string; status: "active" | "out" | "archived"; departmentIds: string[] }) => {
+    mutationFn: async (data: { firstName: string; lastName: string; preferredName?: string; role?: string; photoUrl?: string; status: "active" | "out" | "archived"; departmentIds: string[] }) => {
       const technician: any = await apiRequest("POST", "/api/technicians", {
         firstName: data.firstName,
         lastName: data.lastName,
-        technicianName: data.technicianName,
+        preferredName: data.preferredName,
         role: data.role,
         photoUrl: data.photoUrl,
         status: data.status,
@@ -982,11 +982,11 @@ export default function Settings() {
   });
 
   const updateArtistMutation = useMutation({
-    mutationFn: async (data: { id: string; firstName: string; lastName: string; stageName?: string; role?: string; photoUrl?: string; status?: string; artistGroupId?: string; pinCode?: string }) => {
+    mutationFn: async (data: { id: string; firstName: string; lastName: string; preferredName?: string; role?: string; photoUrl?: string; status?: string; artistGroupId?: string; pinCode?: string }) => {
       return await apiRequest("PATCH", `/api/artists/${data.id}`, {
         firstName: data.firstName,
         lastName: data.lastName,
-        stageName: data.stageName,
+        preferredName: data.preferredName,
         role: data.role,
         photoUrl: data.photoUrl,
         status: data.status,
@@ -1154,11 +1154,11 @@ export default function Settings() {
   });
 
   const updateTechMutation = useMutation({
-    mutationFn: async (data: { id: string; firstName: string; lastName: string; technicianName?: string; role?: string; photoUrl?: string; status: "active" | "out" | "archived"; departmentIds: string[]; userId?: string | null }) => {
+    mutationFn: async (data: { id: string; firstName: string; lastName: string; preferredName?: string; role?: string; photoUrl?: string; status: "active" | "out" | "archived"; departmentIds: string[]; userId?: string | null }) => {
       const technician = await apiRequest("PATCH", `/api/technicians/${data.id}`, {
         firstName: data.firstName,
         lastName: data.lastName,
-        technicianName: data.technicianName,
+        preferredName: data.preferredName,
         role: data.role,
         photoUrl: data.photoUrl,
         status: data.status,
@@ -1931,13 +1931,13 @@ export default function Settings() {
           <GripVertical className="w-4 h-4 text-muted-foreground" />
         </div>
         <Avatar className="w-10 h-10">
-          {artist.photoUrl && <AvatarImage src={artist.photoUrl} alt={artist.stageName || `${artist.firstName} ${artist.lastName}`} />}
+          {artist.photoUrl && <AvatarImage src={artist.photoUrl} alt={artist.preferredName || `${artist.firstName} ${artist.lastName}`} />}
           <AvatarFallback className="bg-primary/10 text-primary text-sm">
-            {(artist.stageName || artist.firstName).charAt(0)}{(artist.stageName ? '' : artist.lastName).charAt(0)}
+            {(artist.preferredName || artist.firstName).charAt(0)}{(artist.preferredName ? '' : artist.lastName).charAt(0)}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1">
-          <p className="font-medium">{artist.stageName || `${artist.firstName} ${artist.lastName}`}</p>
+          <p className="font-medium">{artist.preferredName || `${artist.firstName} ${artist.lastName}`}</p>
           {artist.role && <p className="text-sm text-muted-foreground">{artist.role}</p>}
         </div>
       </Card>
@@ -1975,13 +1975,13 @@ export default function Settings() {
           <GripVertical className="w-4 h-4 text-muted-foreground" />
         </div>
         <Avatar className="w-10 h-10">
-          {technician.photoUrl && <AvatarImage src={technician.photoUrl} alt={technician.technicianName || `${technician.firstName} ${technician.lastName}`} />}
+          {technician.photoUrl && <AvatarImage src={technician.photoUrl} alt={technician.preferredName || `${technician.firstName} ${technician.lastName}`} />}
           <AvatarFallback className="bg-primary/10 text-primary text-sm">
-            {(technician.technicianName || technician.firstName).charAt(0)}{(technician.technicianName ? '' : technician.lastName).charAt(0)}
+            {(technician.preferredName || technician.firstName).charAt(0)}{(technician.preferredName ? '' : technician.lastName).charAt(0)}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1">
-          <p className="font-medium">{technician.technicianName || `${technician.firstName} ${technician.lastName}`}</p>
+          <p className="font-medium">{technician.preferredName || `${technician.firstName} ${technician.lastName}`}</p>
           {technician.role && <p className="text-sm text-muted-foreground">{technician.role}</p>}
         </div>
       </Card>
@@ -2704,7 +2704,7 @@ export default function Settings() {
                                       
                                       <div className="pl-6 space-y-2">
                                         {groupArtists.map((artist) => {
-                                          const displayName = artist.stageName || `${artist.firstName} ${artist.lastName}`;
+                                          const displayName = artist.preferredName || `${artist.firstName} ${artist.lastName}`;
                                           return (
                                             <div key={artist.id} className="flex items-center space-x-2">
                                               <Checkbox
@@ -2744,7 +2744,7 @@ export default function Settings() {
                                     <div className="text-sm font-semibold pb-1 border-b">No Group</div>
                                     <div className="space-y-2">
                                       {artists.filter(a => !a.artistGroupId).map((artist) => {
-                                        const displayName = artist.stageName || `${artist.firstName} ${artist.lastName}`;
+                                        const displayName = artist.preferredName || `${artist.firstName} ${artist.lastName}`;
                                         return (
                                           <div key={artist.id} className="flex items-center space-x-2">
                                             <Checkbox
@@ -3042,7 +3042,7 @@ export default function Settings() {
                                       
                                       <div className="pl-6 space-y-2">
                                         {groupArtists.map((artist) => {
-                                          const displayName = artist.stageName || `${artist.firstName} ${artist.lastName}`;
+                                          const displayName = artist.preferredName || `${artist.firstName} ${artist.lastName}`;
                                           return (
                                             <div key={artist.id} className="flex items-center space-x-2">
                                               <Checkbox
@@ -3082,7 +3082,7 @@ export default function Settings() {
                                     <div className="text-sm font-semibold pb-1 border-b">No Group</div>
                                     <div className="space-y-2">
                                       {artists.filter(a => !a.artistGroupId).map((artist) => {
-                                        const displayName = artist.stageName || `${artist.firstName} ${artist.lastName}`;
+                                        const displayName = artist.preferredName || `${artist.firstName} ${artist.lastName}`;
                                         return (
                                           <div key={artist.id} className="flex items-center space-x-2">
                                             <Checkbox
@@ -3376,7 +3376,7 @@ export default function Settings() {
                                     {/* Individual Artists */}
                                     <div className="pl-6 space-y-2">
                                       {groupArtists.map((artist) => {
-                                        const displayName = artist.stageName || `${artist.firstName} ${artist.lastName}`;
+                                        const displayName = artist.preferredName || `${artist.firstName} ${artist.lastName}`;
                                         return (
                                           <div key={artist.id} className="flex items-center space-x-2">
                                             <Checkbox
@@ -3417,7 +3417,7 @@ export default function Settings() {
                                   <div className="text-sm font-semibold pb-1 border-b">No Group</div>
                                   <div className="space-y-2">
                                     {artists.filter(a => !a.artistGroupId).map((artist) => {
-                                      const displayName = artist.stageName || `${artist.firstName} ${artist.lastName}`;
+                                      const displayName = artist.preferredName || `${artist.firstName} ${artist.lastName}`;
                                       return (
                                         <div key={artist.id} className="flex items-center space-x-2">
                                           <Checkbox
@@ -4078,7 +4078,7 @@ export default function Settings() {
                           const formData = new FormData(e.currentTarget);
                           const firstName = formData.get("firstName") as string;
                           const lastName = formData.get("lastName") as string;
-                          const stageName = formData.get("stageName") as string;
+                          const preferredName = formData.get("preferredName") as string;
                           const role = (formData.get("role") as string) || undefined;
                           const photoUrl = (formData.get("photoUrl") as string) || undefined;
                           const status = (formData.get("status") as string) || "active";
@@ -4090,7 +4090,7 @@ export default function Settings() {
                               id: editTarget.id,
                               firstName,
                               lastName,
-                              stageName,
+                              preferredName,
                               role,
                               photoUrl,
                               status,
@@ -4101,7 +4101,7 @@ export default function Settings() {
                             createArtistMutation.mutate({
                               firstName,
                               lastName,
-                              stageName,
+                              preferredName,
                               role,
                               photoUrl,
                               status,
@@ -4118,10 +4118,10 @@ export default function Settings() {
                           <div className="space-y-2">
                             <Label>Artist Name</Label>
                             <Input 
-                              name="stageName" 
+                              name="preferredName" 
                               placeholder="Artist name" 
                               required
-                              defaultValue={editTarget?.type === "artist" ? editTarget.data.stageName || "" : ""}
+                              defaultValue={editTarget?.type === "artist" ? editTarget.data.preferredName || "" : ""}
                               data-testid="input-artist-stagename" 
                             />
                           </div>
@@ -4400,7 +4400,7 @@ export default function Settings() {
                           const formData = new FormData(e.currentTarget);
                           const firstName = formData.get("firstName") as string;
                           const lastName = formData.get("lastName") as string;
-                          const technicianName = (formData.get("technicianName") as string) || undefined;
+                          const preferredName = (formData.get("preferredName") as string) || undefined;
                           const role = (formData.get("role") as string) || undefined;
                           const photoUrl = (formData.get("photoUrl") as string) || undefined;
                           const status = selectedTechnicianStatus as "active" | "out" | "archived";
@@ -4410,7 +4410,7 @@ export default function Settings() {
                               id: editTarget.id,
                               firstName,
                               lastName,
-                              technicianName,
+                              preferredName,
                               role,
                               photoUrl,
                               status,
@@ -4421,7 +4421,7 @@ export default function Settings() {
                             createTechMutation.mutate({
                               firstName,
                               lastName,
-                              technicianName,
+                              preferredName,
                               role,
                               photoUrl,
                               status,
@@ -4459,13 +4459,13 @@ export default function Settings() {
                             </div>
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="tech-technicianName">Preferred Name (Optional)</Label>
+                            <Label htmlFor="tech-preferredName">Preferred Name (Optional)</Label>
                             <Input
-                              id="tech-technicianName"
-                              name="technicianName"
+                              id="tech-preferredName"
+                              name="preferredName"
                               placeholder="Preferred name or nickname"
-                              defaultValue={editTarget?.type === "technician" ? editTarget.data.technicianName || "" : ""}
-                              data-testid="input-technician-technicianName"
+                              defaultValue={editTarget?.type === "technician" ? editTarget.data.preferredName || "" : ""}
+                              data-testid="input-technician-preferredName"
                             />
                           </div>
                           <div className="space-y-2">
@@ -4739,7 +4739,7 @@ export default function Settings() {
                           const formData = new FormData(e.currentTarget);
                           const firstName = formData.get("firstName") as string;
                           const lastName = formData.get("lastName") as string;
-                          const technicianName = (formData.get("technicianName") as string) || undefined;
+                          const preferredName = (formData.get("preferredName") as string) || undefined;
                           const role = (formData.get("role") as string) || undefined;
                           const photoUrl = (formData.get("photoUrl") as string) || undefined;
                           const status = selectedTechnicianStatus as "active" | "out" | "archived";
@@ -4749,7 +4749,7 @@ export default function Settings() {
                               id: editTarget.id,
                               firstName,
                               lastName,
-                              technicianName,
+                              preferredName,
                               role,
                               photoUrl,
                               status,
@@ -4760,7 +4760,7 @@ export default function Settings() {
                             createTechMutation.mutate({
                               firstName,
                               lastName,
-                              technicianName,
+                              preferredName,
                               role,
                               photoUrl,
                               status,
@@ -4776,9 +4776,9 @@ export default function Settings() {
                           <div className="space-y-2">
                             <Label>Preferred Name (Optional)</Label>
                             <Input 
-                              name="technicianName" 
+                              name="preferredName" 
                               placeholder="Preferred name or nickname"
-                              defaultValue={editTarget?.type === "technician" ? editTarget.data.technicianName || "" : ""}
+                              defaultValue={editTarget?.type === "technician" ? editTarget.data.preferredName || "" : ""}
                               data-testid="input-tech-name" 
                             />
                           </div>
@@ -5406,7 +5406,7 @@ export default function Settings() {
                         <div>
                           <p className="font-medium">
                             {artist.firstName} {artist.lastName}
-                            {artist.stageName && ` (${artist.stageName})`}
+                            {artist.preferredName && ` (${artist.preferredName})`}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {artist.role || "No role specified"}
@@ -5500,7 +5500,7 @@ export default function Settings() {
                           <div>
                             <p className="font-medium">
                               {tech.firstName} {tech.lastName}
-                              {tech.technicianName && ` (${tech.technicianName})`}
+                              {tech.preferredName && ` (${tech.preferredName})`}
                             </p>
                             <p className="text-sm text-muted-foreground">
                               {tech.role || "No role specified"}

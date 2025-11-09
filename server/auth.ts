@@ -99,14 +99,14 @@ export function setupAuth(app: Express) {
       password: true,
       firstName: true,
       lastName: true,
-      artistName: true,
+      preferredName: true,
       userGroupId: true,
     }).extend({
       email: z.string().email(),
       password: z.string().min(6),
       firstName: z.string().min(1, "First name is required"),
       lastName: z.string().min(1, "Last name is required"),
-      artistName: z.string().min(1, "Artist name is required"),
+      preferredName: z.string().min(1, "Preferred name is required"),
       userGroupId: z.string().min(1, "Department is required"),
     });
 
@@ -150,7 +150,7 @@ export function setupAuth(app: Express) {
       email: validation.data.email.toLowerCase(),
       firstName: toTitleCase(validation.data.firstName),
       lastName: toTitleCase(validation.data.lastName),
-      artistName: validation.data.artistName, // Keep artist name as entered
+      preferredName: validation.data.preferredName, // Keep preferred name as entered
       name: `${toTitleCase(validation.data.firstName)} ${toTitleCase(validation.data.lastName)}`, // Construct full name
       position: toTitleCase(position),
       role: role,

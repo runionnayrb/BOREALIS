@@ -65,7 +65,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     name: z.string().optional(),
     email: z.string().email().optional(),
     position: z.string().optional(),
-    pronouns: z.string().optional(),
   });
 
   const updatePasswordSchema = z.object({
@@ -1996,7 +1995,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const artistNames = trainingArtists
           .map(ta => artists.find(a => a.id === ta.artistId))
           .filter(a => a)
-          .map(a => a!.stageName || `${a!.firstName} ${a!.lastName}`);
+          .map(a => a!.preferredName || `${a!.firstName} ${a!.lastName}`);
 
         // Get departments with lead technicians
         const assignments = await storage.getAssignmentsByTrainingId(training.id);
@@ -2007,7 +2006,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (assignment.leadTechnicianId) {
             const tech = technicians.find(t => t.id === assignment.leadTechnicianId);
             if (tech) {
-              const techName = tech.technicianName || `${tech.firstName} ${tech.lastName}`;
+              const techName = tech.preferredName || `${tech.firstName} ${tech.lastName}`;
               return `${dept.name} (${techName})`;
             }
           }
@@ -2088,7 +2087,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const artistNames = trainingArtists
           .map(ta => artists.find(a => a.id === ta.artistId))
           .filter(a => a)
-          .map(a => a!.stageName || `${a!.firstName} ${a!.lastName}`);
+          .map(a => a!.preferredName || `${a!.firstName} ${a!.lastName}`);
 
         // Get departments with lead technicians
         const assignments = await storage.getAssignmentsByTrainingId(training.id);
@@ -2099,7 +2098,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (assignment.leadTechnicianId) {
             const tech = technicians.find(t => t.id === assignment.leadTechnicianId);
             if (tech) {
-              const techName = tech.technicianName || `${tech.firstName} ${tech.lastName}`;
+              const techName = tech.preferredName || `${tech.firstName} ${tech.lastName}`;
               return `${dept.name} (${techName})`;
             }
           }
@@ -2218,7 +2217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const artistNames = trainingArtists
             .map(ta => artists.find(a => a.id === ta.artistId))
             .filter(a => a)
-            .map(a => a!.stageName || `${a!.firstName} ${a!.lastName}`);
+            .map(a => a!.preferredName || `${a!.firstName} ${a!.lastName}`);
 
           const assignments = await storage.getAssignmentsByTrainingId(training.id);
           const departmentNames = assignments.map(assignment => {
@@ -2228,7 +2227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (assignment.leadTechnicianId) {
               const tech = technicians.find(t => t.id === assignment.leadTechnicianId);
               if (tech) {
-                const techName = tech.technicianName || `${tech.firstName} ${tech.lastName}`;
+                const techName = tech.preferredName || `${tech.firstName} ${tech.lastName}`;
                 return `${dept.name} (${techName})`;
               }
             }
