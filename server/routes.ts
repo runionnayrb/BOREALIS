@@ -1307,6 +1307,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/departments/:id/artistic-staff/reorder", requireRole('stage_management', 'admin'), async (req, res) => {
+    const validation = z.object({
+      artisticStaffIds: z.array(z.string()),
+    }).safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    await storage.reorderArtisticStaffInDepartment(req.params.id, validation.data.artisticStaffIds);
+    res.sendStatus(204);
+  });
+
   // Attendance routes
   app.get("/api/attendance/artists", async (req, res) => {
     const artists = await storage.getAllArtists();

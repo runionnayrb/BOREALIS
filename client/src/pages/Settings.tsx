@@ -124,6 +124,7 @@ export default function Settings() {
   // Optimistic state for technician reordering per department
   // Maps departmentId to array of technicianIds in their current order
   const [optimisticTechnicianOrder, setOptimisticTechnicianOrder] = useState<Map<string, string[]>>(new Map());
+  const [optimisticArtisticStaffOrder, setOptimisticArtisticStaffOrder] = useState<Map<string, string[]>>(new Map());
 
   // User linking state for artists
   const [selectedLinkedUserId, setSelectedLinkedUserId] = useState<string | null>(null);
@@ -232,6 +233,26 @@ export default function Settings() {
       return assignments.flat();
     },
     enabled: technicians.length > 0
+  });
+  
+  // Fetch all artistic staff-department assignments for grouping
+  const { data: allArtisticStaffDepartments = [] } = useQuery<Array<{ artisticStaffId: string; departmentId: string; sortOrder: number }>>({
+    queryKey: ["/api/artistic-staff-departments/all", artisticStaff.map(s => s.id).sort().join(',')],
+    queryFn: async () => {
+      // Fetch department assignments for all artistic staff
+      const assignments = await Promise.all(
+        artisticStaff.map(async (staff) => {
+          const res = await fetch(`/api/artistic-staff/${staff.id}/departments`, {
+            credentials: "include"
+          });
+          if (!res.ok) return [];
+          const depts = await res.json();
+          return depts.map((d: any) => ({ artisticStaffId: staff.id, departmentId: d.departmentId, sortOrder: d.sortOrder || 0 }));
+        })
+      );
+      return assignments.flat();
+    },
+    enabled: artisticStaff.length > 0
   });
   
   // Fetch department roles for the selected department
@@ -1518,6 +1539,42 @@ export default function Settings() {
     },
   });
 
+  const reorderArtisticStaffInDepartmentMutation = useMutation({
+    mutationFn: async ({ departmentId, artisticStaffIds }: { departmentId: string; artisticStaffIds: string[] }) => {
+      return await apiRequest("PUT", `/api/departments/${departmentId}/artistic-staff/reorder`, { artisticStaffIds });
+    },
+    onMutate: async ({ departmentId, artisticStaffIds }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/artistic-staff-departments/all"] });
+      
+      // Snapshot previous value
+      const previousOrder = new Map(optimisticArtisticStaffOrder);
+      
+      // Optimistically update the order
+      setOptimisticArtisticStaffOrder(prev => {
+        const newMap = new Map(prev);
+        newMap.set(departmentId, artisticStaffIds);
+        return newMap;
+      });
+      
+      toast({ title: "Artistic staff order updated" });
+      
+      // Return context with previous value for rollback
+      return { previousOrder };
+    },
+    onError: (_error, _variables, context) => {
+      // Rollback on error
+      if (context?.previousOrder) {
+        setOptimisticArtisticStaffOrder(context.previousOrder);
+      }
+      toast({ title: "Failed to update order", variant: "destructive" });
+    },
+    onSettled: () => {
+      // Refetch to ensure sync with server
+      queryClient.invalidateQueries({ queryKey: ["/api/artistic-staff-departments/all"] });
+    },
+  });
+
   const reorderActsMutation = useMutation({
     mutationFn: async (actsWithOrder: Array<{id: string; sortOrder: number}>) => {
       return await apiRequest("POST", "/api/acts/reorder", { acts: actsWithOrder });
@@ -2187,6 +2244,50 @@ export default function Settings() {
     );
   };
 
+  const SortableArtisticStaffCard = ({ artisticStaff, deptId }: { artisticStaff: ArtisticStaff; deptId: string }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: `${deptId}-${artisticStaff.id}` });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+      <Card
+        ref={setNodeRef}
+        style={style}
+        className="p-3 flex items-center gap-3 cursor-pointer hover-elevate active-elevate-2"
+        onClick={() => {
+          setEditTarget({ type: "artistic-staff", id: artisticStaff.id, data: artisticStaff });
+          setArtisticStaffDialogOpen(true);
+        }}
+        data-testid={`card-artistic-staff-${artisticStaff.id}`}
+      >
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing" onClick={(e) => e.stopPropagation()}>
+          <GripVertical className="w-4 h-4 text-muted-foreground" />
+        </div>
+        <Avatar className="w-10 h-10">
+          {artisticStaff.photoUrl && <AvatarImage src={artisticStaff.photoUrl} alt={artisticStaff.preferredName} />}
+          <AvatarFallback className="bg-primary/10 text-primary text-sm">
+            {artisticStaff.firstName.charAt(0)}{artisticStaff.lastName.charAt(0)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1">
+          <p className="font-medium">{artisticStaff.preferredName}</p>
+          {artisticStaff.role && <p className="text-sm text-muted-foreground">{artisticStaff.role}</p>}
+        </div>
+      </Card>
+    );
+  };
+
   const renderGroupedArtists = () => {
     if (orderedArtists.length === 0) {
       return (
@@ -2268,100 +2369,142 @@ export default function Settings() {
       );
     }
 
-    // Group artistic staff by their departments (artistic type only)
-    const artisticDepartments = departments.filter(d => d.type === 'artistic');
+    // Group artistic staff by department with proper ordering
+    const grouped = new Map<string, { artisticStaff: ArtisticStaff[]; sortOrders: Map<string, number> }>();
+    const artisticStaffWithDepts = new Set<string>();
     
+    allArtisticStaffDepartments.forEach(({ artisticStaffId, departmentId, sortOrder }) => {
+      // Filter for artistic type departments only
+      const dept = departments.find(d => d.id === departmentId);
+      if (dept && dept.type !== 'artistic') {
+        return; // Skip non-artistic departments
+      }
+      
+      artisticStaffWithDepts.add(artisticStaffId);
+      const staff = artisticStaff.find(s => s.id === artisticStaffId);
+      if (!staff) return;
+      
+      if (!grouped.has(departmentId)) {
+        grouped.set(departmentId, { artisticStaff: [], sortOrders: new Map() });
+      }
+      const group = grouped.get(departmentId)!;
+      group.artisticStaff.push(staff);
+      group.sortOrders.set(artisticStaffId, sortOrder);
+    });
+    
+    // Sort each department's artistic staff by their sortOrder or optimistic order
+    grouped.forEach((group, deptId) => {
+      // Check if we have an optimistic order for this department
+      const optimisticOrder = optimisticArtisticStaffOrder.get(deptId);
+      
+      if (optimisticOrder) {
+        // Use optimistic order
+        group.artisticStaff.sort((a, b) => {
+          const indexA = optimisticOrder.indexOf(a.id);
+          const indexB = optimisticOrder.indexOf(b.id);
+          // If not found in optimistic order, put at end
+          if (indexA === -1 && indexB === -1) return 0;
+          if (indexA === -1) return 1;
+          if (indexB === -1) return -1;
+          return indexA - indexB;
+        });
+      } else {
+        // Use server-side sortOrder
+        group.artisticStaff.sort((a, b) => {
+          const orderA = group.sortOrders.get(a.id) ?? 0;
+          const orderB = group.sortOrders.get(b.id) ?? 0;
+          return orderA - orderB;
+        });
+      }
+    });
+    
+    // Add artistic staff with no departments to "No Department" group
+    const noDeptStaff = artisticStaff.filter(s => !artisticStaffWithDepts.has(s.id));
+    if (noDeptStaff.length > 0) {
+      grouped.set('no-department', { artisticStaff: noDeptStaff, sortOrders: new Map() });
+    }
+    
+    // Sort departments alphabetically, with "no-department" last
+    const sortedDeptIds = Array.from(grouped.keys()).sort((a, b) => {
+      if (a === 'no-department') return 1;
+      if (b === 'no-department') return -1;
+      const deptA = departments.find(d => d.id === a);
+      const deptB = departments.find(d => d.id === b);
+      return (deptA?.name || '').localeCompare(deptB?.name || '');
+    });
+    
+    // Show empty state if no departments
+    if (sortedDeptIds.length === 0 && !createArtisticStaffMutation.isPending && !updateArtisticStaffMutation.isPending && !artisticStaffQuery.isLoading && !artisticStaffQuery.isFetching) {
+      return (
+        <Card className="p-6 text-center text-muted-foreground">
+          <p>No artistic staff in departments yet.</p>
+        </Card>
+      );
+    }
+
     return (
       <div className="space-y-6" data-testid="list-artistic-staff">
-        {artisticDepartments.map((dept) => {
-          // Find all artistic staff assigned to this department
-          const staffInDept = artisticStaff.filter(staff => 
-            // We need to check if this staff member is assigned to this department
-            // This will be determined by the department assignments
-            true // Placeholder - will be filtered properly when we fetch department assignments
-          );
+        {sortedDeptIds.map((deptId) => {
+          const group = grouped.get(deptId);
+          if (!group) return null;
           
-          // For now, show all staff members (we'll implement department filtering when backend is ready)
+          const staffInDept = group.artisticStaff;
+          const dept = departments.find(d => d.id === deptId);
+          const isNoDept = deptId === 'no-department';
+          
+          // Create department-specific drag handler
+          const handleDeptDragEnd = (event: DragEndEvent) => {
+            const { active, over } = event;
+            
+            if (over && active.id !== over.id) {
+              // Extract artistic staff IDs from composite keys (format: "deptId-artisticStaffId")
+              const activeParts = String(active.id).split('-');
+              const overParts = String(over.id).split('-');
+              
+              // First 5 segments are the department ID, remaining 5 are the artistic staff ID
+              const activeId = activeParts.slice(5).join('-');
+              const overId = overParts.slice(5).join('-');
+              
+              const oldIndex = staffInDept.findIndex((s) => s.id === activeId);
+              const newIndex = staffInDept.findIndex((s) => s.id === overId);
+              
+              if (oldIndex === -1 || newIndex === -1) return;
+              
+              const newStaff = arrayMove(staffInDept, oldIndex, newIndex);
+              const newOrder = newStaff.map(s => s.id);
+              
+              // Only call the reorder mutation for real departments (not "no-department")
+              if (!isNoDept) {
+                reorderArtisticStaffInDepartmentMutation.mutate({
+                  departmentId: deptId,
+                  artisticStaffIds: newOrder
+                });
+              }
+            }
+          };
+          
           return (
-            <div key={dept.id} className="space-y-2">
+            <div key={deptId} className="space-y-2">
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  {dept.name}
+                  {isNoDept ? 'No Department' : dept?.name || 'Unknown'}
                 </h3>
+                <span className="text-xs text-muted-foreground">
+                  ({staffInDept.length})
+                </span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {artisticStaff.map((staff) => (
-                  <Card 
-                    key={staff.id} 
-                    className="p-4 hover-elevate cursor-pointer"
-                    onClick={() => {
-                      setEditTarget({ type: "artistic-staff", id: staff.id, data: staff });
-                      setArtisticStaffDialogOpen(true);
-                    }}
-                    data-testid={`card-artistic-staff-${staff.id}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={staff.photoUrl || undefined} alt={staff.preferredName} />
-                        <AvatarFallback>
-                          {staff.firstName[0]}{staff.lastName[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold truncate">{staff.preferredName}</h4>
-                        {staff.role && (
-                          <p className="text-sm text-muted-foreground truncate">{staff.role}</p>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
+              <DndContext sensors={technicianDragSensors} collisionDetection={closestCenter} onDragEnd={handleDeptDragEnd}>
+                <SortableContext items={staffInDept.map(s => `${deptId}-${s.id}`)} strategy={verticalListSortingStrategy}>
+                  <div className="space-y-2">
+                    {staffInDept.map((staff) => (
+                      <SortableArtisticStaffCard key={`${deptId}-${staff.id}`} artisticStaff={staff} deptId={deptId} />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
             </div>
           );
         })}
-        
-        {/* Show staff with no departments */}
-        {artisticStaff.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                All Artistic Staff
-              </h3>
-              <span className="text-xs text-muted-foreground">
-                ({artisticStaff.length})
-              </span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {artisticStaff.map((staff) => (
-                <Card 
-                  key={staff.id} 
-                  className="p-4 hover-elevate cursor-pointer"
-                  onClick={() => {
-                    setEditTarget({ type: "artistic-staff", id: staff.id, data: staff });
-                    setArtisticStaffDialogOpen(true);
-                  }}
-                  data-testid={`card-artistic-staff-${staff.id}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={staff.photoUrl || undefined} alt={staff.preferredName} />
-                      <AvatarFallback>
-                        {staff.firstName[0]}{staff.lastName[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold truncate">{staff.preferredName}</h4>
-                      {staff.role && (
-                        <p className="text-sm text-muted-foreground truncate">{staff.role}</p>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     );
   };

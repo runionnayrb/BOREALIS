@@ -209,6 +209,7 @@ export interface IStorage {
   getArtisticStaffDepartments(artisticStaffId: string): Promise<ArtisticStaffDepartment[]>;
   setArtisticStaffDepartments(artisticStaffId: string, departmentIds: string[]): Promise<void>;
   getArtisticStaffByDepartment(departmentId: string): Promise<ArtisticStaff[]>;
+  reorderArtisticStaffInDepartment(departmentId: string, artisticStaffIds: string[]): Promise<void>;
   
   // Report Template
   getReportTemplate(): Promise<ReportTemplate | undefined>;
@@ -1165,6 +1166,21 @@ export class DatabaseStorage implements IStorage {
     
     const staffMap = new Map(staffData.map(s => [s.id, s]));
     return staffIds.map(id => staffMap.get(id)!).filter(Boolean);
+  }
+
+  async reorderArtisticStaffInDepartment(departmentId: string, artisticStaffIds: string[]): Promise<void> {
+    await db.transaction(async (tx) => {
+      for (let i = 0; i < artisticStaffIds.length; i++) {
+        await tx.update(artisticStaffDepartments)
+          .set({ sortOrder: i })
+          .where(
+            and(
+              eq(artisticStaffDepartments.departmentId, departmentId),
+              eq(artisticStaffDepartments.artisticStaffId, artisticStaffIds[i])
+            )
+          );
+      }
+    });
   }
 
   // Report Template
