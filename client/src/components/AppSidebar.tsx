@@ -200,6 +200,14 @@ export default function AppSidebar() {
                   <p>Track artist attendance in real-time with the weekly calendar view. See who's signed in, when they arrived, and manually sign out artists when needed. All sign-ins and sign-outs update instantly across all devices.</p>
                 </div>
                 <div className="space-y-1">
+                  <p className="font-medium text-foreground">Weekly Attendance View</p>
+                  <p>View attendance history for the entire week with color-coded badges. Artists who signed in before 17:00 Dubai time show a green "Present" badge, while those who signed in after 17:00 show a red "Late" badge. The weekly view tracks whether artists attended each day, regardless of when they signed out. If an artist signs in multiple times on the same day, only the most recent sign-in time is recorded.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Automatic Midnight Sign-Out</p>
+                  <p>The system automatically signs out all artists at midnight (00:00 Dubai time) every night. Artists who are still signed in from the previous day are automatically signed out with a timestamp of 23:59:59 Dubai time, ensuring accurate daily attendance records without requiring manual sign-outs after shows.</p>
+                </div>
+                <div className="space-y-1">
                   <p className="font-medium text-foreground">Tick Sheets</p>
                   <p>Take attendance for meetings and rehearsals using tick sheets. Mark artists as present or absent. All changes sync in real-time so everyone on the team sees the same information.</p>
                 </div>
