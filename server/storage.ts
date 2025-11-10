@@ -211,6 +211,27 @@ export interface IStorage {
   getArtisticStaffByDepartment(departmentId: string): Promise<ArtisticStaff[]>;
   reorderArtisticStaffInDepartment(departmentId: string, artisticStaffIds: string[]): Promise<void>;
   
+  // Unified Staff Members (replaces technicians + artistic_staff)
+  getAllStaffMembers(): Promise<StaffMember[]>;
+  getStaffMember(id: string): Promise<StaffMember | undefined>;
+  getStaffMemberByUserId(userId: string): Promise<StaffMember | undefined>;
+  createStaffMember(staff: InsertStaffMember): Promise<StaffMember>;
+  updateStaffMember(id: string, updates: Partial<InsertStaffMember>): Promise<StaffMember | undefined>;
+  deleteStaffMember(id: string): Promise<void>;
+  archiveStaffMemberWithUser(staffId: string): Promise<void>;
+  unarchiveStaffMemberWithUser(staffId: string): Promise<void>;
+  getAllArchivedStaffMembers(): Promise<StaffMember[]>;
+  getUnlinkedStaffMembers(): Promise<StaffMember[]>;
+  linkUserToStaffMember(staffId: string, userId: string): Promise<void>;
+  unlinkUserFromStaffMember(staffId: string): Promise<void>;
+  reorderStaffMembers(staffIds: string[]): Promise<void>;
+  
+  // Staff Departments
+  getStaffDepartments(staffId: string): Promise<StaffDepartment[]>;
+  setStaffDepartments(staffId: string, departmentIds: string[]): Promise<void>;
+  getStaffByDepartment(departmentId: string): Promise<StaffMember[]>;
+  reorderStaffInDepartment(departmentId: string, staffIds: string[]): Promise<void>;
+  
   // Report Template
   getReportTemplate(): Promise<ReportTemplate | undefined>;
   updateReportTemplate(updates: Partial<InsertReportTemplate>, userId: string): Promise<ReportTemplate>;
