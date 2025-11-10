@@ -162,8 +162,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/users/unlinked-profiles", requireRole('stage_management', 'admin'), async (req, res) => {
     const artists = await storage.getUnlinkedArtists();
-    const artisticStaff = await storage.getUnlinkedArtisticStaff();
-    const technicians = await storage.getUnlinkedTechnicians();
+    const allUnlinkedStaff = await storage.getUnlinkedTechnicians();
+    const departments = await storage.getDepartments();
+    
+    // Batch-fetch ALL department assignments in a single query to avoid N+1
+    const allDepartmentAssignments = await storage.getAllTechnicianDepartments();
+    
+    // Create a map of department ID to department type for O(1) lookups
+    const departmentTypeMap = new Map(
+      departments.map(d => [d.id, d.type])
+    );
+    
+    // Create a map of staff ID to their department assignments
+    const staffDeptMap = new Map<string, typeof allDepartmentAssignments>();
+    for (const assignment of allDepartmentAssignments) {
+      if (!staffDeptMap.has(assignment.technicianId)) {
+        staffDeptMap.set(assignment.technicianId, []);
+      }
+      staffDeptMap.get(assignment.technicianId)!.push(assignment);
+    }
+    
+    // Filter staff by department type
+    const artisticStaff: typeof allUnlinkedStaff = [];
+    const technicians: typeof allUnlinkedStaff = [];
+    
+    for (const staff of allUnlinkedStaff) {
+      const staffDepartments = staffDeptMap.get(staff.id) || [];
+      
+      // If staff has no department assignments, include them in both lists
+      // so they're available for linking regardless of profile type selected
+      if (staffDepartments.length === 0) {
+        artisticStaff.push(staff);
+        technicians.push(staff);
+        continue;
+      }
+      
+      // Check if assigned to any artistic departments
+      const hasArtisticDept = staffDepartments.some(sd => 
+        departmentTypeMap.get(sd.departmentId) === 'artistic'
+      );
+      
+      // Check if assigned to any technical departments
+      const hasTechnicalDept = staffDepartments.some(sd => 
+        departmentTypeMap.get(sd.departmentId) === 'technical'
+      );
+      
+      if (hasArtisticDept) {
+        artisticStaff.push(staff);
+      }
+      if (hasTechnicalDept) {
+        technicians.push(staff);
+      }
+    }
     
     res.json({ artists, artisticStaff, technicians });
   });
@@ -175,6 +225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     email: z.string().email(),
     role: z.string().min(1),
     password: z.string().min(6),
+    userGroupId: z.string().nullable().optional(),
     profileType: z.enum(['artist', 'artisticStaff', 'technician']).optional(),
     profileId: z.string().optional(),
   });
@@ -197,6 +248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       email: validation.data.email.toLowerCase(),
       role: validation.data.role,
       password: validation.data.password,
+      userGroupId: validation.data.userGroupId,
       profileType: validation.data.profileType,
       profileId: validation.data.profileId,
     };
@@ -228,9 +280,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       role: formattedData.role as any,
     } as any);
 
-    // Update position field with role
+    // Update position field with role and userGroupId
     await storage.updateUser(newUser.id, {
       position: formattedData.role,
+      userGroupId: formattedData.userGroupId || null,
     });
 
     // Link to profile if specified

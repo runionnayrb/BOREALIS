@@ -90,6 +90,8 @@ export default function Settings() {
   const [selectedUserGroupId, setSelectedUserGroupId] = useState<string | null>(null);
   const [userGroupDialogOpen, setUserGroupDialogOpen] = useState(false);
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
+  const [selectedUserRole, setSelectedUserRole] = useState<string>("read_only");
+  const [selectedCreateUserGroupId, setSelectedCreateUserGroupId] = useState<string | null>(null);
   
   // Password reset dialog
   const [passwordResetDialogOpen, setPasswordResetDialogOpen] = useState(false);

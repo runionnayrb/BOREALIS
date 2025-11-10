@@ -189,6 +189,7 @@ export interface IStorage {
   
   // Technician Departments
   getTechnicianDepartments(technicianId: string): Promise<TechnicianDepartment[]>;
+  getAllTechnicianDepartments(): Promise<TechnicianDepartment[]>;
   setTechnicianDepartments(technicianId: string, departmentIds: string[]): Promise<void>;
   getTechniciansByDepartment(departmentId: string): Promise<Technician[]>;
   
@@ -944,6 +945,10 @@ export class DatabaseStorage implements IStorage {
   // Technician Departments
   async getTechnicianDepartments(technicianId: string): Promise<TechnicianDepartment[]> {
     return await db.select().from(technicianDepartments).where(eq(technicianDepartments.technicianId, technicianId));
+  }
+
+  async getAllTechnicianDepartments(): Promise<TechnicianDepartment[]> {
+    return await db.select().from(technicianDepartments);
   }
 
   async setTechnicianDepartments(technicianId: string, departmentIds: string[]): Promise<void> {
