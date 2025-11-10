@@ -239,7 +239,11 @@ export default function Settings() {
   });
   
   // Fetch all artistic staff-department assignments for grouping
-  const { data: allArtisticStaffDepartments = [] } = useQuery<Array<{ artisticStaffId: string; departmentId: string; sortOrder: number }>>({
+  const { 
+    data: allArtisticStaffDepartments = [], 
+    isLoading: isLoadingArtisticStaffDepartments,
+    isFetching: isFetchingArtisticStaffDepartments 
+  } = useQuery<Array<{ artisticStaffId: string; departmentId: string; sortOrder: number }>>({
     queryKey: ["/api/artistic-staff-departments/all", artisticStaff.map(s => s.id).sort().join(',')],
     queryFn: async () => {
       // Fetch department assignments for all artistic staff
@@ -2358,17 +2362,8 @@ export default function Settings() {
   };
 
   const renderGroupedArtisticStaff = () => {
-    // Show loading state only on initial load
-    if (artisticStaffQuery.isLoading) {
-      return (
-        <Card className="p-6 text-center text-muted-foreground">
-          <p>Loading...</p>
-        </Card>
-      );
-    }
-    
-    // Show empty state when no artistic staff exist
-    if (artisticStaff.length === 0) {
+    // Show empty state when no artistic staff exist (only after initial load)
+    if (artisticStaff.length === 0 && !artisticStaffQuery.isLoading) {
       return (
         <Card className="p-6 text-center text-muted-foreground">
           <p>No artistic staff yet. Click the button above to create one.</p>
@@ -2382,8 +2377,9 @@ export default function Settings() {
     allArtisticStaffDepartments.forEach(({ artisticStaffId, departmentId, sortOrder }) => {
       // Filter for artistic type departments only
       const dept = departments.find(d => d.id === departmentId);
-      if (dept && dept.type !== 'artistic') {
-        return; // Skip non-artistic departments
+      // Skip if department not found or if it's not an artistic type department
+      if (!dept || dept.type !== 'artistic') {
+        return;
       }
       
       const staff = artisticStaff.find(s => s.id === artisticStaffId);
@@ -2429,15 +2425,6 @@ export default function Settings() {
       const deptB = departments.find(d => d.id === b);
       return (deptA?.name || '').localeCompare(deptB?.name || '');
     });
-    
-    // Show empty state if no departments
-    if (sortedDeptIds.length === 0 && !createArtisticStaffMutation.isPending && !updateArtisticStaffMutation.isPending && !artisticStaffQuery.isLoading && !artisticStaffQuery.isFetching) {
-      return (
-        <Card className="p-6 text-center text-muted-foreground">
-          <p>No artistic staff in departments yet.</p>
-        </Card>
-      );
-    }
 
     return (
       <div className="space-y-6" data-testid="list-artistic-staff">
