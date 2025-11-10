@@ -2791,6 +2791,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Role Page Access routes
+  app.get("/api/role-page-access", requireRole('admin'), async (req, res) => {
+    try {
+      const access = await storage.getAllRolePageAccess();
+      res.json(access);
+    } catch (error: any) {
+      console.error("Error fetching role page access:", error);
+      res.status(500).json({ error: "Failed to fetch role page access" });
+    }
+  });
+
+  app.get("/api/role-page-access/role/:role", requireRole('admin'), async (req, res) => {
+    try {
+      const access = await storage.getRolePageAccessByRole(req.params.role);
+      res.json(access);
+    } catch (error: any) {
+      console.error("Error fetching role page access:", error);
+      res.status(500).json({ error: "Failed to fetch role page access" });
+    }
+  });
+
+  // Bulk update role page access for a role
+  app.post("/api/role-page-access/bulk/:role", requireRole('admin'), async (req, res) => {
+    try {
+      // Validate role parameter
+      if (!userRoles.includes(req.params.role as any)) {
+        return res.status(400).json({ error: "Invalid role" });
+      }
+
+      // Validate request body
+      const validation = bulkRolePageAccessSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Invalid request body", 
+          details: validation.error.errors 
+        });
+      }
+      
+      await storage.bulkUpsertRolePageAccess(req.params.role, validation.data.pages);
+      res.json({ success: true, message: "Role page access updated successfully" });
+    } catch (error: any) {
+      console.error("Error bulk updating role page access:", error);
+      res.status(500).json({ error: "Failed to bulk update role page access" });
+    }
+  });
+
   // ========== LINEUP FOUNDATION ROUTES ==========
 
   // Training Programs

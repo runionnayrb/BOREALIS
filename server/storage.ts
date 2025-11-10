@@ -34,6 +34,7 @@ import {
   type TickSheetMark, type InsertTickSheetMark, tickSheetMarks,
   type UserPermission, type InsertUserPermission, userPermissions,
   type SystemSetting, type InsertSystemSetting, systemSettings,
+  type RolePageAccess, type InsertRolePageAccess, rolePageAccess,
   type DepartmentRole, type InsertDepartmentRole, departmentRoles,
   type Competency, type InsertCompetency, competencies,
   type Position, type InsertPosition, positions,
@@ -293,6 +294,16 @@ export interface IStorage {
   updateSystemSetting(key: string, value: string, updatedBy?: string): Promise<SystemSetting | undefined>;
   upsertSystemSetting(key: string, value: string, type: string, category: string, description?: string, updatedBy?: string): Promise<SystemSetting>;
   deleteSystemSetting(key: string): Promise<void>;
+  
+  // Role Page Access
+  getAllRolePageAccess(): Promise<RolePageAccess[]>;
+  getRolePageAccess(role: string, page: string): Promise<RolePageAccess | undefined>;
+  getRolePageAccessByRole(role: string): Promise<RolePageAccess[]>;
+  createRolePageAccess(access: InsertRolePageAccess): Promise<RolePageAccess>;
+  updateRolePageAccess(id: string, updates: Partial<InsertRolePageAccess>): Promise<RolePageAccess | undefined>;
+  upsertRolePageAccess(role: string, page: string, canAccess: number): Promise<RolePageAccess>;
+  deleteRolePageAccess(id: string): Promise<void>;
+  bulkUpsertRolePageAccess(role: string, pages: Array<{page: string; canAccess: number}>): Promise<void>;
   
   // Department Roles
   getDepartmentRoles(departmentId: string): Promise<DepartmentRole[]>;
@@ -1545,6 +1556,78 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSystemSetting(key: string): Promise<void> {
     await db.delete(systemSettings).where(eq(systemSettings.settingKey, key));
+  }
+
+  // Role Page Access
+  async getAllRolePageAccess(): Promise<RolePageAccess[]> {
+    return await db.select().from(rolePageAccess).orderBy(asc(rolePageAccess.role), asc(rolePageAccess.page));
+  }
+
+  async getRolePageAccess(role: string, page: string): Promise<RolePageAccess | undefined> {
+    const result = await db.select().from(rolePageAccess)
+      .where(and(
+        eq(rolePageAccess.role, role),
+        eq(rolePageAccess.page, page)
+      ));
+    return result[0];
+  }
+
+  async getRolePageAccessByRole(role: string): Promise<RolePageAccess[]> {
+    return await db.select().from(rolePageAccess).where(eq(rolePageAccess.role, role));
+  }
+
+  async createRolePageAccess(access: InsertRolePageAccess): Promise<RolePageAccess> {
+    const result = await db.insert(rolePageAccess).values(access).returning();
+    return result[0];
+  }
+
+  async updateRolePageAccess(id: string, updates: Partial<InsertRolePageAccess>): Promise<RolePageAccess | undefined> {
+    const result = await db.update(rolePageAccess)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(rolePageAccess.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async upsertRolePageAccess(role: string, page: string, canAccess: number): Promise<RolePageAccess> {
+    const existing = await this.getRolePageAccess(role, page);
+    if (existing) {
+      const result = await db.update(rolePageAccess)
+        .set({ canAccess, updatedAt: new Date() })
+        .where(eq(rolePageAccess.id, existing.id))
+        .returning();
+      return result[0];
+    } else {
+      const result = await db.insert(rolePageAccess)
+        .values({ role, page, canAccess })
+        .returning();
+      return result[0];
+    }
+  }
+
+  async deleteRolePageAccess(id: string): Promise<void> {
+    await db.delete(rolePageAccess).where(eq(rolePageAccess.id, id));
+  }
+
+  async bulkUpsertRolePageAccess(role: string, pages: Array<{page: string; canAccess: number}>): Promise<void> {
+    await db.transaction(async (tx) => {
+      for (const pageAccess of pages) {
+        const existing = await tx.select().from(rolePageAccess)
+          .where(and(
+            eq(rolePageAccess.role, role),
+            eq(rolePageAccess.page, pageAccess.page)
+          ));
+        
+        if (existing.length > 0) {
+          await tx.update(rolePageAccess)
+            .set({ canAccess: pageAccess.canAccess, updatedAt: new Date() })
+            .where(eq(rolePageAccess.id, existing[0].id));
+        } else {
+          await tx.insert(rolePageAccess)
+            .values({ role, page: pageAccess.page, canAccess: pageAccess.canAccess });
+        }
+      }
+    });
   }
 
   // ========== LINEUP FOUNDATION IMPLEMENTATIONS ==========

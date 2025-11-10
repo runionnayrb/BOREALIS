@@ -2,6 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
+import { userRoles, pageNames } from "@shared/schema";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,13 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Settings, Shield, Zap, Users, Lock, ToggleLeft, UserCog } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -53,6 +61,44 @@ type SystemSetting = {
   settingValue: string;
   category: string;
   description: string | null;
+};
+
+type RolePageAccess = {
+  id: string;
+  role: string;
+  page: string;
+  canAccess: number;
+};
+
+const PAGES = [...pageNames];
+
+const PAGE_LABELS: Record<string, string> = {
+  'admin': 'Admin Dashboard',
+  'reports': 'Reports',
+  'attendance_dashboard': 'Attendance Dashboard',
+  'attendance_ticksheet': 'Tick Sheet',
+  'lineups': 'Lineups',
+  'lineups_training_programs': 'Training Programs',
+  'lineups_competencies': 'Competencies',
+  'lineups_positions': 'Positions',
+  'lineups_rules': 'Rules & Automation',
+  'lineups_restrictions': 'Restrictions',
+  'schedule_full': 'Full Schedule',
+  'schedule_weekly': 'Weekly Schedule',
+  'settings': 'Settings',
+  'profile': 'Profile',
+};
+
+const ROLES = [...userRoles];
+
+const ROLE_LABELS: Record<string, string> = {
+  'admin': 'Admin',
+  'stage_management': 'Stage Management',
+  'technical': 'Technical',
+  'coaching': 'Coaching',
+  'performance_wellness': 'Performance Wellness',
+  'read_only': 'Read Only',
+  'artist': 'Artist',
 };
 
 const FEATURES = [
@@ -98,6 +144,8 @@ export default function AdminDashboard() {
   const [savingUser, setSavingUser] = useState<string | null>(null);
   const [updatingRoleUserId, setUpdatingRoleUserId] = useState<string | null>(null);
   const [pendingRoleChange, setPendingRoleChange] = useState<{ userId: string; newRole: string; userName: string; currentRole: string } | null>(null);
+  const [roleAccessModalOpen, setRoleAccessModalOpen] = useState(false);
+  const [savingRoleAccess, setSavingRoleAccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (user && user.role !== 'admin') {
@@ -123,6 +171,10 @@ export default function AdminDashboard() {
 
   const { data: settings, isLoading: settingsLoading } = useQuery<SystemSetting[]>({
     queryKey: ['/api/settings'],
+  });
+
+  const { data: rolePageAccess, isLoading: rolePageAccessLoading } = useQuery<RolePageAccess[]>({
+    queryKey: ['/api/role-page-access'],
   });
 
   const updatePermissionsMutation = useMutation({
@@ -190,6 +242,28 @@ export default function AdminDashboard() {
     },
   });
 
+  const updateRolePageAccessMutation = useMutation({
+    mutationFn: async ({ role, pages }: { role: string; pages: Array<{ page: string; canAccess: number }> }) => {
+      return await apiRequest('POST', `/api/role-page-access/bulk/${role}`, { pages });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/role-page-access'] });
+      toast({
+        title: "Success",
+        description: "Role page access updated successfully",
+      });
+      setSavingRoleAccess(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update role page access",
+        variant: "destructive",
+      });
+      setSavingRoleAccess(null);
+    },
+  });
+
   const getPermissionLevel = (userId: string, feature: string): 'none' | 'view' | 'edit' | 'create' => {
     const perm = permissions?.find(p => p.userId === userId && p.feature === feature);
     if (!perm) return 'none';
@@ -251,6 +325,27 @@ export default function AdminDashboard() {
 
   const getSettingId = (key: string) => {
     return settings?.find(s => s.settingKey === key)?.id || '';
+  };
+
+  const getRolePageAccess = (role: string, page: string): boolean => {
+    const access = rolePageAccess?.find(a => a.role === role && a.page === page);
+    return access ? access.canAccess === 1 : true; // Default to true if not set
+  };
+
+  const handleRolePageAccessChange = async (role: string, page: string, canAccess: boolean) => {
+    if (!rolePageAccess) return;
+
+    setSavingRoleAccess(role);
+
+    const rolePages = PAGES.map(p => {
+      if (p === page) {
+        return { page: p, canAccess: canAccess ? 1 : 0 };
+      }
+      const existing = rolePageAccess.find(a => a.role === role && a.page === p);
+      return { page: p, canAccess: existing?.canAccess ?? 1 };
+    });
+
+    await updateRolePageAccessMutation.mutateAsync({ role, pages: rolePages });
   };
 
   // Group users by user group
@@ -407,10 +502,20 @@ export default function AdminDashboard() {
           <TabsContent value="roles" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>User Roles</CardTitle>
-                <CardDescription>
-                  Assign roles to users. Admin users have full system access and can sign off on any training step.
-                </CardDescription>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <CardTitle>User Roles</CardTitle>
+                    <CardDescription>
+                      Assign roles to users. Admin users have full system access and can sign off on any training step.
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    onClick={() => setRoleAccessModalOpen(true)} 
+                    data-testid="button-role-permissions"
+                  >
+                    Role Permissions
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -852,6 +957,58 @@ export default function AdminDashboard() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <Dialog open={roleAccessModalOpen} onOpenChange={setRoleAccessModalOpen}>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto" data-testid="dialog-role-permissions">
+            <DialogHeader>
+              <DialogTitle>Role Permissions</DialogTitle>
+              <DialogDescription>
+                Control which pages each role can access. Checked pages are accessible to that role.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-3 font-semibold sticky left-0 bg-card z-10">Role</th>
+                    {PAGES.map(page => (
+                      <th key={page} className="text-center p-3 font-semibold min-w-[100px]">
+                        <div className="text-xs">{PAGE_LABELS[page]}</div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {ROLES.map(role => (
+                    <tr key={role} className="border-b hover-elevate" data-testid={`role-permissions-row-${role}`}>
+                      <td className="p-3 sticky left-0 bg-card z-10">
+                        <div className="flex flex-col min-w-[150px]">
+                          <span className="font-medium text-sm">{ROLE_LABELS[role]}</span>
+                        </div>
+                      </td>
+                      {PAGES.map(page => (
+                        <td key={page} className="p-3 text-center">
+                          <Checkbox
+                            checked={getRolePageAccess(role, page)}
+                            onCheckedChange={(checked) => handleRolePageAccessChange(role, page, checked as boolean)}
+                            disabled={savingRoleAccess === role}
+                            data-testid={`checkbox-access-${role}-${page}`}
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {savingRoleAccess && (
+                <div className="flex items-center justify-center mt-4 gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Saving permissions...
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

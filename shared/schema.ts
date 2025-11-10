@@ -894,6 +894,60 @@ export const insertSystemSettingSchema = createInsertSchema(systemSettings).omit
 export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
 export type SystemSetting = typeof systemSettings.$inferSelect;
 
+// Page names for role-based page access control
+export const pageNames = [
+  'admin',
+  'reports',
+  'attendance_dashboard',
+  'attendance_ticksheet',
+  'lineups',
+  'lineups_training_programs',
+  'lineups_competencies',
+  'lineups_positions',
+  'lineups_rules',
+  'lineups_restrictions',
+  'schedule_full',
+  'schedule_weekly',
+  'settings',
+  'profile',
+] as const;
+export type PageName = typeof pageNames[number];
+
+// Role Page Access - control which pages each role can access
+export const rolePageAccess = pgTable("role_page_access", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  role: text("role").notNull(), // User role from userRoles
+  page: text("page").notNull(), // Page identifier
+  canAccess: integer("can_access").notNull().default(1), // 0 = no access, 1 = can access
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  rolePageUnique: sql`UNIQUE (role, page)`,
+}));
+
+export const insertRolePageAccessSchema = createInsertSchema(rolePageAccess).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  role: z.enum(userRoles),
+  page: z.enum(pageNames),
+  canAccess: z.number().min(0).max(1),
+});
+
+export const updateRolePageAccessSchema = insertRolePageAccessSchema.partial();
+
+export const bulkRolePageAccessSchema = z.object({
+  pages: z.array(z.object({
+    page: z.enum(pageNames),
+    canAccess: z.union([z.literal(0), z.literal(1)]),
+  })),
+});
+
+export type InsertRolePageAccess = z.infer<typeof insertRolePageAccessSchema>;
+export type UpdateRolePageAccess = z.infer<typeof updateRolePageAccessSchema>;
+export type RolePageAccess = typeof rolePageAccess.$inferSelect;
+
 // ========== LINEUP FOUNDATION TABLES ==========
 
 // Department Roles - HOD/AHOD/Lead assignments
