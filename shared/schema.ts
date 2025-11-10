@@ -450,6 +450,49 @@ export const insertArtisticStaffDepartmentSchema = createInsertSchema(artisticSt
 export type InsertArtisticStaffDepartment = z.infer<typeof insertArtisticStaffDepartmentSchema>;
 export type ArtisticStaffDepartment = typeof artisticStaffDepartments.$inferSelect;
 
+// Unified Staff Members (replaces both technicians and artistic_staff)
+export const staffMembers = pgTable("staff_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  preferredName: text("preferred_name").notNull(),
+  role: text("role"),
+  photoUrl: text("photo_url"),
+  userId: varchar("user_id").references(() => users.id), // Linked user account for authentication
+  status: text("status").notNull().default('active'), // active, out, archived
+  sortOrder: integer("sort_order").notNull().default(0),
+  archivedAt: timestamp("archived_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertStaffMemberSchema = createInsertSchema(staffMembers).omit({
+  id: true,
+  createdAt: true,
+  sortOrder: true,
+  archivedAt: true,
+});
+
+export type InsertStaffMember = z.infer<typeof insertStaffMemberSchema>;
+export type StaffMember = typeof staffMembers.$inferSelect;
+
+// Staff Departments (junction table - replaces both technician_departments and artistic_staff_departments)
+export const staffDepartments = pgTable("staff_departments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  staffMemberId: varchar("staff_member_id").notNull().references(() => staffMembers.id),
+  departmentId: varchar("department_id").notNull().references(() => departments.id),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertStaffDepartmentSchema = createInsertSchema(staffDepartments).omit({
+  id: true,
+  createdAt: true,
+  sortOrder: true,
+});
+
+export type InsertStaffDepartment = z.infer<typeof insertStaffDepartmentSchema>;
+export type StaffDepartment = typeof staffDepartments.$inferSelect;
+
 // Report Template
 export const reportTemplate = pgTable("report_template", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
