@@ -207,6 +207,7 @@ export interface IStorage {
   getUnlinkedArtisticStaff(): Promise<Technician[]>;
   reorderArtisticStaff(artisticStaffIds: string[]): Promise<void>;
   getArtisticStaffDepartments(artisticStaffId: string): Promise<TechnicianDepartment[]>;
+  getAllArtisticStaffDepartments(): Promise<TechnicianDepartment[]>;
   setArtisticStaffDepartments(artisticStaffId: string, departmentIds: string[]): Promise<void>;
   getArtisticStaffByDepartment(departmentId: string): Promise<Technician[]>;
   reorderArtisticStaffInDepartment(departmentId: string, artisticStaffIds: string[]): Promise<void>;
@@ -1186,6 +1187,10 @@ export class DatabaseStorage implements IStorage {
 
   async getArtisticStaffDepartments(artisticStaffId: string): Promise<TechnicianDepartment[]> {
     return this.getTechnicianDepartments(artisticStaffId);
+  }
+
+  async getAllArtisticStaffDepartments(): Promise<TechnicianDepartment[]> {
+    return this.getAllTechnicianDepartments();
   }
 
   async setArtisticStaffDepartments(artisticStaffId: string, departmentIds: string[]): Promise<void> {

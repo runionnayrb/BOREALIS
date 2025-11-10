@@ -1298,6 +1298,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Technician Departments routes
+  app.get("/api/technician-departments/all", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const allDepartments = await storage.getAllTechnicianDepartments();
+    res.json(allDepartments);
+  });
+
   app.get("/api/technicians/:id/departments", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const departments = await storage.getTechnicianDepartments(req.params.id);
@@ -1403,6 +1409,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Artistic Staff Departments routes
+  app.get("/api/artistic-staff-departments/all", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const allDepartments = await storage.getAllArtisticStaffDepartments();
+    res.json(allDepartments);
+  });
+
   app.get("/api/artistic-staff/:id/departments", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const departments = await storage.getArtisticStaffDepartments(req.params.id);

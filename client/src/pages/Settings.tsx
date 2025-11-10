@@ -220,46 +220,30 @@ export default function Settings() {
   
   // Fetch all technician-department assignments for grouping
   const { data: allTechnicianDepartments = [] } = useQuery<Array<{ technicianId: string; departmentId: string; sortOrder: number }>>({
-    queryKey: ["/api/technician-departments/all", technicians.map(t => t.id).sort().join(',')],
+    queryKey: ["/api/technician-departments/all"],
     queryFn: async () => {
-      // Fetch department assignments for all technicians
-      const assignments = await Promise.all(
-        technicians.map(async (tech) => {
-          const res = await fetch(`/api/technicians/${tech.id}/departments`, {
-            credentials: "include"
-          });
-          if (!res.ok) return [];
-          const depts = await res.json();
-          return depts.map((d: any) => ({ technicianId: tech.id, departmentId: d.departmentId, sortOrder: d.sortOrder || 0 }));
-        })
-      );
-      return assignments.flat();
-    },
-    enabled: technicians.length > 0
+      const res = await fetch("/api/technician-departments/all", {
+        credentials: "include"
+      });
+      if (!res.ok) return [];
+      const depts = await res.json();
+      return depts.map((d: any) => ({ technicianId: d.technicianId, departmentId: d.departmentId, sortOrder: d.sortOrder || 0 }));
+    }
   });
   
   // Fetch all artistic staff-department assignments for grouping
   const { 
-    data: allArtisticStaffDepartments = [], 
-    isLoading: isLoadingArtisticStaffDepartments,
-    isFetching: isFetchingArtisticStaffDepartments 
+    data: allArtisticStaffDepartments = []
   } = useQuery<Array<{ artisticStaffId: string; departmentId: string; sortOrder: number }>>({
-    queryKey: ["/api/artistic-staff-departments/all", artisticStaff.map(s => s.id).sort().join(',')],
+    queryKey: ["/api/artistic-staff-departments/all"],
     queryFn: async () => {
-      // Fetch department assignments for all artistic staff
-      const assignments = await Promise.all(
-        artisticStaff.map(async (staff) => {
-          const res = await fetch(`/api/artistic-staff/${staff.id}/departments`, {
-            credentials: "include"
-          });
-          if (!res.ok) return [];
-          const depts = await res.json();
-          return depts.map((d: any) => ({ artisticStaffId: staff.id, departmentId: d.departmentId, sortOrder: d.sortOrder || 0 }));
-        })
-      );
-      return assignments.flat();
-    },
-    enabled: artisticStaff.length > 0
+      const res = await fetch("/api/artistic-staff-departments/all", {
+        credentials: "include"
+      });
+      if (!res.ok) return [];
+      const depts = await res.json();
+      return depts.map((d: any) => ({ artisticStaffId: d.technicianId, departmentId: d.departmentId, sortOrder: d.sortOrder || 0 }));
+    }
   });
   
   // Fetch department roles for the selected department
@@ -2362,8 +2346,8 @@ export default function Settings() {
   };
 
   const renderGroupedArtisticStaff = () => {
-    // Show empty state when no artistic staff exist (only after initial load)
-    if (artisticStaff.length === 0 && !artisticStaffQuery.isLoading) {
+    // Show empty state when no artistic staff exist
+    if (artisticStaff.length === 0) {
       return (
         <Card className="p-6 text-center text-muted-foreground">
           <p>No artistic staff yet. Click the button above to create one.</p>
@@ -2419,8 +2403,10 @@ export default function Settings() {
       }
     });
     
-    // Sort departments alphabetically
+    // Sort departments alphabetically, with "no-department" last
     const sortedDeptIds = Array.from(grouped.keys()).sort((a, b) => {
+      if (a === 'no-department') return 1;
+      if (b === 'no-department') return -1;
       const deptA = departments.find(d => d.id === a);
       const deptB = departments.find(d => d.id === b);
       return (deptA?.name || '').localeCompare(deptB?.name || '');
