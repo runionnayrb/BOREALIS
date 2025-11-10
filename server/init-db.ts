@@ -1,8 +1,17 @@
 import { db } from "./db";
-import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { 
+  users, 
+  migrations, 
+  technicians, 
+  artisticStaff, 
+  technicianDepartments, 
+  artisticStaffDepartments,
+  departments 
+} from "@shared/schema";
+import { eq, inArray, and, sql as sqlOp } from "drizzle-orm";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
+import { sql } from "drizzle-orm";
 
 const scryptAsync = promisify(scrypt);
 
@@ -10,6 +19,223 @@ async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(16).toString("hex");
   const buf = (await scryptAsync(password, salt, 64)) as Buffer;
   return `${buf.toString("hex")}.${salt}`;
+}
+
+/**
+ * Migration function type
+ */
+type MigrationFunction = {
+  name: string;
+  run: () => Promise<void>;
+};
+
+/**
+ * Migration: Move technicians from artistic-type departments to artistic_staff table
+ */
+const migrateArtisticTechnicians: MigrationFunction = {
+  name: 'migrate_artistic_technicians_to_artistic_staff',
+  run: async () => {
+    console.log('🔄 Running migration: migrate_artistic_technicians_to_artistic_staff');
+    
+    try {
+      // Use a transaction for atomicity
+      await db.transaction(async (tx) => {
+        // Step 1: Get all departments with type='artistic'
+        const artisticDepts = await tx.query.departments.findMany({
+          where: eq(departments.type, 'artistic'),
+        });
+        
+        if (artisticDepts.length === 0) {
+          console.log('  ℹ️  No artistic departments found, skipping migration');
+          return;
+        }
+        
+        const artisticDeptIds = artisticDepts.map(d => d.id);
+        console.log(`  📋 Found ${artisticDepts.length} artistic departments`);
+        
+        // Step 2: Get all technician-department assignments for artistic departments
+        const artisticTechAssignments = await tx.query.technicianDepartments.findMany({
+          where: inArray(technicianDepartments.departmentId, artisticDeptIds),
+        });
+        
+        if (artisticTechAssignments.length === 0) {
+          console.log('  ℹ️  No technicians assigned to artistic departments, skipping migration');
+          return;
+        }
+        
+        // Get unique technician IDs (use Array.from to avoid downlevel iteration issues)
+        const technicianIds = Array.from(new Set(artisticTechAssignments.map(a => a.technicianId)));
+        console.log(`  👥 Found ${technicianIds.length} technicians in artistic departments`);
+        
+        // Step 3: For each technician, check if ALL their departments are artistic
+        // If they have mixed departments (both artistic and technical), we need to handle this
+        const allTechDeptAssignments = await tx.query.technicianDepartments.findMany({
+          where: inArray(technicianDepartments.technicianId, technicianIds),
+        });
+        
+        // Group by technician to check their department types
+        const techDeptMap = new Map<string, string[]>();
+        allTechDeptAssignments.forEach(assignment => {
+          if (!techDeptMap.has(assignment.technicianId)) {
+            techDeptMap.set(assignment.technicianId, []);
+          }
+          techDeptMap.get(assignment.technicianId)!.push(assignment.departmentId);
+        });
+        
+        // Determine which technicians to migrate (only those with ALL artistic departments)
+        const techsToMigrate: string[] = [];
+        const artisticDeptIdSet = new Set(artisticDeptIds); // Use Set for faster lookup
+        
+        // Use forEach to avoid downlevel iteration issues
+        techDeptMap.forEach((deptIds: string[], techId: string) => {
+          const allArtistic = deptIds.every((deptId: string) => artisticDeptIdSet.has(deptId));
+          if (allArtistic) {
+            techsToMigrate.push(techId);
+          } else {
+            console.log(`  ⚠️  Skipping technician ${techId} - has mixed department types`);
+          }
+        });
+        
+        if (techsToMigrate.length === 0) {
+          console.log('  ℹ️  No technicians with exclusively artistic departments, skipping migration');
+          return;
+        }
+        
+        console.log(`  ✅ Will migrate ${techsToMigrate.length} technicians to artistic_staff`);
+        
+        // Step 4: Get full technician records for migration
+        const techniciansToMove = await tx.query.technicians.findMany({
+          where: inArray(technicians.id, techsToMigrate),
+        });
+        
+        // Step 5: Insert into artistic_staff (preserving all fields including IDs)
+        for (const tech of techniciansToMove) {
+          await tx.insert(artisticStaff).values({
+            id: tech.id, // Preserve UUID to maintain references
+            firstName: tech.firstName,
+            lastName: tech.lastName,
+            preferredName: tech.preferredName,
+            role: tech.role,
+            photoUrl: tech.photoUrl,
+            userId: tech.userId,
+            status: tech.status,
+            sortOrder: tech.sortOrder,
+            archivedAt: tech.archivedAt,
+            createdAt: tech.createdAt,
+          }).onConflictDoNothing(); // Skip if already exists
+        }
+        
+        console.log(`  ✅ Inserted ${techniciansToMove.length} records into artistic_staff`);
+        
+        // Step 6: Copy department assignments to artistic_staff_departments
+        const assignmentsToMove = artisticTechAssignments.filter(a => 
+          techsToMigrate.includes(a.technicianId)
+        );
+        
+        for (const assignment of assignmentsToMove) {
+          await tx.insert(artisticStaffDepartments).values({
+            artisticStaffId: assignment.technicianId, // Use same ID
+            departmentId: assignment.departmentId,
+            sortOrder: assignment.sortOrder,
+            createdAt: assignment.createdAt,
+          }).onConflictDoNothing(); // Skip if already exists
+        }
+        
+        console.log(`  ✅ Copied ${assignmentsToMove.length} department assignments`);
+        
+        // Step 7: Delete from technician_departments
+        await tx.delete(technicianDepartments)
+          .where(
+            and(
+              inArray(technicianDepartments.technicianId, techsToMigrate),
+              inArray(technicianDepartments.departmentId, artisticDeptIds)
+            )
+          );
+        
+        console.log(`  ✅ Deleted department assignments from technician_departments`);
+        
+        // Step 8: Delete from technicians
+        await tx.delete(technicians)
+          .where(inArray(technicians.id, techsToMigrate));
+        
+        console.log(`  ✅ Deleted ${techsToMigrate.length} records from technicians`);
+        console.log(`  🎉 Migration complete!`);
+      });
+    } catch (error) {
+      console.error('  ❌ Migration failed:', error);
+      throw error; // Re-throw to prevent migration from being marked as complete
+    }
+  },
+};
+
+/**
+ * Run all pending migrations
+ */
+async function runMigrations() {
+  console.log('🔄 Checking for pending migrations...');
+  
+  const allMigrations: MigrationFunction[] = [
+    migrateArtisticTechnicians,
+  ];
+  
+  try {
+    // Ensure migrations table exists
+    try {
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS migrations (
+          id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+          name TEXT NOT NULL UNIQUE,
+          run_at TIMESTAMP NOT NULL DEFAULT NOW()
+        )
+      `);
+    } catch (createError) {
+      console.error('  ⚠️  Could not create migrations table:', createError);
+      // Continue anyway - table might already exist
+    }
+    
+    // Get list of completed migrations
+    let completedMigrations: { name: string }[] = [];
+    try {
+      completedMigrations = await db.query.migrations.findMany();
+    } catch (queryError) {
+      console.log('  ℹ️  No previous migrations found (first run)');
+      completedMigrations = [];
+    }
+    const completedNames = new Set(completedMigrations.map(m => m.name));
+    
+    // Find pending migrations
+    const pendingMigrations = allMigrations.filter(m => !completedNames.has(m.name));
+    
+    if (pendingMigrations.length === 0) {
+      console.log('✅ All migrations up to date');
+      return;
+    }
+    
+    console.log(`📋 Found ${pendingMigrations.length} pending migration(s)`);
+    
+    // Run each pending migration
+    for (const migration of pendingMigrations) {
+      try {
+        console.log(`\n🔄 Running: ${migration.name}`);
+        await migration.run();
+        
+        // Mark as complete
+        await db.insert(migrations).values({
+          name: migration.name,
+        });
+        
+        console.log(`✅ Migration ${migration.name} completed successfully\n`);
+      } catch (error) {
+        console.error(`❌ Migration ${migration.name} failed:`, error);
+        throw error; // Stop on first failure
+      }
+    }
+    
+    console.log('✅ All migrations completed successfully');
+  } catch (error) {
+    console.error('❌ Migration runner failed:', error);
+    // Don't throw - allow server to start even if migrations fail
+  }
 }
 
 /**
@@ -66,6 +292,9 @@ export async function initializeDatabase() {
     }
     
     console.log('✅ Database initialization complete');
+    
+    // Run migrations after admin user setup
+    await runMigrations();
   } catch (error) {
     console.error("❌ Database initialization error:", error);
     // Don't throw - allow server to start even if initialization fails

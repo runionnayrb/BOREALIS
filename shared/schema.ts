@@ -1321,3 +1321,18 @@ export const insertArtistCompetencySchema = createInsertSchema(artistCompetencie
 
 export type InsertArtistCompetency = z.infer<typeof insertArtistCompetencySchema>;
 export type ArtistCompetency = typeof artistCompetencies.$inferSelect;
+
+// Migrations - Track completed database migrations
+export const migrations = pgTable("migrations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  runAt: timestamp("run_at").notNull().defaultNow(),
+});
+
+export const insertMigrationSchema = createInsertSchema(migrations).omit({
+  id: true,
+  runAt: true,
+});
+
+export type InsertMigration = z.infer<typeof insertMigrationSchema>;
+export type Migration = typeof migrations.$inferSelect;
