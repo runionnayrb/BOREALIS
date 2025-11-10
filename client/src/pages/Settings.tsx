@@ -2371,17 +2371,14 @@ export default function Settings() {
 
     // Group artistic staff by department with proper ordering
     const grouped = new Map<string, { artisticStaff: ArtisticStaff[]; sortOrders: Map<string, number> }>();
-    const artisticStaffWithDepts = new Set<string>();
     
     allArtisticStaffDepartments.forEach(({ artisticStaffId, departmentId, sortOrder }) => {
-      // Track all staff with any department assignment (artistic or technical)
-      artisticStaffWithDepts.add(artisticStaffId);
-      
       // Filter for artistic type departments only
       const dept = departments.find(d => d.id === departmentId);
       if (dept && dept.type !== 'artistic') {
         return; // Skip non-artistic departments
       }
+      
       const staff = artisticStaff.find(s => s.id === artisticStaffId);
       if (!staff) return;
       
@@ -2419,16 +2416,8 @@ export default function Settings() {
       }
     });
     
-    // Add artistic staff with no departments to "No Department" group
-    const noDeptStaff = artisticStaff.filter(s => !artisticStaffWithDepts.has(s.id));
-    if (noDeptStaff.length > 0) {
-      grouped.set('no-department', { artisticStaff: noDeptStaff, sortOrders: new Map() });
-    }
-    
-    // Sort departments alphabetically, with "no-department" last
+    // Sort departments alphabetically
     const sortedDeptIds = Array.from(grouped.keys()).sort((a, b) => {
-      if (a === 'no-department') return 1;
-      if (b === 'no-department') return -1;
       const deptA = departments.find(d => d.id === a);
       const deptB = departments.find(d => d.id === b);
       return (deptA?.name || '').localeCompare(deptB?.name || '');
