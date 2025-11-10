@@ -210,6 +210,81 @@ const createRolePageAccessTable: MigrationFunction = {
 };
 
 /**
+ * Migration: Add performance indexes for frequently queried columns
+ * Idempotent: Safe to run on fresh databases or already-migrated databases
+ */
+const addPerformanceIndexes: MigrationFunction = {
+  name: 'add_performance_indexes',
+  run: async () => {
+    console.log('🔄 Running migration: add_performance_indexes');
+    
+    try {
+      // Index for reports.date - frequently queried for daily reports
+      await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_reports_date ON reports(date)
+      `);
+      console.log('  ✅ Created index: idx_reports_date');
+      
+      // Composite index for attendance lookups by date and artistId
+      await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_attendance_date_artist ON attendance_records(date, artist_id)
+      `);
+      console.log('  ✅ Created index: idx_attendance_date_artist');
+      
+      // Composite index for user permissions lookups
+      await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_user_permissions_user_perm ON user_permissions(user_id, permission)
+      `);
+      console.log('  ✅ Created index: idx_user_permissions_user_perm');
+      
+      // Partial index for active artists (archived_at IS NULL is most common query)
+      await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_artists_active ON artists(sort_order) WHERE archived_at IS NULL
+      `);
+      console.log('  ✅ Created index: idx_artists_active');
+      
+      // Partial index for active technicians
+      await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_technicians_active ON technicians(sort_order) WHERE archived_at IS NULL
+      `);
+      console.log('  ✅ Created index: idx_technicians_active');
+      
+      // Indexes for frequently filtered join tables
+      await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_act_artists_act ON act_artists(act_id)
+      `);
+      console.log('  ✅ Created index: idx_act_artists_act');
+      
+      await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_scene_artists_scene ON scene_artists(scene_id)
+      `);
+      console.log('  ✅ Created index: idx_scene_artists_scene');
+      
+      await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_training_artists_training ON training_artists(training_id)
+      `);
+      console.log('  ✅ Created index: idx_training_artists_training');
+      
+      await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_technician_departments_tech ON technician_departments(technician_id)
+      `);
+      console.log('  ✅ Created index: idx_technician_departments_tech');
+      
+      // Index for trainings by date
+      await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_trainings_date ON trainings(start_time)
+      `);
+      console.log('  ✅ Created index: idx_trainings_date');
+      
+      console.log('  🎉 Migration complete!');
+    } catch (error) {
+      console.error('  ❌ Migration failed:', error);
+      throw error;
+    }
+  },
+};
+
+/**
  * Run all pending migrations
  */
 async function runMigrations() {
@@ -218,6 +293,7 @@ async function runMigrations() {
   const allMigrations: MigrationFunction[] = [
     consolidateAndRenameStaff,
     createRolePageAccessTable,
+    addPerformanceIndexes,
   ];
   
   try {

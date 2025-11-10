@@ -157,7 +157,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User management routes
   app.get("/api/users", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const allUsers = await storage.getAllUsers();
+    
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+    const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
+    
+    const allUsers = await storage.getAllUsers({ limit, offset });
     const sanitizedUsers = allUsers.map(sanitizeUser);
     res.json(sanitizedUsers);
   });
@@ -472,10 +476,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     // Check if user has created or updated any reports
-    const allReports = await storage.getAllReports();
-    const hasReports = allReports.some(
-      report => report.createdBy === req.params.id || report.updatedBy === req.params.id
-    );
+    const hasReports = await storage.hasUserReports(req.params.id);
 
     if (hasReports) {
       return res.status(400).json({ 
@@ -1103,7 +1104,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Artists routes
   app.get("/api/artists", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const artists = await storage.getAllArtists();
+    
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+    const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
+    
+    const artists = await storage.getAllArtists({ limit, offset });
     res.json(artists);
   });
 
@@ -1170,7 +1175,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/artists/archived", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const archivedArtists = await storage.getAllArchivedArtists();
+    
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+    const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
+    
+    const archivedArtists = await storage.getAllArchivedArtists({ limit, offset });
     res.json(archivedArtists);
   });
 
@@ -1187,7 +1196,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Technicians routes
   app.get("/api/technicians", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const technicians = await storage.getAllTechnicians();
+    
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+    const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
+    
+    const technicians = await storage.getAllTechnicians({ limit, offset });
     res.json(technicians);
   });
 
@@ -1240,7 +1253,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/technicians/archived", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const archivedTechnicians = await storage.getAllArchivedTechnicians();
+    
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+    const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
+    
+    const archivedTechnicians = await storage.getAllArchivedTechnicians({ limit, offset });
     res.json(archivedTechnicians);
   });
 
@@ -1681,9 +1698,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ error: "Invalid date range", details: validation.error.issues });
     }
 
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+    const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
+
     const records = await storage.getAttendanceRecordsByDateRange(
       validation.data.startDate,
-      validation.data.endDate
+      validation.data.endDate,
+      { limit, offset }
     );
     
     // Get all artists to populate artist data in records
@@ -2028,7 +2049,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Reports routes
   app.get("/api/reports", canViewReports, async (req, res) => {
-    const reports = await storage.getAllReports();
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+    const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
+    
+    const reports = await storage.getAllReports({ limit, offset });
     res.json(reports);
   });
 

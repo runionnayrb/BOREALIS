@@ -70,7 +70,7 @@ export interface IStorage {
   // User management
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  getAllUsers(): Promise<User[]>;
+  getAllUsers(options?: { limit?: number; offset?: number }): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<Omit<User, 'id' | 'createdAt'>>): Promise<User | undefined>;
   
@@ -154,7 +154,7 @@ export interface IStorage {
   deleteArtistGroup(id: string): Promise<void>;
   
   // Artists
-  getAllArtists(): Promise<Artist[]>;
+  getAllArtists(options?: { limit?: number; offset?: number }): Promise<Artist[]>;
   getArtist(id: string): Promise<Artist | undefined>;
   getArtistByUserId(userId: string): Promise<Artist | undefined>;
   createArtist(artist: InsertArtist): Promise<Artist>;
@@ -162,7 +162,7 @@ export interface IStorage {
   deleteArtist(id: string): Promise<void>;
   archiveArtistWithUser(artistId: string): Promise<void>;
   unarchiveArtistWithUser(artistId: string): Promise<void>;
-  getAllArchivedArtists(): Promise<Artist[]>;
+  getAllArchivedArtists(options?: { limit?: number; offset?: number }): Promise<Artist[]>;
   getUnlinkedArtists(): Promise<Artist[]>;
   
   // Act Artists
@@ -174,7 +174,7 @@ export interface IStorage {
   setActArtistGroups(actId: string, artistGroupIds: string[]): Promise<void>;
   
   // Technicians
-  getAllTechnicians(): Promise<Technician[]>;
+  getAllTechnicians(options?: { limit?: number; offset?: number }): Promise<Technician[]>;
   getTechnician(id: string): Promise<Technician | undefined>;
   getTechnicianByUserId(userId: string): Promise<Technician | undefined>;
   createTechnician(technician: InsertTechnician): Promise<Technician>;
@@ -182,7 +182,7 @@ export interface IStorage {
   deleteTechnician(id: string): Promise<void>;
   archiveTechnicianWithUser(technicianId: string): Promise<void>;
   unarchiveTechnicianWithUser(technicianId: string): Promise<void>;
-  getAllArchivedTechnicians(): Promise<Technician[]>;
+  getAllArchivedTechnicians(options?: { limit?: number; offset?: number }): Promise<Technician[]>;
   getUnlinkedTechnicians(): Promise<Technician[]>;
   linkUserToTechnician(technicianId: string, userId: string): Promise<void>;
   unlinkUserFromTechnician(technicianId: string): Promise<void>;
@@ -216,12 +216,13 @@ export interface IStorage {
   updateReportTemplate(updates: Partial<InsertReportTemplate>, userId: string): Promise<ReportTemplate>;
   
   // Reports
-  getAllReports(): Promise<Report[]>;
+  getAllReports(options?: { limit?: number; offset?: number }): Promise<Report[]>;
   getReport(id: string): Promise<Report | undefined>;
   getReportByDate(date: string): Promise<Report | undefined>;
   createReport(report: InsertReport, userId: string): Promise<Report>;
   updateReport(id: string, updates: Partial<Omit<InsertReport, 'createdBy'>>, userId: string): Promise<Report | undefined>;
   deleteReport(id: string): Promise<void>;
+  hasUserReports(userId: string): Promise<boolean>;
   
   // Trainings
   getTrainingsByReportId(reportId: string): Promise<Training[]>;
@@ -250,7 +251,7 @@ export interface IStorage {
   // Attendance Records
   getAttendanceRecord(artistId: string, date: string): Promise<AttendanceRecord | undefined>;
   getAttendanceRecordsByDate(date: string): Promise<AttendanceRecord[]>;
-  getAttendanceRecordsByDateRange(startDate: string, endDate: string): Promise<AttendanceRecord[]>;
+  getAttendanceRecordsByDateRange(startDate: string, endDate: string, options?: { limit?: number; offset?: number }): Promise<AttendanceRecord[]>;
   getAttendanceRecordsByArtist(artistId: string, startDate?: string, endDate?: string): Promise<AttendanceRecord[]>;
   createAttendanceRecord(record: InsertAttendanceRecord): Promise<AttendanceRecord>;
   updateAttendanceRecord(id: string, updates: Partial<InsertAttendanceRecord>): Promise<AttendanceRecord | undefined>;
@@ -455,8 +456,17 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getAllUsers(): Promise<User[]> {
-    return await db.select().from(users).where(isNull(users.archivedAt)).orderBy(asc(users.name));
+  async getAllUsers(options?: { limit?: number; offset?: number }): Promise<User[]> {
+    let query = db.select().from(users).where(isNull(users.archivedAt)).orderBy(asc(users.name));
+    
+    if (options?.limit) {
+      query = query.limit(options.limit) as any;
+    }
+    if (options?.offset) {
+      query = query.offset(options.offset) as any;
+    }
+    
+    return await query;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -564,9 +574,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async reorderActs(actsWithOrder: Array<{id: string; sortOrder: number}>): Promise<void> {
-    for (const act of actsWithOrder) {
-      await db.update(acts).set({ sortOrder: act.sortOrder }).where(eq(acts.id, act.id));
-    }
+    if (actsWithOrder.length === 0) return;
+    
+    // Build CASE statement for batch update
+    const caseStatement = sql`(case ${sql.join(
+      actsWithOrder.map(act => sql`when ${acts.id} = ${act.id} then ${act.sortOrder}`),
+      sql` `
+    )} end)`;
+    
+    const actIds = actsWithOrder.map(act => act.id);
+    
+    await db.update(acts)
+      .set({ sortOrder: caseStatement })
+      .where(inArray(acts.id, actIds));
   }
 
   // Act Departments
@@ -608,9 +628,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async reorderCues(cuesWithOrder: Array<{id: string; sortOrder: number}>): Promise<void> {
-    for (const cue of cuesWithOrder) {
-      await db.update(cues).set({ sortOrder: cue.sortOrder }).where(eq(cues.id, cue.id));
-    }
+    if (cuesWithOrder.length === 0) return;
+    
+    // Build CASE statement for batch update
+    const caseStatement = sql`(case ${sql.join(
+      cuesWithOrder.map(cue => sql`when ${cues.id} = ${cue.id} then ${cue.sortOrder}`),
+      sql` `
+    )} end)`;
+    
+    const cueIds = cuesWithOrder.map(cue => cue.id);
+    
+    await db.update(cues)
+      .set({ sortOrder: caseStatement })
+      .where(inArray(cues.id, cueIds));
   }
 
   // Cue Departments
@@ -752,8 +782,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Artists
-  async getAllArtists(): Promise<Artist[]> {
-    return await db.select().from(artists).where(isNull(artists.archivedAt)).orderBy(asc(artists.sortOrder));
+  async getAllArtists(options?: { limit?: number; offset?: number }): Promise<Artist[]> {
+    let query = db.select().from(artists).where(isNull(artists.archivedAt)).orderBy(asc(artists.sortOrder));
+    
+    if (options?.limit) {
+      query = query.limit(options.limit) as any;
+    }
+    if (options?.offset) {
+      query = query.offset(options.offset) as any;
+    }
+    
+    return await query;
   }
 
   async getArtist(id: string): Promise<Artist | undefined> {
@@ -810,8 +849,17 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getAllArchivedArtists(): Promise<Artist[]> {
-    return await db.select().from(artists).where(isNotNull(artists.archivedAt)).orderBy(asc(artists.sortOrder));
+  async getAllArchivedArtists(options?: { limit?: number; offset?: number }): Promise<Artist[]> {
+    let query = db.select().from(artists).where(isNotNull(artists.archivedAt)).orderBy(asc(artists.sortOrder));
+    
+    if (options?.limit) {
+      query = query.limit(options.limit) as any;
+    }
+    if (options?.offset) {
+      query = query.offset(options.offset) as any;
+    }
+    
+    return await query;
   }
 
   async getUnlinkedArtists(): Promise<Artist[]> {
@@ -821,11 +869,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async reorderArtists(artistIds: string[]): Promise<void> {
-    await db.transaction(async (tx) => {
-      for (let i = 0; i < artistIds.length; i++) {
-        await tx.update(artists).set({ sortOrder: i }).where(eq(artists.id, artistIds[i]));
-      }
-    });
+    if (artistIds.length === 0) return;
+    
+    // Build CASE statement for batch update
+    const caseStatement = sql`(case ${sql.join(
+      artistIds.map((id, index) => sql`when ${artists.id} = ${id} then ${index}`),
+      sql` `
+    )} end)`;
+    
+    await db.update(artists)
+      .set({ sortOrder: caseStatement })
+      .where(inArray(artists.id, artistIds));
   }
 
   // Act Artists
@@ -860,8 +914,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Technicians
-  async getAllTechnicians(): Promise<Technician[]> {
-    return await db.select().from(technicians).where(isNull(technicians.archivedAt)).orderBy(asc(technicians.sortOrder));
+  async getAllTechnicians(options?: { limit?: number; offset?: number }): Promise<Technician[]> {
+    let query = db.select().from(technicians).where(isNull(technicians.archivedAt)).orderBy(asc(technicians.sortOrder));
+    
+    if (options?.limit) {
+      query = query.limit(options.limit) as any;
+    }
+    if (options?.offset) {
+      query = query.offset(options.offset) as any;
+    }
+    
+    return await query;
   }
 
   async getTechnician(id: string): Promise<Technician | undefined> {
@@ -923,8 +986,17 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getAllArchivedTechnicians(): Promise<Technician[]> {
-    return await db.select().from(technicians).where(isNotNull(technicians.archivedAt)).orderBy(asc(technicians.sortOrder));
+  async getAllArchivedTechnicians(options?: { limit?: number; offset?: number }): Promise<Technician[]> {
+    let query = db.select().from(technicians).where(isNotNull(technicians.archivedAt)).orderBy(asc(technicians.sortOrder));
+    
+    if (options?.limit) {
+      query = query.limit(options.limit) as any;
+    }
+    if (options?.offset) {
+      query = query.offset(options.offset) as any;
+    }
+    
+    return await query;
   }
 
   async getUnlinkedTechnicians(): Promise<Technician[]> {
@@ -946,11 +1018,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async reorderTechnicians(technicianIds: string[]): Promise<void> {
-    await db.transaction(async (tx) => {
-      for (let i = 0; i < technicianIds.length; i++) {
-        await tx.update(technicians).set({ sortOrder: i }).where(eq(technicians.id, technicianIds[i]));
-      }
-    });
+    if (technicianIds.length === 0) return;
+    
+    // Build CASE statement for batch update
+    const caseStatement = sql`(case ${sql.join(
+      technicianIds.map((id, index) => sql`when ${technicians.id} = ${id} then ${index}`),
+      sql` `
+    )} end)`;
+    
+    await db.update(technicians)
+      .set({ sortOrder: caseStatement })
+      .where(inArray(technicians.id, technicianIds));
   }
 
   // Technician Departments
@@ -990,17 +1068,34 @@ export class DatabaseStorage implements IStorage {
       // Insert new assignments, preserving sortOrder for departments that already existed
       // For new departments, get the max sortOrder in that department and add to the end
       if (departmentIds.length > 0) {
-        const newAssignments = await Promise.all(departmentIds.map(async (departmentId) => {
+        // Identify new departments that need max sort order lookup
+        const newDepartments = departmentIds.filter(id => !existingMap.has(id));
+        
+        // Batch query to get max sort orders for all new departments at once
+        const maxSortOrders = new Map<string, number>();
+        if (newDepartments.length > 0) {
+          const results = await tx
+            .select({
+              departmentId: technicianDepartments.departmentId,
+              max: sql<number>`COALESCE(MAX(${technicianDepartments.sortOrder}), -1)`
+            })
+            .from(technicianDepartments)
+            .where(inArray(technicianDepartments.departmentId, newDepartments))
+            .groupBy(technicianDepartments.departmentId);
+          
+          results.forEach(r => maxSortOrders.set(r.departmentId, r.max));
+        }
+        
+        // Build new assignments with appropriate sort orders
+        const newAssignments = departmentIds.map((departmentId) => {
           // If this department assignment already existed, keep its sortOrder
           if (existingMap.has(departmentId)) {
             return { technicianId, departmentId, sortOrder: existingMap.get(departmentId)! };
           }
-          // Otherwise, add to the end of the department's list
-          const maxSortOrder = await tx.select({ max: sql<number>`COALESCE(MAX(${technicianDepartments.sortOrder}), -1)` })
-            .from(technicianDepartments)
-            .where(eq(technicianDepartments.departmentId, departmentId));
-          return { technicianId, departmentId, sortOrder: (maxSortOrder[0]?.max ?? -1) + 1 };
-        }));
+          // Otherwise, use the batched max sort order + 1
+          const maxSortOrder = maxSortOrders.get(departmentId) ?? -1;
+          return { technicianId, departmentId, sortOrder: maxSortOrder + 1 };
+        });
         
         await tx.insert(technicianDepartments).values(newAssignments);
       }
@@ -1008,18 +1103,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async reorderTechniciansInDepartment(departmentId: string, technicianIds: string[]): Promise<void> {
-    await db.transaction(async (tx) => {
-      for (let i = 0; i < technicianIds.length; i++) {
-        await tx.update(technicianDepartments)
-          .set({ sortOrder: i })
-          .where(
-            and(
-              eq(technicianDepartments.departmentId, departmentId),
-              eq(technicianDepartments.technicianId, technicianIds[i])
-            )
-          );
-      }
-    });
+    if (technicianIds.length === 0) return;
+    
+    // Build CASE statement for batch update
+    const caseStatement = sql`(case ${sql.join(
+      technicianIds.map((id, index) => sql`when ${technicianDepartments.technicianId} = ${id} then ${index}`),
+      sql` `
+    )} end)`;
+    
+    await db.update(technicianDepartments)
+      .set({ sortOrder: caseStatement })
+      .where(
+        and(
+          eq(technicianDepartments.departmentId, departmentId),
+          inArray(technicianDepartments.technicianId, technicianIds)
+        )
+      );
   }
 
   async getTechniciansByDepartment(departmentId: string): Promise<Technician[]> {
@@ -1098,18 +1197,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async reorderArtisticStaffInDepartment(departmentId: string, artisticStaffIds: string[]): Promise<void> {
-    await db.transaction(async (tx) => {
-      for (let i = 0; i < artisticStaffIds.length; i++) {
-        await tx.update(technicianDepartments)
-          .set({ sortOrder: i })
-          .where(
-            and(
-              eq(technicianDepartments.departmentId, departmentId),
-              eq(technicianDepartments.technicianId, artisticStaffIds[i])
-            )
-          );
-      }
-    });
+    if (artisticStaffIds.length === 0) return;
+    
+    // Build CASE statement for batch update
+    const caseStatement = sql`(case ${sql.join(
+      artisticStaffIds.map((id, index) => sql`when ${technicianDepartments.technicianId} = ${id} then ${index}`),
+      sql` `
+    )} end)`;
+    
+    await db.update(technicianDepartments)
+      .set({ sortOrder: caseStatement })
+      .where(
+        and(
+          eq(technicianDepartments.departmentId, departmentId),
+          inArray(technicianDepartments.technicianId, artisticStaffIds)
+        )
+      );
   }
 
   // Report Template
@@ -1143,8 +1246,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Reports
-  async getAllReports(): Promise<Report[]> {
-    return await db.select().from(reports).orderBy(desc(reports.date));
+  async getAllReports(options?: { limit?: number; offset?: number }): Promise<Report[]> {
+    let query = db.select().from(reports).orderBy(desc(reports.date));
+    
+    if (options?.limit) {
+      query = query.limit(options.limit) as any;
+    }
+    if (options?.offset) {
+      query = query.offset(options.offset) as any;
+    }
+    
+    return await query;
   }
 
   async getReport(id: string): Promise<Report | undefined> {
@@ -1176,6 +1288,18 @@ export class DatabaseStorage implements IStorage {
 
   async deleteReport(id: string): Promise<void> {
     await db.delete(reports).where(eq(reports.id, id));
+  }
+
+  async hasUserReports(userId: string): Promise<boolean> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(reports)
+      .where(or(
+        eq(reports.createdBy, userId),
+        eq(reports.updatedBy, userId)
+      ));
+    
+    return result[0]?.count > 0;
   }
 
   // Trainings
@@ -1291,8 +1415,8 @@ export class DatabaseStorage implements IStorage {
       .where(eq(attendanceRecords.date, date));
   }
 
-  async getAttendanceRecordsByDateRange(startDate: string, endDate: string): Promise<AttendanceRecord[]> {
-    return await db
+  async getAttendanceRecordsByDateRange(startDate: string, endDate: string, options?: { limit?: number; offset?: number }): Promise<AttendanceRecord[]> {
+    let query = db
       .select()
       .from(attendanceRecords)
       .where(and(
@@ -1300,6 +1424,15 @@ export class DatabaseStorage implements IStorage {
         lte(attendanceRecords.date, endDate)
       ))
       .orderBy(desc(attendanceRecords.date));
+    
+    if (options?.limit) {
+      query = query.limit(options.limit) as any;
+    }
+    if (options?.offset) {
+      query = query.offset(options.offset) as any;
+    }
+    
+    return await query;
   }
 
   async getAttendanceRecordsByArtist(artistId: string, startDate?: string, endDate?: string): Promise<AttendanceRecord[]> {
