@@ -168,6 +168,48 @@ const consolidateAndRenameStaff: MigrationFunction = {
 };
 
 /**
+ * Migration: Create role_page_access table
+ * Idempotent: Safe to run on fresh databases or already-migrated databases
+ */
+const createRolePageAccessTable: MigrationFunction = {
+  name: 'create_role_page_access_table',
+  run: async () => {
+    console.log('🔄 Running migration: create_role_page_access_table');
+    
+    try {
+      // Check if table already exists
+      const checkTable = await db.execute(sql`
+        SELECT to_regclass('public.role_page_access') AS exists
+      `);
+      const tableExists = checkTable.rows[0]?.exists !== null;
+      
+      if (tableExists) {
+        console.log('  ℹ️  Table role_page_access already exists, skipping');
+        return;
+      }
+      
+      // Create the table
+      await db.execute(sql`
+        CREATE TABLE role_page_access (
+          id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+          role TEXT NOT NULL,
+          page TEXT NOT NULL,
+          can_access INTEGER NOT NULL DEFAULT 1,
+          created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          UNIQUE(role, page)
+        )
+      `);
+      console.log('  ✅ Created role_page_access table');
+      console.log('  🎉 Migration complete!');
+    } catch (error) {
+      console.error('  ❌ Migration failed:', error);
+      throw error;
+    }
+  },
+};
+
+/**
  * Run all pending migrations
  */
 async function runMigrations() {
@@ -175,6 +217,7 @@ async function runMigrations() {
   
   const allMigrations: MigrationFunction[] = [
     consolidateAndRenameStaff,
+    createRolePageAccessTable,
   ];
   
   try {

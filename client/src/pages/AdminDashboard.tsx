@@ -147,16 +147,6 @@ export default function AdminDashboard() {
   const [roleAccessModalOpen, setRoleAccessModalOpen] = useState(false);
   const [savingRoleAccess, setSavingRoleAccess] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (user && user.role !== 'admin') {
-      setLocation('/');
-    }
-  }, [user, setLocation]);
-
-  if (!user || user.role !== 'admin') {
-    return null;
-  }
-
   const { data: users, isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ['/api/users'],
   });
@@ -176,6 +166,16 @@ export default function AdminDashboard() {
   const { data: rolePageAccess, isLoading: rolePageAccessLoading } = useQuery<RolePageAccess[]>({
     queryKey: ['/api/role-page-access'],
   });
+
+  useEffect(() => {
+    if (user && user.role !== 'admin') {
+      setLocation('/');
+    }
+  }, [user, setLocation]);
+
+  if (!user || user.role !== 'admin') {
+    return null;
+  }
 
   const updatePermissionsMutation = useMutation({
     mutationFn: async ({ userId, permissions: perms }: { userId: string; permissions: Array<{ feature: string; canView: number; canCreate: number; canEdit: number }> }) => {
