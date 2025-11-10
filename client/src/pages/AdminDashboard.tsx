@@ -141,11 +141,9 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [savingUser, setSavingUser] = useState<string | null>(null);
   const [updatingRoleUserId, setUpdatingRoleUserId] = useState<string | null>(null);
   const [pendingRoleChange, setPendingRoleChange] = useState<{ userId: string; newRole: string; userName: string; currentRole: string } | null>(null);
   const [roleAccessModalOpen, setRoleAccessModalOpen] = useState(false);
-  const [savingRoleAccess, setSavingRoleAccess] = useState<string | null>(null);
 
   const { data: users, isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ['/api/users'],
@@ -181,21 +179,43 @@ export default function AdminDashboard() {
     mutationFn: async ({ userId, permissions: perms }: { userId: string; permissions: Array<{ feature: string; canView: number; canCreate: number; canEdit: number }> }) => {
       return await apiRequest('POST', `/api/permissions/bulk/${userId}`, { permissions: perms });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/permissions'] });
-      toast({
-        title: "Success",
-        description: "Permissions updated successfully",
+    onMutate: async ({ userId, permissions: perms }) => {
+      await queryClient.cancelQueries({ queryKey: ['/api/permissions'] });
+      
+      const previousData = queryClient.getQueryData<UserPermission[]>(['/api/permissions']);
+      
+      queryClient.setQueryData<UserPermission[]>(['/api/permissions'], (old) => {
+        if (!old) return old;
+        
+        const otherPermissions = old.filter(p => p.userId !== userId);
+        const newPermissions = perms.map(p => ({
+          id: old.find(op => op.userId === userId && op.feature === p.feature)?.id || `temp-${userId}-${p.feature}`,
+          userId,
+          feature: p.feature,
+          canView: p.canView,
+          canCreate: p.canCreate,
+          canEdit: p.canEdit,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }));
+        
+        return [...otherPermissions, ...newPermissions];
       });
-      setSavingUser(null);
+      
+      return { previousData };
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['/api/permissions'], context.previousData);
+      }
       toast({
         title: "Error",
         description: error.message || "Failed to update permissions",
         variant: "destructive",
       });
-      setSavingUser(null);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/permissions'] });
     },
   });
 
@@ -246,21 +266,41 @@ export default function AdminDashboard() {
     mutationFn: async ({ role, pages }: { role: string; pages: Array<{ page: string; canAccess: number }> }) => {
       return await apiRequest('POST', `/api/role-page-access/bulk/${role}`, { pages });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/role-page-access'] });
-      toast({
-        title: "Success",
-        description: "Role page access updated successfully",
+    onMutate: async ({ role, pages }) => {
+      await queryClient.cancelQueries({ queryKey: ['/api/role-page-access'] });
+      
+      const previousData = queryClient.getQueryData<RolePageAccess[]>(['/api/role-page-access']);
+      
+      queryClient.setQueryData<RolePageAccess[]>(['/api/role-page-access'], (old) => {
+        if (!old) return old;
+        
+        const otherRoles = old.filter(access => access.role !== role);
+        const newRoleAccess = pages.map(p => ({
+          id: old.find(a => a.role === role && a.page === p.page)?.id || `temp-${role}-${p.page}`,
+          role,
+          page: p.page,
+          canAccess: p.canAccess,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }));
+        
+        return [...otherRoles, ...newRoleAccess];
       });
-      setSavingRoleAccess(null);
+      
+      return { previousData };
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['/api/role-page-access'], context.previousData);
+      }
       toast({
         title: "Error",
         description: error.message || "Failed to update role page access",
         variant: "destructive",
       });
-      setSavingRoleAccess(null);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/role-page-access'] });
     },
   });
 
@@ -274,10 +314,8 @@ export default function AdminDashboard() {
     return 'none';
   };
 
-  const handlePermissionLevelChange = async (userId: string, feature: string, level: string) => {
+  const handlePermissionLevelChange = (userId: string, feature: string, level: string) => {
     if (!permissions) return;
-
-    setSavingUser(userId);
 
     let canView = 0;
     let canEdit = 0;
@@ -312,7 +350,7 @@ export default function AdminDashboard() {
       };
     });
 
-    await updatePermissionsMutation.mutateAsync({ userId, permissions: userPermissions });
+    updatePermissionsMutation.mutate({ userId, permissions: userPermissions });
   };
 
   const handleSettingChange = (id: string, value: string) => {
@@ -332,10 +370,8 @@ export default function AdminDashboard() {
     return access ? access.canAccess === 1 : true; // Default to true if not set
   };
 
-  const handleRolePageAccessChange = async (role: string, page: string, canAccess: boolean) => {
+  const handleRolePageAccessChange = (role: string, page: string, canAccess: boolean) => {
     if (!rolePageAccess) return;
-
-    setSavingRoleAccess(role);
 
     const rolePages = PAGES.map(p => {
       if (p === page) {
@@ -345,7 +381,7 @@ export default function AdminDashboard() {
       return { page: p, canAccess: existing?.canAccess ?? 1 };
     });
 
-    await updateRolePageAccessMutation.mutateAsync({ role, pages: rolePages });
+    updateRolePageAccessMutation.mutate({ role, pages: rolePages });
   };
 
   // Group users by user group
@@ -464,7 +500,6 @@ export default function AdminDashboard() {
                                     <Select
                                       value={level}
                                       onValueChange={(value) => handlePermissionLevelChange(u.id, feature, value)}
-                                      disabled={savingUser === u.id}
                                     >
                                       <SelectTrigger 
                                         className="w-full text-xs h-8"
@@ -488,12 +523,6 @@ export default function AdminDashboard() {
                       })}
                     </tbody>
                   </table>
-                  {savingUser && (
-                    <div className="flex items-center justify-center mt-4 gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Saving permissions...
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -991,7 +1020,6 @@ export default function AdminDashboard() {
                           <Checkbox
                             checked={getRolePageAccess(role, page)}
                             onCheckedChange={(checked) => handleRolePageAccessChange(role, page, checked as boolean)}
-                            disabled={savingRoleAccess === role}
                             data-testid={`checkbox-access-${role}-${page}`}
                           />
                         </td>
@@ -1000,12 +1028,6 @@ export default function AdminDashboard() {
                   ))}
                 </tbody>
               </table>
-              {savingRoleAccess && (
-                <div className="flex items-center justify-center mt-4 gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Saving permissions...
-                </div>
-              )}
             </div>
           </DialogContent>
         </Dialog>
