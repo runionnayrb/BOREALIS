@@ -22,6 +22,8 @@ import {
   type TechnicianDepartment, type InsertTechnicianDepartment, technicianDepartments,
   type ArtisticStaff, type InsertArtisticStaff, artisticStaff,
   type ArtisticStaffDepartment, type InsertArtisticStaffDepartment, artisticStaffDepartments,
+  type StaffMember, type InsertStaffMember, staffMembers,
+  type StaffDepartment, type InsertStaffDepartment, staffDepartments,
   type ReportTemplate, type InsertReportTemplate, reportTemplate,
   type Report, type InsertReport, reports,
   type Training, type InsertTraining, trainings,
