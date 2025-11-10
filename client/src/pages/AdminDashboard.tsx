@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Settings, Shield, Zap, Users, Lock, ToggleLeft } from "lucide-react";
+import { Loader2, Settings, Shield, Zap, Users, Lock, ToggleLeft, UserCog } from "lucide-react";
 import { useState, useEffect } from "react";
 
 type User = {
@@ -86,6 +86,7 @@ export default function AdminDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [savingUser, setSavingUser] = useState<string | null>(null);
+  const [updatingRoleUserId, setUpdatingRoleUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user && user.role !== 'admin') {
@@ -152,6 +153,29 @@ export default function AdminDashboard() {
         description: error.message || "Failed to update setting",
         variant: "destructive",
       });
+    },
+  });
+
+  const updateUserRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      return await apiRequest('PATCH', `/api/users/${userId}`, { role });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      toast({
+        title: "Success",
+        description: "User role updated successfully",
+      });
+      setUpdatingRoleUserId(null);
+    },
+    onError: (error: any) => {
+      const errorMessage = error.message || "Failed to update user role";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      setUpdatingRoleUserId(null);
     },
   });
 
@@ -256,10 +280,14 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="permissions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
             <TabsTrigger value="permissions" data-testid="tab-permissions">
               <Users className="w-4 h-4 mr-2" />
               Permissions
+            </TabsTrigger>
+            <TabsTrigger value="roles" data-testid="tab-roles">
+              <UserCog className="w-4 h-4 mr-2" />
+              Roles
             </TabsTrigger>
             <TabsTrigger value="system" data-testid="tab-system">
               <Settings className="w-4 h-4 mr-2" />
@@ -358,6 +386,103 @@ export default function AdminDashboard() {
                     <div className="flex items-center justify-center mt-4 gap-2 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Saving permissions...
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="roles" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>User Roles</CardTitle>
+                <CardDescription>
+                  Assign roles to users. Admin users have full system access and can sign off on any training step.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-3 font-semibold">User</th>
+                        <th className="text-left p-3 font-semibold">Email</th>
+                        <th className="text-left p-3 font-semibold min-w-[200px]">Role</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedGroupIds.flatMap(groupId => {
+                        const group = userGroups?.find(g => g.id === groupId);
+                        const groupUsers = groupedUsers[groupId] || [];
+                        const groupName = group?.name || 'No Group';
+                        
+                        return [
+                          <tr key={`group-${groupId}`} className="bg-muted/50">
+                            <td colSpan={3} className="p-2 px-3">
+                              <span className="font-semibold text-sm">{groupName}</span>
+                            </td>
+                          </tr>,
+                          ...groupUsers.map(u => {
+                            const isCurrentUser = u.id === user?.id;
+                            const isProtectedAccount = u.email === 'bryan.runion@laperle.com';
+                            const isUpdating = updatingRoleUserId === u.id;
+                            
+                            return (
+                              <tr key={u.id} className="border-b hover-elevate" data-testid={`role-row-${u.id}`}>
+                                <td className="p-3">
+                                  <span className="font-medium text-sm">{u.name}</span>
+                                </td>
+                                <td className="p-3">
+                                  <span className="text-sm text-muted-foreground">{u.email}</span>
+                                </td>
+                                <td className="p-3">
+                                  <Select
+                                    value={u.role}
+                                    onValueChange={(role) => {
+                                      setUpdatingRoleUserId(u.id);
+                                      updateUserRoleMutation.mutate({ userId: u.id, role });
+                                    }}
+                                    disabled={isUpdating || (isCurrentUser && u.role === 'admin')}
+                                  >
+                                    <SelectTrigger 
+                                      className="w-full"
+                                      data-testid={`select-role-${u.id}`}
+                                    >
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="admin">Admin</SelectItem>
+                                      <SelectItem value="stage_management">Stage Management</SelectItem>
+                                      <SelectItem value="technical">Technical</SelectItem>
+                                      <SelectItem value="coaching">Coaching</SelectItem>
+                                      <SelectItem value="performance_wellness">Performance Wellness</SelectItem>
+                                      <SelectItem value="read_only">Read Only</SelectItem>
+                                      <SelectItem value="artist">Artist</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  {isCurrentUser && u.role === 'admin' && (
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Cannot remove your own admin access
+                                    </p>
+                                  )}
+                                  {isProtectedAccount && (
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Protected account
+                                    </p>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ];
+                      })}
+                    </tbody>
+                  </table>
+                  {updatingRoleUserId && (
+                    <div className="flex items-center justify-center mt-4 gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Updating role...
                     </div>
                   )}
                 </div>
