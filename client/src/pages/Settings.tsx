@@ -2374,13 +2374,14 @@ export default function Settings() {
     const artisticStaffWithDepts = new Set<string>();
     
     allArtisticStaffDepartments.forEach(({ artisticStaffId, departmentId, sortOrder }) => {
+      // Track all staff with any department assignment (artistic or technical)
+      artisticStaffWithDepts.add(artisticStaffId);
+      
       // Filter for artistic type departments only
       const dept = departments.find(d => d.id === departmentId);
       if (dept && dept.type !== 'artistic') {
         return; // Skip non-artistic departments
       }
-      
-      artisticStaffWithDepts.add(artisticStaffId);
       const staff = artisticStaff.find(s => s.id === artisticStaffId);
       if (!staff) return;
       
