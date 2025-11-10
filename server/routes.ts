@@ -163,7 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users/unlinked-profiles", requireRole('stage_management', 'admin'), async (req, res) => {
     const artists = await storage.getUnlinkedArtists();
     const allUnlinkedStaff = await storage.getUnlinkedTechnicians();
-    const departments = await storage.getDepartments();
+    const departments = await storage.getAllDepartments();
     
     // Batch-fetch ALL department assignments in a single query to avoid N+1
     const allDepartmentAssignments = await storage.getAllTechnicianDepartments();
@@ -311,6 +311,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const updateUserSchema = z.object({
     active: z.number().min(0).max(1).optional(),
     userGroupId: z.string().nullable().optional(),
+    firstName: z.string().optional(),
+    lastName: z.string().optional(),
+    preferredName: z.string().optional(),
     name: z.string().optional(),
     email: z.string().email().optional(),
     position: z.string().optional(),
@@ -349,6 +352,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const formattedData = {
       ...validation.data,
       email: validation.data.email ? validation.data.email.toLowerCase() : undefined,
+      firstName: validation.data.firstName ? toTitleCase(validation.data.firstName) : undefined,
+      lastName: validation.data.lastName ? toTitleCase(validation.data.lastName) : undefined,
+      preferredName: validation.data.preferredName ? toTitleCase(validation.data.preferredName) : undefined,
       name: validation.data.name ? toTitleCase(validation.data.name) : undefined,
       position: validation.data.position ? toTitleCase(validation.data.position) : undefined,
     };

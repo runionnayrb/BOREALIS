@@ -88,6 +88,7 @@ export default function Settings() {
   const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<SafeUser | null>(null);
   const [selectedUserGroupId, setSelectedUserGroupId] = useState<string | null>(null);
+  const [selectedPermissionRole, setSelectedPermissionRole] = useState<string | null>(null);
   const [userGroupDialogOpen, setUserGroupDialogOpen] = useState(false);
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
   const [selectedUserRole, setSelectedUserRole] = useState<string>("read_only");
@@ -1650,6 +1651,7 @@ export default function Settings() {
       email: string; 
       role: string; 
       password: string; 
+      userGroupId?: string;
       profileType?: string; 
       profileId?: string;
     }) => {
@@ -1662,12 +1664,14 @@ export default function Settings() {
       setCreateUserDialogOpen(false);
       setSelectedProfileType(null);
       setSelectedProfileId(null);
+      setSelectedPermissionRole(null);
+      setSelectedUserGroupId(null);
     },
   });
 
   // User update mutation
   const updateUserMutation = useMutation({
-    mutationFn: async (data: { id: string; active?: number; userGroupId?: string | null; name?: string; email?: string; position?: string }) => {
+    mutationFn: async (data: { id: string; active?: number; userGroupId?: string | null; firstName?: string; lastName?: string; preferredName?: string; name?: string; email?: string; position?: string; role?: string }) => {
       return await apiRequest("PATCH", `/api/users/${data.id}`, data);
     },
     onSuccess: () => {
@@ -1676,6 +1680,7 @@ export default function Settings() {
       setEditUserDialogOpen(false);
       setUserToEdit(null);
       setSelectedUserGroupId(null);
+      setSelectedPermissionRole(null);
     },
   });
 
@@ -5604,16 +5609,25 @@ export default function Settings() {
                         const lastName = formData.get("lastName") as string;
                         const preferredName = formData.get("preferredName") as string;
                         const email = formData.get("email") as string;
-                        const role = formData.get("role") as string;
                         const password = formData.get("password") as string;
+
+                        if (!selectedPermissionRole) {
+                          toast({ 
+                            title: "Permission role required", 
+                            description: "Please select a permission role for this user",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
 
                         createUserMutation.mutate({
                           firstName,
                           lastName,
                           preferredName,
                           email,
-                          role,
+                          role: selectedPermissionRole,
                           password,
+                          userGroupId: selectedUserGroupId || undefined,
                           profileType: selectedProfileType || undefined,
                           profileId: selectedProfileId || undefined,
                         });
@@ -5661,15 +5675,6 @@ export default function Settings() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>Role</Label>
-                          <Input 
-                            name="role" 
-                            placeholder="Role (e.g. Stage Manager, Coordinator)" 
-                            required
-                            data-testid="input-create-user-role" 
-                          />
-                        </div>
-                        <div className="space-y-2">
                           <Label>Password</Label>
                           <Input 
                             name="password" 
@@ -5679,6 +5684,45 @@ export default function Settings() {
                             minLength={6}
                             data-testid="input-create-user-password" 
                           />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Permissions *</Label>
+                          <Select 
+                            value={selectedPermissionRole || ""} 
+                            onValueChange={setSelectedPermissionRole}
+                          >
+                            <SelectTrigger data-testid="select-create-user-permissionRole">
+                              <SelectValue placeholder="Select permissions (required)" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="read_only">Read Only</SelectItem>
+                              <SelectItem value="artist">Artist</SelectItem>
+                              <SelectItem value="stage_management">Stage Management</SelectItem>
+                              <SelectItem value="technical">Technical</SelectItem>
+                              <SelectItem value="coaching">Coaching</SelectItem>
+                              <SelectItem value="performance_wellness">Performance & Wellness</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>User Group</Label>
+                          <Select 
+                            value={selectedUserGroupId || "none"} 
+                            onValueChange={(value) => setSelectedUserGroupId(value === "none" ? null : value)}
+                          >
+                            <SelectTrigger data-testid="select-create-user-userGroupId">
+                              <SelectValue placeholder="None" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">None</SelectItem>
+                              {userGroups.map((group) => (
+                                <SelectItem key={group.id} value={group.id}>
+                                  {group.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div className="space-y-2">
                           <Label>Link to Profile (Optional)</Label>
@@ -5791,6 +5835,7 @@ export default function Settings() {
                             if (isStageManager) {
                               setUserToEdit(user);
                               setSelectedUserGroupId(user.userGroupId || null);
+                              setSelectedPermissionRole(user.role || null);
                               setEditUserDialogOpen(true);
                             }
                           }}
@@ -6267,15 +6312,18 @@ export default function Settings() {
               if (!userToEdit) return;
 
               const formData = new FormData(e.currentTarget);
-              const name = formData.get("name") as string;
+              const firstName = formData.get("firstName") as string;
+              const lastName = formData.get("lastName") as string;
+              const preferredName = formData.get("preferredName") as string;
               const email = formData.get("email") as string;
-              const position = formData.get("position") as string;
 
               updateUserMutation.mutate({
                 id: userToEdit.id,
-                name,
+                firstName,
+                lastName,
+                preferredName,
                 email,
-                position,
+                role: selectedPermissionRole || undefined,
                 userGroupId: selectedUserGroupId,
               });
             }}
@@ -6285,13 +6333,33 @@ export default function Settings() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Name</Label>
+                <Label>First Name</Label>
                 <Input 
-                  name="name" 
-                  placeholder="Full name" 
+                  name="firstName" 
+                  placeholder="First name" 
                   required
-                  defaultValue={userToEdit?.name || ""}
-                  data-testid="input-edit-user-name" 
+                  defaultValue={userToEdit?.firstName || ""}
+                  data-testid="input-edit-user-firstName" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Last Name</Label>
+                <Input 
+                  name="lastName" 
+                  placeholder="Last name" 
+                  required
+                  defaultValue={userToEdit?.lastName || ""}
+                  data-testid="input-edit-user-lastName" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Preferred Name</Label>
+                <Input 
+                  name="preferredName" 
+                  placeholder="Preferred name" 
+                  required
+                  defaultValue={userToEdit?.preferredName || ""}
+                  data-testid="input-edit-user-preferredName" 
                 />
               </div>
               <div className="space-y-2">
@@ -6306,14 +6374,24 @@ export default function Settings() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Position</Label>
-                <Input 
-                  name="position" 
-                  placeholder="Position/Role" 
-                  required
-                  defaultValue={userToEdit?.position || ""}
-                  data-testid="input-edit-user-position" 
-                />
+                <Label>Permissions</Label>
+                <Select 
+                  value={selectedPermissionRole || userToEdit?.role || 'stage_management'} 
+                  onValueChange={setSelectedPermissionRole}
+                >
+                  <SelectTrigger data-testid="select-edit-user-permissionRole">
+                    <SelectValue placeholder="Select permissions" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="stage_management">Stage Management</SelectItem>
+                    <SelectItem value="technical">Technical</SelectItem>
+                    <SelectItem value="coaching">Coaching</SelectItem>
+                    <SelectItem value="performance_wellness">Performance & Wellness</SelectItem>
+                    <SelectItem value="read_only">Read Only</SelectItem>
+                    <SelectItem value="artist">Artist</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="user-group-select">User Group</Label>
@@ -6402,6 +6480,7 @@ export default function Settings() {
                   setEditUserDialogOpen(false);
                   setUserToEdit(null);
                   setSelectedUserGroupId(null);
+                  setSelectedPermissionRole(null);
                 }}
                 data-testid="button-cancel-edit-user"
               >
