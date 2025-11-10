@@ -233,9 +233,9 @@ const addPerformanceIndexes: MigrationFunction = {
       
       // Composite index for user permissions lookups
       await db.execute(sql`
-        CREATE INDEX IF NOT EXISTS idx_user_permissions_user_perm ON user_permissions(user_id, permission)
+        CREATE INDEX IF NOT EXISTS idx_user_permissions_user_feature ON user_permissions(user_id, feature)
       `);
-      console.log('  ✅ Created index: idx_user_permissions_user_perm');
+      console.log('  ✅ Created index: idx_user_permissions_user_feature');
       
       // Partial index for active artists (archived_at IS NULL is most common query)
       await db.execute(sql`
@@ -243,11 +243,11 @@ const addPerformanceIndexes: MigrationFunction = {
       `);
       console.log('  ✅ Created index: idx_artists_active');
       
-      // Partial index for active technicians
+      // Partial index for active staff members (formerly technicians)
       await db.execute(sql`
-        CREATE INDEX IF NOT EXISTS idx_technicians_active ON technicians(sort_order) WHERE archived_at IS NULL
+        CREATE INDEX IF NOT EXISTS idx_staff_members_active ON staff_members(sort_order) WHERE archived_at IS NULL
       `);
-      console.log('  ✅ Created index: idx_technicians_active');
+      console.log('  ✅ Created index: idx_staff_members_active');
       
       // Indexes for frequently filtered join tables
       await db.execute(sql`
@@ -266,9 +266,9 @@ const addPerformanceIndexes: MigrationFunction = {
       console.log('  ✅ Created index: idx_training_artists_training');
       
       await db.execute(sql`
-        CREATE INDEX IF NOT EXISTS idx_technician_departments_tech ON technician_departments(technician_id)
+        CREATE INDEX IF NOT EXISTS idx_staff_departments_staff ON staff_departments(technician_id)
       `);
-      console.log('  ✅ Created index: idx_technician_departments_tech');
+      console.log('  ✅ Created index: idx_staff_departments_staff');
       
       // Index for trainings by date
       await db.execute(sql`
