@@ -6,6 +6,8 @@ import {
   artisticStaff, 
   technicianDepartments, 
   artisticStaffDepartments,
+  staffMembers,
+  staffDepartments,
   departments 
 } from "@shared/schema";
 import { eq, inArray, and, sql as sqlOp } from "drizzle-orm";
@@ -170,6 +172,136 @@ const migrateArtisticTechniciansV2: MigrationFunction = {
 };
 
 /**
+ * Migration: Merge technicians and artistic_staff into unified staff_members table
+ */
+const mergeToStaffMembers: MigrationFunction = {
+  name: 'merge_to_staff_members',
+  run: async () => {
+    console.log('🔄 Running migration: merge_to_staff_members');
+    
+    try {
+      await db.transaction(async (tx) => {
+        // Pre-flight check: Verify no ID conflicts between technicians and artistic_staff
+        const techIds = await tx.query.technicians.findMany({ columns: { id: true } });
+        const artisticIds = await tx.query.artisticStaff.findMany({ columns: { id: true } });
+        
+        const techIdSet = new Set(techIds.map(t => t.id));
+        const artisticIdSet = new Set(artisticIds.map(a => a.id));
+        const conflicts = techIds.filter(t => artisticIdSet.has(t.id));
+        
+        if (conflicts.length > 0) {
+          console.error(`  ❌ ID conflicts detected: ${conflicts.map(c => c.id).join(', ')}`);
+          throw new Error('Cannot merge: duplicate IDs exist in technicians and artistic_staff tables');
+        }
+        
+        console.log(`  ✅ Pre-flight check passed: ${techIds.length} technicians, ${artisticIds.length} artistic staff, no ID conflicts`);
+        
+        // Step 1: Copy all technicians to staff_members
+        const allTechnicians = await tx.query.technicians.findMany();
+        let techCopied = 0;
+        
+        for (const tech of allTechnicians) {
+          await tx.insert(staffMembers).values({
+            id: tech.id,
+            firstName: tech.firstName,
+            lastName: tech.lastName,
+            preferredName: tech.preferredName,
+            role: tech.role,
+            photoUrl: tech.photoUrl,
+            userId: tech.userId,
+            status: tech.status,
+            sortOrder: tech.sortOrder ?? 0,
+            archivedAt: tech.archivedAt,
+            createdAt: tech.createdAt,
+          }).onConflictDoNothing();
+          techCopied++;
+        }
+        
+        console.log(`  ✅ Copied ${techCopied} technicians to staff_members`);
+        
+        // Step 2: Copy all artistic staff to staff_members
+        const allArtisticStaff = await tx.query.artisticStaff.findMany();
+        let artisticCopied = 0;
+        
+        for (const staff of allArtisticStaff) {
+          await tx.insert(staffMembers).values({
+            id: staff.id,
+            firstName: staff.firstName,
+            lastName: staff.lastName,
+            preferredName: staff.preferredName,
+            role: staff.role,
+            photoUrl: staff.photoUrl,
+            userId: staff.userId,
+            status: staff.status,
+            sortOrder: staff.sortOrder ?? 0,
+            archivedAt: staff.archivedAt,
+            createdAt: staff.createdAt,
+          }).onConflictDoNothing();
+          artisticCopied++;
+        }
+        
+        console.log(`  ✅ Copied ${artisticCopied} artistic staff to staff_members`);
+        
+        // Step 3: Copy technician_departments to staff_departments
+        const allTechDepts = await tx.query.technicianDepartments.findMany();
+        let techDeptsCopied = 0;
+        
+        for (const assignment of allTechDepts) {
+          await tx.insert(staffDepartments).values({
+            staffMemberId: assignment.technicianId,
+            departmentId: assignment.departmentId,
+            sortOrder: assignment.sortOrder ?? 0,
+            createdAt: assignment.createdAt,
+          }).onConflictDoNothing();
+          techDeptsCopied++;
+        }
+        
+        console.log(`  ✅ Copied ${techDeptsCopied} technician department assignments to staff_departments`);
+        
+        // Step 4: Copy artistic_staff_departments to staff_departments
+        const allArtisticDepts = await tx.query.artisticStaffDepartments.findMany();
+        let artisticDeptsCopied = 0;
+        
+        for (const assignment of allArtisticDepts) {
+          await tx.insert(staffDepartments).values({
+            staffMemberId: assignment.artisticStaffId,
+            departmentId: assignment.departmentId,
+            sortOrder: assignment.sortOrder ?? 0,
+            createdAt: assignment.createdAt,
+          }).onConflictDoNothing();
+          artisticDeptsCopied++;
+        }
+        
+        console.log(`  ✅ Copied ${artisticDeptsCopied} artistic staff department assignments to staff_departments`);
+        
+        // Post-migration validation
+        const totalStaff = await tx.query.staffMembers.findMany();
+        const totalDepts = await tx.query.staffDepartments.findMany();
+        
+        const expectedStaff = techCopied + artisticCopied;
+        const expectedDepts = techDeptsCopied + artisticDeptsCopied;
+        
+        if (totalStaff.length !== expectedStaff) {
+          console.error(`  ❌ Validation failed: Expected ${expectedStaff} staff but found ${totalStaff.length}`);
+          throw new Error('Staff count mismatch after migration');
+        }
+        
+        if (totalDepts.length !== expectedDepts) {
+          console.error(`  ❌ Validation failed: Expected ${expectedDepts} department assignments but found ${totalDepts.length}`);
+          throw new Error('Department assignment count mismatch after migration');
+        }
+        
+        console.log(`  ✅ Validation passed: ${totalStaff.length} staff members, ${totalDepts.length} department assignments`);
+        console.log(`  🎉 Migration complete! Merged ${expectedStaff} staff members with ${expectedDepts} department assignments`);
+      });
+    } catch (error) {
+      console.error('  ❌ Migration failed:', error);
+      throw error;
+    }
+  },
+};
+
+/**
  * Run all pending migrations
  */
 async function runMigrations() {
@@ -177,6 +309,7 @@ async function runMigrations() {
   
   const allMigrations: MigrationFunction[] = [
     migrateArtisticTechniciansV2,
+    mergeToStaffMembers,
   ];
   
   try {
