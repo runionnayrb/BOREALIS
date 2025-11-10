@@ -98,6 +98,37 @@ export default function AppSidebar() {
         </DialogHeader>
         <ScrollArea className="h-[calc(80vh-8rem)] pr-4">
           <div className="space-y-6">
+            {/* Recent Updates - November 2025 */}
+            <div className="border-b pb-6">
+              <h3 className="text-lg font-semibold mb-3 text-primary">Recent Updates - November 2025</h3>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Modal Viewport Constraints</p>
+                  <p>All modal dialogs now properly fit within the viewport on both desktop and mobile devices. Modals that contain large amounts of content will scroll internally while keeping the close button and header visible, ensuring you can always see the top and bottom of every modal.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Role-Based Permission System</p>
+                  <p>Comprehensive permission templates automatically assign feature access based on user roles (Admin, Stage Management, Technical, Coaching, Performance & Wellness, Read Only, Artist). The sidebar dynamically filters menu items based on database permissions - users only see features they have access to.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Enhanced User Creation & Editing</p>
+                  <p>User creation and editing now includes dedicated dropdowns for Permissions (role assignment) and User Groups. User profiles are structured with separate First Name, Last Name, and Preferred Name fields, all automatically normalized to title case for consistency. Field order follows a logical flow: First Name → Last Name → Preferred Name → Email → Password → Permissions → User Group → Link to Profile.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Security Enhancements</p>
+                  <p>User creation now requires explicit permission role selection with no automatic fallback, preventing accidental privilege escalation. Roles are ordered from safest to most privileged (Read Only, Artist, then Stage Management, Technical, Coaching, Performance & Wellness, Admin) to encourage least-privilege assignments. All UUID parameters are validated to prevent path traversal attacks.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Optimized Staff Filtering</p>
+                  <p>When linking user accounts to staff profiles, the system now filters artistic staff to only show members assigned to artistic departments (Coaching, Performance Wellness, Stage Management, Wardrobe), and technical staff to only show members assigned to technical departments. This filtering uses optimized batched queries to avoid performance issues.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Admin Dashboard</p>
+                  <p>Comprehensive control panel at /admin (admin-only) with five-tab interface: Permission Matrix for granular user access control, System Configuration for geofence/PDF/email settings, Performance Settings for pagination/caching/archives, Security for credential management, and Feature Toggles to enable/disable entire features. All permissions are enforced at both middleware and frontend levels.</p>
+                </div>
+              </div>
+            </div>
+
             {/* Reports */}
             <div>
               <h3 className="text-lg font-semibold mb-3 text-primary">Reports</h3>
