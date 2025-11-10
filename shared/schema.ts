@@ -364,8 +364,8 @@ export const insertSceneArtistSchema = createInsertSchema(sceneArtists).omit({
 export type InsertSceneArtist = z.infer<typeof insertSceneArtistSchema>;
 export type SceneArtist = typeof sceneArtists.$inferSelect;
 
-// Technicians (now unified table for all staff - artistic and technical)
-export const technicians = pgTable("technicians", {
+// Staff Members (unified table for all staff - artistic and technical)
+export const staffMembers = pgTable("staff_members", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
@@ -379,76 +379,46 @@ export const technicians = pgTable("technicians", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertTechnicianSchema = createInsertSchema(technicians).omit({
+export const insertStaffMemberSchema = createInsertSchema(staffMembers).omit({
   id: true,
   createdAt: true,
   sortOrder: true,
   archivedAt: true,
 });
 
-export type InsertTechnician = z.infer<typeof insertTechnicianSchema>;
-export type Technician = typeof technicians.$inferSelect;
+export type InsertStaffMember = z.infer<typeof insertStaffMemberSchema>;
+export type StaffMember = typeof staffMembers.$inferSelect;
 
-// Technician Departments (junction table for many-to-many relationship)
-export const technicianDepartments = pgTable("technician_departments", {
+// Legacy type aliases for backwards compatibility during transition
+export type InsertTechnician = InsertStaffMember;
+export type Technician = StaffMember;
+export const technicians = staffMembers;
+export const insertTechnicianSchema = insertStaffMemberSchema;
+export const insertArtisticStaffSchema = insertStaffMemberSchema; // Alias for backwards compatibility
+
+// Staff Departments (junction table for many-to-many relationship)
+// Column still named "technician_id" in database to avoid breaking existing code
+export const staffDepartments = pgTable("staff_departments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  technicianId: varchar("technician_id").notNull().references(() => technicians.id),
+  technicianId: varchar("technician_id").notNull().references(() => staffMembers.id),
   departmentId: varchar("department_id").notNull().references(() => departments.id),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertTechnicianDepartmentSchema = createInsertSchema(technicianDepartments).omit({
+export const insertStaffDepartmentSchema = createInsertSchema(staffDepartments).omit({
   id: true,
   createdAt: true,
   sortOrder: true,
 });
 
-export type InsertTechnicianDepartment = z.infer<typeof insertTechnicianDepartmentSchema>;
-export type TechnicianDepartment = typeof technicianDepartments.$inferSelect;
+export type InsertStaffDepartment = z.infer<typeof insertStaffDepartmentSchema>;
+export type StaffDepartment = typeof staffDepartments.$inferSelect;
 
-// Artistic Staff
-export const artisticStaff = pgTable("artistic_staff", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  firstName: text("first_name").notNull(),
-  lastName: text("last_name").notNull(),
-  preferredName: text("preferred_name").notNull(),
-  role: text("role"),
-  photoUrl: text("photo_url"),
-  userId: varchar("user_id").references(() => users.id), // Linked user account for authentication
-  status: text("status").notNull().default('active'), // active, out, archived
-  sortOrder: integer("sort_order").notNull().default(0),
-  archivedAt: timestamp("archived_at"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export const insertArtisticStaffSchema = createInsertSchema(artisticStaff).omit({
-  id: true,
-  createdAt: true,
-  sortOrder: true,
-  archivedAt: true,
-});
-
-export type InsertArtisticStaff = z.infer<typeof insertArtisticStaffSchema>;
-export type ArtisticStaff = typeof artisticStaff.$inferSelect;
-
-// Artistic Staff Departments (junction table for many-to-many relationship)
-export const artisticStaffDepartments = pgTable("artistic_staff_departments", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  artisticStaffId: varchar("artistic_staff_id").notNull().references(() => artisticStaff.id),
-  departmentId: varchar("department_id").notNull().references(() => departments.id),
-  sortOrder: integer("sort_order").notNull().default(0),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export const insertArtisticStaffDepartmentSchema = createInsertSchema(artisticStaffDepartments).omit({
-  id: true,
-  createdAt: true,
-  sortOrder: true,
-});
-
-export type InsertArtisticStaffDepartment = z.infer<typeof insertArtisticStaffDepartmentSchema>;
-export type ArtisticStaffDepartment = typeof artisticStaffDepartments.$inferSelect;
+// Legacy type aliases for backwards compatibility
+export type InsertTechnicianDepartment = InsertStaffDepartment;
+export type TechnicianDepartment = StaffDepartment;
+export const technicianDepartments = staffDepartments;
 
 // Report Template
 export const reportTemplate = pgTable("report_template", {

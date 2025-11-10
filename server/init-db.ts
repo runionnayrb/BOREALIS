@@ -2,10 +2,10 @@ import { db } from "./db";
 import { 
   users, 
   migrations, 
-  technicians, 
-  artisticStaff, 
-  technicianDepartments, 
-  artisticStaffDepartments,
+  staffMembers,
+  technicians,
+  staffDepartments,
+  technicianDepartments,
   departments 
 } from "@shared/schema";
 import { eq, inArray, and, sql as sqlOp } from "drizzle-orm";
@@ -30,141 +30,139 @@ type MigrationFunction = {
 };
 
 /**
- * Migration: Move technicians from artistic-type departments to artistic_staff table (v2)
- * This is v2 because the original migration had a bug and was already marked complete
+ * Migration: Consolidate artistic_staff into technicians, then rename to staff_members
+ * Idempotent: Safe to run on fresh databases or already-migrated databases
  */
-const migrateArtisticTechniciansV2: MigrationFunction = {
-  name: 'migrate_artistic_technicians_v2',
+const consolidateAndRenameStaff: MigrationFunction = {
+  name: 'consolidate_and_rename_staff',
   run: async () => {
-    console.log('🔄 Running migration: migrate_artistic_technicians_v2');
+    console.log('🔄 Running migration: consolidate_and_rename_staff');
     
     try {
-      // Use a transaction for atomicity
-      await db.transaction(async (tx) => {
-        // Step 1: Get all departments with type='artistic'
-        const artisticDepts = await tx.query.departments.findMany({
-          where: eq(departments.type, 'artistic'),
-        });
+      // Check if migration is already complete (both tables exist with new names)
+      const checkStaffMembers = await db.execute(sql`
+        SELECT to_regclass('public.staff_members') AS exists
+      `);
+      const staffMembersExists = checkStaffMembers.rows[0]?.exists !== null;
+      
+      const checkStaffDepartments = await db.execute(sql`
+        SELECT to_regclass('public.staff_departments') AS exists
+      `);
+      const staffDepartmentsExists = checkStaffDepartments.rows[0]?.exists !== null;
+      
+      // If both new tables exist, migration is complete
+      if (staffMembersExists && staffDepartmentsExists) {
+        console.log('  ℹ️  Migration already complete (staff_members and staff_departments exist), skipping');
+        return;
+      }
+      
+      // Handle partial migration (staff_members exists but not staff_departments)
+      if (staffMembersExists && !staffDepartmentsExists) {
+        console.log('  ⚠️  Partial migration detected, completing staff_departments rename');
+        const checkTechnicianDepartments = await db.execute(sql`
+          SELECT to_regclass('public.technician_departments') AS exists
+        `);
+        const technicianDepartmentsExists = checkTechnicianDepartments.rows[0]?.exists !== null;
         
-        if (artisticDepts.length === 0) {
-          console.log('  ℹ️  No artistic departments found, skipping migration');
+        if (technicianDepartmentsExists) {
+          await db.execute(sql`ALTER TABLE technician_departments RENAME TO staff_departments`);
+          console.log('  ✅ Renamed technician_departments → staff_departments');
+          console.log('  🎉 Migration complete!');
           return;
+        } else {
+          throw new Error('Inconsistent state: staff_members exists but neither technician_departments nor staff_departments found');
         }
+      }
+      
+      // Handle partial migration (staff_departments exists but not staff_members)
+      if (!staffMembersExists && staffDepartmentsExists) {
+        console.log('  ⚠️  Partial migration detected, completing staff_members rename');
+        const checkTechnicians = await db.execute(sql`
+          SELECT to_regclass('public.technicians') AS exists
+        `);
+        const techniciansExists = checkTechnicians.rows[0]?.exists !== null;
         
-        const artisticDeptIds = artisticDepts.map(d => d.id);
-        console.log(`  📋 Found ${artisticDepts.length} artistic departments`);
-        
-        // Step 2: Get all technician-department assignments for artistic departments
-        const artisticTechAssignments = await tx.query.technicianDepartments.findMany({
-          where: inArray(technicianDepartments.departmentId, artisticDeptIds),
-        });
-        
-        if (artisticTechAssignments.length === 0) {
-          console.log('  ℹ️  No technicians assigned to artistic departments, skipping migration');
+        if (techniciansExists) {
+          await db.execute(sql`ALTER TABLE technicians RENAME TO staff_members`);
+          console.log('  ✅ Renamed technicians → staff_members');
+          console.log('  🎉 Migration complete!');
           return;
+        } else {
+          throw new Error('Inconsistent state: staff_departments exists but neither technicians nor staff_members found');
         }
+      }
+      
+      // Check if legacy tables exist
+      const checkArtisticStaff = await db.execute(sql`
+        SELECT to_regclass('public.artistic_staff') AS exists
+      `);
+      const artisticStaffExists = checkArtisticStaff.rows[0]?.exists !== null;
+      
+      const checkTechnicians = await db.execute(sql`
+        SELECT to_regclass('public.technicians') AS exists
+      `);
+      const techniciansExists = checkTechnicians.rows[0]?.exists !== null;
+      
+      // If neither table exists, this is a fresh database - skip migration
+      if (!artisticStaffExists && !techniciansExists && !staffMembersExists) {
+        console.log('  ℹ️  Fresh database detected (no legacy tables), skipping migration');
+        return;
+      }
+      
+      // If only technicians exists (no artistic_staff), just rename
+      if (!artisticStaffExists && techniciansExists) {
+        console.log('  ℹ️  No artistic_staff table found, proceeding with rename only');
         
-        // Get unique technician IDs (use Array.from to avoid downlevel iteration issues)
-        const technicianIds = Array.from(new Set(artisticTechAssignments.map(a => a.technicianId)));
-        console.log(`  👥 Found ${technicianIds.length} technicians in artistic departments`);
+        await db.execute(sql`ALTER TABLE technicians RENAME TO staff_members`);
+        console.log('  ✅ Renamed technicians → staff_members');
         
-        // Step 3: Get ALL department assignments for these technicians to determine migration strategy
-        const allTechDeptAssignments = await tx.query.technicianDepartments.findMany({
-          where: inArray(technicianDepartments.technicianId, technicianIds),
-        });
+        await db.execute(sql`ALTER TABLE technician_departments RENAME TO staff_departments`);
+        console.log('  ✅ Renamed technician_departments → staff_departments');
         
-        // Group by technician to check their department types
-        const techDeptMap = new Map<string, { artistic: string[], technical: string[] }>();
-        const artisticDeptIdSet = new Set(artisticDeptIds);
+        console.log('  🎉 Migration complete!');
+        return;
+      }
+      
+      // Full migration: consolidate artistic_staff → technicians, then rename
+      console.log('  📋 Legacy tables detected, performing full consolidation');
+      
+      // Step 1: Copy all artistic_staff to technicians (if it exists)
+      if (artisticStaffExists && techniciansExists) {
+        await db.execute(sql`
+          INSERT INTO technicians (id, first_name, last_name, preferred_name, role, photo_url, user_id, status, sort_order, archived_at, created_at)
+          SELECT id, first_name, last_name, preferred_name, role, photo_url, user_id, status, sort_order, archived_at, created_at
+          FROM artistic_staff
+          ON CONFLICT (id) DO NOTHING
+        `);
+        console.log('  ✅ Copied artistic_staff to technicians');
         
-        allTechDeptAssignments.forEach(assignment => {
-          if (!techDeptMap.has(assignment.technicianId)) {
-            techDeptMap.set(assignment.technicianId, { artistic: [], technical: [] });
-          }
-          const map = techDeptMap.get(assignment.technicianId)!;
-          if (artisticDeptIdSet.has(assignment.departmentId)) {
-            map.artistic.push(assignment.departmentId);
-          } else {
-            map.technical.push(assignment.departmentId);
-          }
-        });
+        // Step 2: Copy all artistic_staff_departments to technician_departments
+        await db.execute(sql`
+          INSERT INTO technician_departments (id, technician_id, department_id, sort_order, created_at)
+          SELECT id, artistic_staff_id, department_id, sort_order, created_at
+          FROM artistic_staff_departments
+          ON CONFLICT (id) DO NOTHING
+        `);
+        console.log('  ✅ Copied artistic_staff_departments to technician_departments');
         
-        // Everyone with at least one artistic department gets copied to artistic_staff
-        const techsToMigrate = Array.from(techDeptMap.keys());
-        console.log(`  ✅ Will migrate ${techsToMigrate.length} technicians with artistic departments`);
-        
-        // Step 4: Get full technician records for migration
-        const techniciansToMove = await tx.query.technicians.findMany({
-          where: inArray(technicians.id, techsToMigrate),
-        });
-        
-        // Step 5: Insert into artistic_staff (preserving all fields including IDs)
-        for (const tech of techniciansToMove) {
-          await tx.insert(artisticStaff).values({
-            id: tech.id, // Preserve UUID to maintain references
-            firstName: tech.firstName,
-            lastName: tech.lastName,
-            preferredName: tech.preferredName,
-            role: tech.role,
-            photoUrl: tech.photoUrl,
-            userId: tech.userId,
-            status: tech.status,
-            sortOrder: tech.sortOrder,
-            archivedAt: tech.archivedAt,
-            createdAt: tech.createdAt,
-          }).onConflictDoNothing(); // Skip if already exists
-        }
-        
-        console.log(`  ✅ Inserted ${techniciansToMove.length} records into artistic_staff`);
-        
-        // Step 6: Copy department assignments to artistic_staff_departments
-        const assignmentsToMove = artisticTechAssignments.filter(a => 
-          techsToMigrate.includes(a.technicianId)
-        );
-        
-        for (const assignment of assignmentsToMove) {
-          await tx.insert(artisticStaffDepartments).values({
-            artisticStaffId: assignment.technicianId, // Use same ID
-            departmentId: assignment.departmentId,
-            sortOrder: assignment.sortOrder,
-            createdAt: assignment.createdAt,
-          }).onConflictDoNothing(); // Skip if already exists
-        }
-        
-        console.log(`  ✅ Copied ${assignmentsToMove.length} artistic department assignments`);
-        
-        // Step 7: Remove ONLY artistic assignments from technician_departments
-        await tx.delete(technicianDepartments)
-          .where(
-            and(
-              inArray(technicianDepartments.technicianId, techsToMigrate),
-              inArray(technicianDepartments.departmentId, artisticDeptIds)
-            )
-          );
-        
-        console.log(`  ✅ Removed artistic assignments from technician_departments`);
-        
-        // Step 8: Delete from technicians table ONLY if they have NO technical departments
-        const techsOnlyArtistic: string[] = [];
-        techDeptMap.forEach((deptInfo, techId) => {
-          if (deptInfo.technical.length === 0) {
-            techsOnlyArtistic.push(techId);
-          } else {
-            console.log(`  ℹ️  Keeping ${techId} in technicians (has ${deptInfo.technical.length} technical depts)`);
-          }
-        });
-        
-        if (techsOnlyArtistic.length > 0) {
-          await tx.delete(technicians)
-            .where(inArray(technicians.id, techsOnlyArtistic));
-          console.log(`  ✅ Removed ${techsOnlyArtistic.length} people with only artistic departments from technicians`);
-        }
-        
-        console.log(`  🎉 Migration complete! Migrated ${techsToMigrate.length} people with artistic departments`);
-      });
+        // Step 3: Drop artistic_staff tables
+        await db.execute(sql`DROP TABLE IF EXISTS artistic_staff_departments CASCADE`);
+        await db.execute(sql`DROP TABLE IF EXISTS artistic_staff CASCADE`);
+        console.log('  ✅ Dropped artistic_staff tables');
+      }
+      
+      // Step 4: Rename technicians → staff_members
+      await db.execute(sql`ALTER TABLE technicians RENAME TO staff_members`);
+      console.log('  ✅ Renamed technicians → staff_members');
+      
+      // Step 5: Rename technician_departments → staff_departments
+      await db.execute(sql`ALTER TABLE technician_departments RENAME TO staff_departments`);
+      console.log('  ✅ Renamed technician_departments → staff_departments');
+      
+      console.log('  🎉 Migration complete!');
     } catch (error) {
       console.error('  ❌ Migration failed:', error);
-      throw error; // Re-throw to prevent migration from being marked as complete
+      throw error;
     }
   },
 };
@@ -176,7 +174,7 @@ async function runMigrations() {
   console.log('🔄 Checking for pending migrations...');
   
   const allMigrations: MigrationFunction[] = [
-    migrateArtisticTechniciansV2,
+    consolidateAndRenameStaff,
   ];
   
   try {
