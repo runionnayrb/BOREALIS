@@ -10,6 +10,7 @@ import { setupWebSocket, broadcastAttendanceUpdate, broadcastArtistStatusUpdate,
 import { isWithinVenue, getDistanceFromVenue, validateGeofence } from "./geofencing";
 import { insertAttendanceRecordSchema, insertTickSheetSchema, insertTickSheetMarkSchema } from "@shared/schema";
 import { requireRole } from "./middleware/roleAuth";
+import { applyRolePermissions } from "./applyRolePermissions";
 import {
   canViewReports,
   canCreateReports,
@@ -200,6 +201,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       profileId: validation.data.profileId,
     };
 
+    // Security: Only admins can create admin accounts
+    if (formattedData.role === 'admin' && req.user?.role !== 'admin') {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "Only administrators can create admin accounts",
+      });
+    }
+
     // Check if email already exists
     const existingUser = await storage.getUserByEmail(formattedData.email);
     if (existingUser) {
@@ -209,14 +218,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Hash password
     const hashedPassword = await hashPassword(formattedData.password);
 
-    // Create user with new fields
+    // Create user with the actual role from the form
     const newUser = await storage.createUser({
       firstName: formattedData.firstName,
       lastName: formattedData.lastName,
       preferredName: formattedData.preferredName,
       email: formattedData.email,
       password: hashedPassword,
-      role: "stage_management",
+      role: formattedData.role as any,
     } as any);
 
     // Update position field with role
@@ -233,6 +242,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (formattedData.profileType === 'technician') {
         await storage.updateTechnician(formattedData.profileId, { userId: newUser.id });
       }
+    }
+
+    // Apply role-based permissions automatically
+    try {
+      await applyRolePermissions(newUser.id, formattedData.role as any);
+    } catch (error: any) {
+      console.error(`Failed to apply role permissions for new user ${newUser.id}:`, error);
     }
 
     const updatedUser = await storage.getUser(newUser.id);
@@ -284,6 +300,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       position: validation.data.position ? toTitleCase(validation.data.position) : undefined,
     };
 
+    // Security: Only admins can promote users to admin
+    if (formattedData.role === 'admin' && targetUser.role !== 'admin' && req.user?.role !== 'admin') {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "Only administrators can promote users to admin role",
+      });
+    }
+
     // Check if email is being changed and if it's already taken
     if (formattedData.email) {
       const existingUser = await storage.getUserByEmail(formattedData.email);
@@ -295,6 +319,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const updated = await storage.updateUser(req.params.id, formattedData);
     if (!updated) {
       return res.status(404).send("User not found");
+    }
+
+    // If role was changed, apply role-based permissions automatically
+    if (formattedData.role && formattedData.role !== targetUser.role) {
+      try {
+        await applyRolePermissions(updated.id, formattedData.role as any);
+      } catch (error: any) {
+        console.error(`Failed to apply role permissions for user ${updated.id}:`, error);
+      }
     }
 
     res.json(sanitizeUser(updated));
@@ -336,6 +369,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updated = await storage.updateUser(req.params.id, { role: newRole });
       if (!updated) {
         return res.status(500).json({ error: "Failed to update user" });
+      }
+
+      // Apply role-based permissions automatically
+      try {
+        await applyRolePermissions(updated.id, newRole as any);
+      } catch (error: any) {
+        console.error(`Failed to apply role permissions for user ${updated.id}:`, error);
       }
 
       res.json({ success: true, user: sanitizeUser(updated) });

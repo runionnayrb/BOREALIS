@@ -10,6 +10,16 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Settings, Shield, Zap, Users, Lock, ToggleLeft, UserCog } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -87,6 +97,7 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const [savingUser, setSavingUser] = useState<string | null>(null);
   const [updatingRoleUserId, setUpdatingRoleUserId] = useState<string | null>(null);
+  const [pendingRoleChange, setPendingRoleChange] = useState<{ userId: string; newRole: string; userName: string; currentRole: string } | null>(null);
 
   useEffect(() => {
     if (user && user.role !== 'admin') {
@@ -439,9 +450,15 @@ export default function AdminDashboard() {
                                 <td className="p-3">
                                   <Select
                                     value={u.role}
-                                    onValueChange={(role) => {
-                                      setUpdatingRoleUserId(u.id);
-                                      updateUserRoleMutation.mutate({ userId: u.id, role });
+                                    onValueChange={(newRole) => {
+                                      if (newRole !== u.role) {
+                                        setPendingRoleChange({
+                                          userId: u.id,
+                                          newRole,
+                                          userName: u.name,
+                                          currentRole: u.role,
+                                        });
+                                      }
                                     }}
                                     disabled={isUpdating || (isCurrentUser && u.role === 'admin')}
                                   >
@@ -782,6 +799,59 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <AlertDialog open={!!pendingRoleChange} onOpenChange={(open) => !open && setPendingRoleChange(null)}>
+          <AlertDialogContent data-testid="dialog-confirm-role-change">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Role Change</AlertDialogTitle>
+              <AlertDialogDescription>
+                Changing <strong>{pendingRoleChange?.userName}</strong>'s role from{' '}
+                <strong>{pendingRoleChange?.currentRole.replace(/_/g, ' ')}</strong> to{' '}
+                <strong>{pendingRoleChange?.newRole.replace(/_/g, ' ')}</strong> will automatically reset all their permissions to the default permissions for the new role.
+                <br /><br />
+                Any custom permissions you've set for this user will be replaced. You can manually adjust individual permissions afterward in the Permissions tab if needed.
+                <br /><br />
+                Do you want to continue?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel 
+                data-testid="button-cancel-role-change"
+                disabled={updateUserRoleMutation.isPending}
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                data-testid="button-confirm-role-change"
+                disabled={updateUserRoleMutation.isPending}
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (pendingRoleChange) {
+                    setUpdatingRoleUserId(pendingRoleChange.userId);
+                    updateUserRoleMutation.mutate(
+                      { userId: pendingRoleChange.userId, role: pendingRoleChange.newRole },
+                      {
+                        onSettled: () => {
+                          setPendingRoleChange(null);
+                          queryClient.invalidateQueries({ queryKey: ['/api/permissions'] });
+                        }
+                      }
+                    );
+                  }
+                }}
+              >
+                {updateUserRoleMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Continue'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

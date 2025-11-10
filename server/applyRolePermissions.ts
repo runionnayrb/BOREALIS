@@ -13,7 +13,7 @@ export async function applyRolePermissions(userId: string, role: UserRole): Prom
   
   const permissions = Object.entries(template).map(([feature, permissions]) => ({
     userId,
-    feature,
+    feature: feature as any,
     canView: permissions.canView,
     canCreate: permissions.canCreate,
     canEdit: permissions.canEdit,
