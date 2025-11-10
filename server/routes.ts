@@ -56,6 +56,8 @@ import {
   insertSystemSettingSchema,
   insertTrainingProgramSchema,
   featureNames,
+  userRoles,
+  bulkRolePageAccessSchema,
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
