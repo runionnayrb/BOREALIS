@@ -30,12 +30,13 @@ type MigrationFunction = {
 };
 
 /**
- * Migration: Move technicians from artistic-type departments to artistic_staff table
+ * Migration: Move technicians from artistic-type departments to artistic_staff table (v2)
+ * This is v2 because the original migration had a bug and was already marked complete
  */
-const migrateArtisticTechnicians: MigrationFunction = {
-  name: 'migrate_artistic_technicians_to_artistic_staff',
+const migrateArtisticTechniciansV2: MigrationFunction = {
+  name: 'migrate_artistic_technicians_v2',
   run: async () => {
-    console.log('🔄 Running migration: migrate_artistic_technicians_to_artistic_staff');
+    console.log('🔄 Running migration: migrate_artistic_technicians_v2');
     
     try {
       // Use a transaction for atomicity
@@ -67,41 +68,30 @@ const migrateArtisticTechnicians: MigrationFunction = {
         const technicianIds = Array.from(new Set(artisticTechAssignments.map(a => a.technicianId)));
         console.log(`  👥 Found ${technicianIds.length} technicians in artistic departments`);
         
-        // Step 3: For each technician, check if ALL their departments are artistic
-        // If they have mixed departments (both artistic and technical), we need to handle this
+        // Step 3: Get ALL department assignments for these technicians to determine migration strategy
         const allTechDeptAssignments = await tx.query.technicianDepartments.findMany({
           where: inArray(technicianDepartments.technicianId, technicianIds),
         });
         
         // Group by technician to check their department types
-        const techDeptMap = new Map<string, string[]>();
+        const techDeptMap = new Map<string, { artistic: string[], technical: string[] }>();
+        const artisticDeptIdSet = new Set(artisticDeptIds);
+        
         allTechDeptAssignments.forEach(assignment => {
           if (!techDeptMap.has(assignment.technicianId)) {
-            techDeptMap.set(assignment.technicianId, []);
+            techDeptMap.set(assignment.technicianId, { artistic: [], technical: [] });
           }
-          techDeptMap.get(assignment.technicianId)!.push(assignment.departmentId);
-        });
-        
-        // Determine which technicians to migrate (only those with ALL artistic departments)
-        const techsToMigrate: string[] = [];
-        const artisticDeptIdSet = new Set(artisticDeptIds); // Use Set for faster lookup
-        
-        // Use forEach to avoid downlevel iteration issues
-        techDeptMap.forEach((deptIds: string[], techId: string) => {
-          const allArtistic = deptIds.every((deptId: string) => artisticDeptIdSet.has(deptId));
-          if (allArtistic) {
-            techsToMigrate.push(techId);
+          const map = techDeptMap.get(assignment.technicianId)!;
+          if (artisticDeptIdSet.has(assignment.departmentId)) {
+            map.artistic.push(assignment.departmentId);
           } else {
-            console.log(`  ⚠️  Skipping technician ${techId} - has mixed department types`);
+            map.technical.push(assignment.departmentId);
           }
         });
         
-        if (techsToMigrate.length === 0) {
-          console.log('  ℹ️  No technicians with exclusively artistic departments, skipping migration');
-          return;
-        }
-        
-        console.log(`  ✅ Will migrate ${techsToMigrate.length} technicians to artistic_staff`);
+        // Everyone with at least one artistic department gets copied to artistic_staff
+        const techsToMigrate = Array.from(techDeptMap.keys());
+        console.log(`  ✅ Will migrate ${techsToMigrate.length} technicians with artistic departments`);
         
         // Step 4: Get full technician records for migration
         const techniciansToMove = await tx.query.technicians.findMany({
@@ -141,9 +131,9 @@ const migrateArtisticTechnicians: MigrationFunction = {
           }).onConflictDoNothing(); // Skip if already exists
         }
         
-        console.log(`  ✅ Copied ${assignmentsToMove.length} department assignments`);
+        console.log(`  ✅ Copied ${assignmentsToMove.length} artistic department assignments`);
         
-        // Step 7: Delete from technician_departments
+        // Step 7: Remove ONLY artistic assignments from technician_departments
         await tx.delete(technicianDepartments)
           .where(
             and(
@@ -152,14 +142,25 @@ const migrateArtisticTechnicians: MigrationFunction = {
             )
           );
         
-        console.log(`  ✅ Deleted department assignments from technician_departments`);
+        console.log(`  ✅ Removed artistic assignments from technician_departments`);
         
-        // Step 8: Delete from technicians
-        await tx.delete(technicians)
-          .where(inArray(technicians.id, techsToMigrate));
+        // Step 8: Delete from technicians table ONLY if they have NO technical departments
+        const techsOnlyArtistic: string[] = [];
+        techDeptMap.forEach((deptInfo, techId) => {
+          if (deptInfo.technical.length === 0) {
+            techsOnlyArtistic.push(techId);
+          } else {
+            console.log(`  ℹ️  Keeping ${techId} in technicians (has ${deptInfo.technical.length} technical depts)`);
+          }
+        });
         
-        console.log(`  ✅ Deleted ${techsToMigrate.length} records from technicians`);
-        console.log(`  🎉 Migration complete!`);
+        if (techsOnlyArtistic.length > 0) {
+          await tx.delete(technicians)
+            .where(inArray(technicians.id, techsOnlyArtistic));
+          console.log(`  ✅ Removed ${techsOnlyArtistic.length} people with only artistic departments from technicians`);
+        }
+        
+        console.log(`  🎉 Migration complete! Migrated ${techsToMigrate.length} people with artistic departments`);
       });
     } catch (error) {
       console.error('  ❌ Migration failed:', error);
@@ -175,7 +176,7 @@ async function runMigrations() {
   console.log('🔄 Checking for pending migrations...');
   
   const allMigrations: MigrationFunction[] = [
-    migrateArtisticTechnicians,
+    migrateArtisticTechniciansV2,
   ];
   
   try {
