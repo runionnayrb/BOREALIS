@@ -577,11 +577,11 @@ export class DatabaseStorage implements IStorage {
   async reorderActs(actsWithOrder: Array<{id: string; sortOrder: number}>): Promise<void> {
     if (actsWithOrder.length === 0) return;
     
-    // Build CASE statement for batch update
+    // Build CASE statement for batch update with explicit integer casting
     const caseStatement = sql`(case ${sql.join(
       actsWithOrder.map(act => sql`when ${acts.id} = ${act.id} then ${act.sortOrder}`),
       sql` `
-    )} end)`;
+    )} end)::integer`;
     
     const actIds = actsWithOrder.map(act => act.id);
     
@@ -631,11 +631,11 @@ export class DatabaseStorage implements IStorage {
   async reorderCues(cuesWithOrder: Array<{id: string; sortOrder: number}>): Promise<void> {
     if (cuesWithOrder.length === 0) return;
     
-    // Build CASE statement for batch update
+    // Build CASE statement for batch update with explicit integer casting
     const caseStatement = sql`(case ${sql.join(
       cuesWithOrder.map(cue => sql`when ${cues.id} = ${cue.id} then ${cue.sortOrder}`),
       sql` `
-    )} end)`;
+    )} end)::integer`;
     
     const cueIds = cuesWithOrder.map(cue => cue.id);
     
@@ -872,11 +872,11 @@ export class DatabaseStorage implements IStorage {
   async reorderArtists(artistIds: string[]): Promise<void> {
     if (artistIds.length === 0) return;
     
-    // Build CASE statement for batch update
+    // Build CASE statement for batch update with explicit integer casting
     const caseStatement = sql`(case ${sql.join(
       artistIds.map((id, index) => sql`when ${artists.id} = ${id} then ${index}`),
       sql` `
-    )} end)`;
+    )} end)::integer`;
     
     await db.update(artists)
       .set({ sortOrder: caseStatement })
@@ -1021,11 +1021,11 @@ export class DatabaseStorage implements IStorage {
   async reorderTechnicians(technicianIds: string[]): Promise<void> {
     if (technicianIds.length === 0) return;
     
-    // Build CASE statement for batch update
+    // Build CASE statement for batch update with explicit integer casting
     const caseStatement = sql`(case ${sql.join(
       technicianIds.map((id, index) => sql`when ${technicians.id} = ${id} then ${index}`),
       sql` `
-    )} end)`;
+    )} end)::integer`;
     
     await db.update(technicians)
       .set({ sortOrder: caseStatement })
@@ -1129,11 +1129,11 @@ export class DatabaseStorage implements IStorage {
         throw new Error(`Some technicians are not assigned to this department: ${missingIds.join(', ')}`);
       }
       
-      // Build CASE statement for batch update
+      // Build CASE statement for batch update with explicit integer casting
       const caseStatement = sql`(case ${sql.join(
         technicianIds.map((id, index) => sql`when ${technicianDepartments.technicianId} = ${id} then ${index}`),
         sql` `
-      )} end)`;
+      )} end)::integer`;
       
       await db.update(technicianDepartments)
         .set({ sortOrder: caseStatement })
@@ -1235,11 +1235,11 @@ export class DatabaseStorage implements IStorage {
   async reorderArtisticStaffInDepartment(departmentId: string, artisticStaffIds: string[]): Promise<void> {
     if (artisticStaffIds.length === 0) return;
     
-    // Build CASE statement for batch update
+    // Build CASE statement for batch update with explicit integer casting
     const caseStatement = sql`(case ${sql.join(
       artisticStaffIds.map((id, index) => sql`when ${technicianDepartments.technicianId} = ${id} then ${index}`),
       sql` `
-    )} end)`;
+    )} end)::integer`;
     
     await db.update(technicianDepartments)
       .set({ sortOrder: caseStatement })
