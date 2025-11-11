@@ -1293,8 +1293,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
     }
-    await storage.reorderTechnicians(validation.data.technicianIds);
-    res.sendStatus(204);
+    try {
+      await storage.reorderTechnicians(validation.data.technicianIds);
+      res.sendStatus(204);
+    } catch (error) {
+      console.error('[API] Error reordering technicians:', error);
+      return res.status(500).json({ 
+        error: "Failed to reorder technicians", 
+        message: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
   });
 
   // Technician Departments routes
@@ -1331,8 +1339,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
     }
-    await storage.reorderTechniciansInDepartment(req.params.id, validation.data.technicianIds);
-    res.sendStatus(204);
+    try {
+      await storage.reorderTechniciansInDepartment(req.params.id, validation.data.technicianIds);
+      res.sendStatus(204);
+    } catch (error) {
+      console.error('[API] Error reordering technicians in department:', {
+        departmentId: req.params.id,
+        technicianIds: validation.data.technicianIds,
+        error
+      });
+      return res.status(500).json({ 
+        error: "Failed to reorder technicians in department", 
+        message: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
   });
 
   // Artistic Staff routes

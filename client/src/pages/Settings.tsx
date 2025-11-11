@@ -1505,6 +1505,9 @@ export default function Settings() {
       // Snapshot previous value
       const previousOrder = new Map(optimisticTechnicianOrder);
       
+      // Snapshot previous query data for rollback
+      const previousData = queryClient.getQueryData(["/api/technician-departments/all"]);
+      
       // Optimistically update the order
       setOptimisticTechnicianOrder(prev => {
         const newMap = new Map(prev);
@@ -1515,14 +1518,31 @@ export default function Settings() {
       toast({ title: "Technician order updated" });
       
       // Return context with previous value for rollback
-      return { previousOrder };
+      return { previousOrder, previousData };
     },
-    onError: (_error, _variables, context) => {
+    onError: (error, variables, context) => {
+      console.error('[Frontend] Error reordering technicians in department:', {
+        error,
+        departmentId: variables.departmentId,
+        technicianIds: variables.technicianIds
+      });
+      
       // Rollback on error
       if (context?.previousOrder) {
         setOptimisticTechnicianOrder(context.previousOrder);
       }
-      toast({ title: "Failed to update order", variant: "destructive" });
+      
+      // Restore previous query data to prevent data loss
+      if (context?.previousData) {
+        queryClient.setQueryData(["/api/technician-departments/all"], context.previousData);
+      }
+      
+      const errorMessage = error instanceof Error ? error.message : "Failed to update order";
+      toast({ 
+        title: "Failed to update technician order", 
+        description: errorMessage,
+        variant: "destructive" 
+      });
     },
     onSettled: () => {
       // Refetch to ensure sync with server
@@ -1541,6 +1561,9 @@ export default function Settings() {
       // Snapshot previous value
       const previousOrder = new Map(optimisticArtisticStaffOrder);
       
+      // Snapshot previous query data for rollback
+      const previousData = queryClient.getQueryData(["/api/artistic-staff-departments/all"]);
+      
       // Optimistically update the order
       setOptimisticArtisticStaffOrder(prev => {
         const newMap = new Map(prev);
@@ -1551,14 +1574,31 @@ export default function Settings() {
       toast({ title: "Artistic staff order updated" });
       
       // Return context with previous value for rollback
-      return { previousOrder };
+      return { previousOrder, previousData };
     },
-    onError: (_error, _variables, context) => {
+    onError: (error, variables, context) => {
+      console.error('[Frontend] Error reordering artistic staff in department:', {
+        error,
+        departmentId: variables.departmentId,
+        artisticStaffIds: variables.artisticStaffIds
+      });
+      
       // Rollback on error
       if (context?.previousOrder) {
         setOptimisticArtisticStaffOrder(context.previousOrder);
       }
-      toast({ title: "Failed to update order", variant: "destructive" });
+      
+      // Restore previous query data to prevent data loss
+      if (context?.previousData) {
+        queryClient.setQueryData(["/api/artistic-staff-departments/all"], context.previousData);
+      }
+      
+      const errorMessage = error instanceof Error ? error.message : "Failed to update order";
+      toast({ 
+        title: "Failed to update artistic staff order", 
+        description: errorMessage,
+        variant: "destructive" 
+      });
     },
     onSettled: () => {
       // Refetch to ensure sync with server

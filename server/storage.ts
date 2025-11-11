@@ -1106,20 +1106,51 @@ export class DatabaseStorage implements IStorage {
   async reorderTechniciansInDepartment(departmentId: string, technicianIds: string[]): Promise<void> {
     if (technicianIds.length === 0) return;
     
-    // Build CASE statement for batch update
-    const caseStatement = sql`(case ${sql.join(
-      technicianIds.map((id, index) => sql`when ${technicianDepartments.technicianId} = ${id} then ${index}`),
-      sql` `
-    )} end)`;
-    
-    await db.update(technicianDepartments)
-      .set({ sortOrder: caseStatement })
-      .where(
-        and(
-          eq(technicianDepartments.departmentId, departmentId),
-          inArray(technicianDepartments.technicianId, technicianIds)
-        )
-      );
+    try {
+      // Validate that the department exists
+      const dept = await db.select().from(departments).where(eq(departments.id, departmentId)).limit(1);
+      if (dept.length === 0) {
+        throw new Error(`Department ${departmentId} not found`);
+      }
+      
+      // Validate that all technician-department assignments exist
+      const existingAssignments = await db.select()
+        .from(technicianDepartments)
+        .where(
+          and(
+            eq(technicianDepartments.departmentId, departmentId),
+            inArray(technicianDepartments.technicianId, technicianIds)
+          )
+        );
+      
+      if (existingAssignments.length !== technicianIds.length) {
+        const existingIds = new Set(existingAssignments.map(a => a.technicianId));
+        const missingIds = technicianIds.filter(id => !existingIds.has(id));
+        throw new Error(`Some technicians are not assigned to this department: ${missingIds.join(', ')}`);
+      }
+      
+      // Build CASE statement for batch update
+      const caseStatement = sql`(case ${sql.join(
+        technicianIds.map((id, index) => sql`when ${technicianDepartments.technicianId} = ${id} then ${index}`),
+        sql` `
+      )} end)`;
+      
+      await db.update(technicianDepartments)
+        .set({ sortOrder: caseStatement })
+        .where(
+          and(
+            eq(technicianDepartments.departmentId, departmentId),
+            inArray(technicianDepartments.technicianId, technicianIds)
+          )
+        );
+    } catch (error) {
+      console.error('[Storage] Error reordering technicians in department:', {
+        departmentId,
+        technicianIds,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
   }
 
   async getTechniciansByDepartment(departmentId: string): Promise<Technician[]> {
