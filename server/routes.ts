@@ -281,16 +281,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       firstName: formattedData.firstName,
       lastName: formattedData.lastName,
       preferredName: formattedData.preferredName,
+      name: `${formattedData.firstName} ${formattedData.lastName}`,
       email: formattedData.email,
       password: hashedPassword,
       role: formattedData.role as any,
     } as any);
 
-    // Update position field with role and userGroupId
-    await storage.updateUser(newUser.id, {
-      position: formattedData.role,
-      userGroupId: formattedData.userGroupId || null,
-    });
+    // Update userGroupId if provided
+    if (formattedData.userGroupId) {
+      await storage.updateUser(newUser.id, {
+        userGroupId: formattedData.userGroupId,
+      });
+    }
 
     // Link to profile if specified
     if (formattedData.profileType && formattedData.profileId) {

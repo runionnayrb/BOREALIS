@@ -5862,9 +5862,17 @@ export default function Settings() {
                               <p className="text-sm text-muted-foreground" data-testid={`text-user-email-${user.id}`}>
                                 {user.email}
                               </p>
+                              {user.role && (
+                                <p className="text-sm text-muted-foreground" data-testid={`text-user-role-${user.id}`}>
+                                  Role: {user.role === 'stage_management' ? 'Stage Management' : 
+                                        user.role === 'performance_wellness' ? 'Performance & Wellness' : 
+                                        user.role === 'read_only' ? 'Read Only' : 
+                                        user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                                </p>
+                              )}
                               {user.position && (
                                 <p className="text-sm text-muted-foreground" data-testid={`text-user-position-${user.id}`}>
-                                  {user.position}
+                                  Position: {user.position}
                                 </p>
                               )}
                             </div>
