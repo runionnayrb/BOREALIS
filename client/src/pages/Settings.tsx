@@ -173,6 +173,12 @@ export default function Settings() {
   // Profile linking for create user
   const [selectedProfileType, setSelectedProfileType] = useState<string | null>(null);
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+  
+  // Profile linking for edit user
+  const [selectedEditProfileType, setSelectedEditProfileType] = useState<string | null>(null);
+  const [selectedEditProfileId, setSelectedEditProfileId] = useState<string | null>(null);
+  const [currentLinkedProfile, setCurrentLinkedProfile] = useState<{ type: string; id: string; name: string } | null>(null);
+  
   const [selectedTechnicianForRole, setSelectedTechnicianForRole] = useState<string>("");
   const [selectedRoleType, setSelectedRoleType] = useState<string>("");
 
@@ -214,7 +220,7 @@ export default function Settings() {
   const { data: userGroups = [] } = useQuery<UserGroup[]>({ queryKey: ["/api/user-groups"] });
   const { data: unlinkedProfiles } = useQuery<{ artists: Artist[], artisticStaff: ArtisticStaff[], technicians: Technician[] }>({ 
     queryKey: ["/api/users/unlinked-profiles"],
-    enabled: createUserDialogOpen && isStageManager,
+    enabled: (createUserDialogOpen || editUserDialogOpen) && isStageManager,
     retry: false,
   });
   
@@ -258,6 +264,42 @@ export default function Settings() {
     },
     enabled: !!selectedDepartmentForRoles?.id && rolesDialogOpen,
   });
+
+  // Detect currently linked profile when editing a user
+  useEffect(() => {
+    if (userToEdit) {
+      // Check if user is linked to any profile (collections may be empty)
+      const linkedArtist = artists?.find(a => a.userId === userToEdit.id);
+      const linkedTechnician = technicians?.find(t => t.userId === userToEdit.id);
+      const linkedArtisticStaff = artisticStaff?.find(s => s.userId === userToEdit.id);
+
+      if (linkedArtist) {
+        const profile = { type: 'artist', id: linkedArtist.id, name: `${linkedArtist.preferredName} (${linkedArtist.firstName} ${linkedArtist.lastName})` };
+        setCurrentLinkedProfile(profile);
+        setSelectedEditProfileType('artist');
+        setSelectedEditProfileId(linkedArtist.id);
+      } else if (linkedTechnician) {
+        const profile = { type: 'technician', id: linkedTechnician.id, name: `${linkedTechnician.preferredName} (${linkedTechnician.firstName} ${linkedTechnician.lastName})` };
+        setCurrentLinkedProfile(profile);
+        setSelectedEditProfileType('technician');
+        setSelectedEditProfileId(linkedTechnician.id);
+      } else if (linkedArtisticStaff) {
+        const profile = { type: 'artisticStaff', id: linkedArtisticStaff.id, name: `${linkedArtisticStaff.preferredName} (${linkedArtisticStaff.firstName} ${linkedArtisticStaff.lastName})` };
+        setCurrentLinkedProfile(profile);
+        setSelectedEditProfileType('artisticStaff');
+        setSelectedEditProfileId(linkedArtisticStaff.id);
+      } else {
+        setCurrentLinkedProfile(null);
+        setSelectedEditProfileType(null);
+        setSelectedEditProfileId(null);
+      }
+    } else if (!userToEdit) {
+      // Reset when dialog closes
+      setCurrentLinkedProfile(null);
+      setSelectedEditProfileType(null);
+      setSelectedEditProfileId(null);
+    }
+  }, [userToEdit, artists, technicians, artisticStaff]);
 
   // Load technician status when editing a technician
   useEffect(() => {
@@ -6325,10 +6367,20 @@ export default function Settings() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={editUserDialogOpen} onOpenChange={setEditUserDialogOpen}>
+      <Dialog open={editUserDialogOpen} onOpenChange={(open) => {
+        setEditUserDialogOpen(open);
+        if (!open) {
+          setUserToEdit(null);
+          setSelectedUserGroupId(null);
+          setSelectedPermissionRole(null);
+          setCurrentLinkedProfile(null);
+          setSelectedEditProfileType(null);
+          setSelectedEditProfileId(null);
+        }
+      }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <form
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
               if (!userToEdit) return;
 
@@ -6339,16 +6391,65 @@ export default function Settings() {
               const email = formData.get("email") as string;
               const position = formData.get("position") as string;
 
-              updateUserMutation.mutate({
-                id: userToEdit.id,
-                firstName,
-                lastName,
-                preferredName,
-                email,
-                position: position || undefined,
-                role: selectedPermissionRole || undefined,
-                userGroupId: selectedUserGroupId,
-              });
+              try {
+                // Update user basic fields
+                await apiRequest("PATCH", `/api/users/${userToEdit.id}`, {
+                  firstName,
+                  lastName,
+                  preferredName,
+                  email,
+                  position: position || undefined,
+                  role: selectedPermissionRole || undefined,
+                  userGroupId: selectedUserGroupId,
+                });
+
+                // Handle profile linking changes
+                const hasProfileChanged = 
+                  (currentLinkedProfile?.type !== selectedEditProfileType) ||
+                  (currentLinkedProfile?.id !== selectedEditProfileId);
+
+                if (hasProfileChanged) {
+                  // Unlink from old profile if exists
+                  if (currentLinkedProfile) {
+                    const unlinkEndpoint = 
+                      currentLinkedProfile.type === 'artist' ? `/api/artists/${currentLinkedProfile.id}/unlink-user` :
+                      currentLinkedProfile.type === 'technician' ? `/api/technicians/${currentLinkedProfile.id}/unlink-user` :
+                      `/api/artistic-staff/${currentLinkedProfile.id}/unlink-user`;
+                    await apiRequest("PATCH", unlinkEndpoint, {});
+                  }
+
+                  // Link to new profile if selected
+                  if (selectedEditProfileType && selectedEditProfileType !== "none" && selectedEditProfileId) {
+                    const linkEndpoint = 
+                      selectedEditProfileType === 'artist' ? `/api/artists/${selectedEditProfileId}/link-user` :
+                      selectedEditProfileType === 'technician' ? `/api/technicians/${selectedEditProfileId}/link-user` :
+                      `/api/artistic-staff/${selectedEditProfileId}/link-user`;
+                    await apiRequest("PATCH", linkEndpoint, { userId: userToEdit.id });
+                  }
+                }
+
+                // Invalidate queries and close dialog
+                queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+                queryClient.invalidateQueries({ queryKey: ["/api/users/unlinked-profiles"] });
+                queryClient.invalidateQueries({ queryKey: ["/api/artists"] });
+                queryClient.invalidateQueries({ queryKey: ["/api/technicians"] });
+                queryClient.invalidateQueries({ queryKey: ["/api/artistic-staff"] });
+                
+                toast({ title: "User updated successfully" });
+                setEditUserDialogOpen(false);
+                setUserToEdit(null);
+                setSelectedUserGroupId(null);
+                setSelectedPermissionRole(null);
+                setCurrentLinkedProfile(null);
+                setSelectedEditProfileType(null);
+                setSelectedEditProfileId(null);
+              } catch (error: any) {
+                toast({ 
+                  title: "Error updating user", 
+                  description: error.message || "An error occurred",
+                  variant: "destructive"
+                });
+              }
             }}
           >
             <DialogHeader>
@@ -6445,6 +6546,104 @@ export default function Settings() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {currentLinkedProfile && (
+                <div className="space-y-2">
+                  <Label>Current Linked Profile</Label>
+                  <div className="flex items-center justify-between p-3 bg-muted rounded-md">
+                    <div className="flex items-center gap-2">
+                      <UserCircle2 className="w-4 h-4" />
+                      <span className="text-sm">{currentLinkedProfile.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({currentLinkedProfile.type === 'artist' ? 'Artist' : 
+                          currentLinkedProfile.type === 'technician' ? 'Technician' : 'Artistic Staff'})
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Link to Profile (Optional)</Label>
+                <Select 
+                  value={selectedEditProfileType || "none"} 
+                  onValueChange={(value) => {
+                    setSelectedEditProfileType(value === "none" ? null : value);
+                    setSelectedEditProfileId(null);
+                  }}
+                >
+                  <SelectTrigger data-testid="select-edit-user-profileType">
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="artist">Artist</SelectItem>
+                    <SelectItem value="artisticStaff">Artistic Staff</SelectItem>
+                    <SelectItem value="technician">Technician</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {selectedEditProfileType && selectedEditProfileType !== "none" && (
+                <div className="space-y-2">
+                  <Label>
+                    {selectedEditProfileType === "artist" && "Select Artist"}
+                    {selectedEditProfileType === "artisticStaff" && "Select Artistic Staff"}
+                    {selectedEditProfileType === "technician" && "Select Technician"}
+                  </Label>
+                  <Select 
+                    value={selectedEditProfileId || ""} 
+                    onValueChange={setSelectedEditProfileId}
+                  >
+                    <SelectTrigger data-testid="select-edit-user-profileId">
+                      <SelectValue placeholder="Select profile" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedEditProfileType === "artist" && (
+                        <>
+                          {currentLinkedProfile?.type === 'artist' && (
+                            <SelectItem key={currentLinkedProfile.id} value={currentLinkedProfile.id}>
+                              {currentLinkedProfile.name} (Current)
+                            </SelectItem>
+                          )}
+                          {unlinkedProfiles?.artists.map((artist) => (
+                            <SelectItem key={artist.id} value={artist.id}>
+                              {artist.preferredName} ({artist.firstName} {artist.lastName})
+                            </SelectItem>
+                          ))}
+                        </>
+                      )}
+                      {selectedEditProfileType === "artisticStaff" && (
+                        <>
+                          {currentLinkedProfile?.type === 'artisticStaff' && (
+                            <SelectItem key={currentLinkedProfile.id} value={currentLinkedProfile.id}>
+                              {currentLinkedProfile.name} (Current)
+                            </SelectItem>
+                          )}
+                          {unlinkedProfiles?.artisticStaff.map((staff) => (
+                            <SelectItem key={staff.id} value={staff.id}>
+                              {staff.preferredName} ({staff.firstName} {staff.lastName})
+                            </SelectItem>
+                          ))}
+                        </>
+                      )}
+                      {selectedEditProfileType === "technician" && (
+                        <>
+                          {currentLinkedProfile?.type === 'technician' && (
+                            <SelectItem key={currentLinkedProfile.id} value={currentLinkedProfile.id}>
+                              {currentLinkedProfile.name} (Current)
+                            </SelectItem>
+                          )}
+                          {unlinkedProfiles?.technicians.map((tech) => (
+                            <SelectItem key={tech.id} value={tech.id}>
+                              {tech.preferredName} ({tech.firstName} {tech.lastName})
+                            </SelectItem>
+                          ))}
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               
               <div className="border-t pt-4 mt-4 space-y-3">
                 <h4 className="text-sm font-semibold">User Actions</h4>
@@ -6512,6 +6711,9 @@ export default function Settings() {
                   setUserToEdit(null);
                   setSelectedUserGroupId(null);
                   setSelectedPermissionRole(null);
+                  setCurrentLinkedProfile(null);
+                  setSelectedEditProfileType(null);
+                  setSelectedEditProfileId(null);
                 }}
                 data-testid="button-cancel-edit-user"
               >
