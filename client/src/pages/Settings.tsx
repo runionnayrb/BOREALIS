@@ -274,32 +274,39 @@ export default function Settings() {
       const linkedArtisticStaff = artisticStaff?.find(s => s.userId === userToEdit.id);
 
       if (linkedArtist) {
-        const profile = { type: 'artist', id: linkedArtist.id, name: `${linkedArtist.preferredName} (${linkedArtist.firstName} ${linkedArtist.lastName})` };
-        setCurrentLinkedProfile(profile);
-        setSelectedEditProfileType('artist');
-        setSelectedEditProfileId(linkedArtist.id);
+        const profile = { type: 'artist' as const, id: linkedArtist.id, name: `${linkedArtist.preferredName} (${linkedArtist.firstName} ${linkedArtist.lastName})` };
+        // Only update if changed
+        if (currentLinkedProfile?.id !== linkedArtist.id || currentLinkedProfile?.type !== 'artist') {
+          setCurrentLinkedProfile(profile);
+          setSelectedEditProfileType('artist');
+          setSelectedEditProfileId(linkedArtist.id);
+        }
       } else if (linkedTechnician) {
-        const profile = { type: 'technician', id: linkedTechnician.id, name: `${linkedTechnician.preferredName} (${linkedTechnician.firstName} ${linkedTechnician.lastName})` };
-        setCurrentLinkedProfile(profile);
-        setSelectedEditProfileType('technician');
-        setSelectedEditProfileId(linkedTechnician.id);
+        const profile = { type: 'technician' as const, id: linkedTechnician.id, name: `${linkedTechnician.preferredName} (${linkedTechnician.firstName} ${linkedTechnician.lastName})` };
+        // Only update if changed
+        if (currentLinkedProfile?.id !== linkedTechnician.id || currentLinkedProfile?.type !== 'technician') {
+          setCurrentLinkedProfile(profile);
+          setSelectedEditProfileType('technician');
+          setSelectedEditProfileId(linkedTechnician.id);
+        }
       } else if (linkedArtisticStaff) {
-        const profile = { type: 'artisticStaff', id: linkedArtisticStaff.id, name: `${linkedArtisticStaff.preferredName} (${linkedArtisticStaff.firstName} ${linkedArtisticStaff.lastName})` };
-        setCurrentLinkedProfile(profile);
-        setSelectedEditProfileType('artisticStaff');
-        setSelectedEditProfileId(linkedArtisticStaff.id);
+        const profile = { type: 'artisticStaff' as const, id: linkedArtisticStaff.id, name: `${linkedArtisticStaff.preferredName} (${linkedArtisticStaff.firstName} ${linkedArtisticStaff.lastName})` };
+        // Only update if changed
+        if (currentLinkedProfile?.id !== linkedArtisticStaff.id || currentLinkedProfile?.type !== 'artisticStaff') {
+          setCurrentLinkedProfile(profile);
+          setSelectedEditProfileType('artisticStaff');
+          setSelectedEditProfileId(linkedArtisticStaff.id);
+        }
       } else {
-        setCurrentLinkedProfile(null);
-        setSelectedEditProfileType(null);
-        setSelectedEditProfileId(null);
+        // Only reset if currently set
+        if (currentLinkedProfile !== null) {
+          setCurrentLinkedProfile(null);
+          setSelectedEditProfileType(null);
+          setSelectedEditProfileId(null);
+        }
       }
-    } else if (!userToEdit) {
-      // Reset when dialog closes
-      setCurrentLinkedProfile(null);
-      setSelectedEditProfileType(null);
-      setSelectedEditProfileId(null);
     }
-  }, [userToEdit, artists, technicians, artisticStaff]);
+  }, [userToEdit, artists, technicians, artisticStaff, currentLinkedProfile]);
 
   // Load technician status when editing a technician
   useEffect(() => {
@@ -6392,16 +6399,27 @@ export default function Settings() {
               const position = formData.get("position") as string;
 
               try {
-                // Update user basic fields
-                await apiRequest("PATCH", `/api/users/${userToEdit.id}`, {
+                // Build the update payload, only including fields that should be updated
+                const updatePayload: any = {
                   firstName,
                   lastName,
                   preferredName,
                   email,
                   position: position || undefined,
-                  role: selectedPermissionRole || undefined,
-                  userGroupId: selectedUserGroupId,
-                });
+                };
+
+                // Only include role if it has changed from the original value
+                if (selectedPermissionRole !== null && selectedPermissionRole !== userToEdit.role) {
+                  updatePayload.role = selectedPermissionRole;
+                }
+
+                // Only include userGroupId if it has changed from the original value
+                if (selectedUserGroupId !== userToEdit.userGroupId) {
+                  updatePayload.userGroupId = selectedUserGroupId;
+                }
+
+                // Update user basic fields
+                await apiRequest("PATCH", `/api/users/${userToEdit.id}`, updatePayload);
 
                 // Handle profile linking changes
                 const hasProfileChanged = 
