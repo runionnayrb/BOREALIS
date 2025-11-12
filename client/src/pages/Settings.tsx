@@ -6337,6 +6337,7 @@ export default function Settings() {
               const lastName = formData.get("lastName") as string;
               const preferredName = formData.get("preferredName") as string;
               const email = formData.get("email") as string;
+              const position = formData.get("position") as string;
 
               updateUserMutation.mutate({
                 id: userToEdit.id,
@@ -6344,6 +6345,7 @@ export default function Settings() {
                 lastName,
                 preferredName,
                 email,
+                position: position || undefined,
                 role: selectedPermissionRole || undefined,
                 userGroupId: selectedUserGroupId,
               });
@@ -6378,7 +6380,6 @@ export default function Settings() {
                 <Input 
                   name="preferredName" 
                   placeholder="Preferred name" 
-                  required
                   defaultValue={userToEdit?.preferredName || ""}
                   data-testid="input-edit-user-preferredName" 
                 />
@@ -6413,6 +6414,15 @@ export default function Settings() {
                     <SelectItem value="artist">Artist</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Position</Label>
+                <Input 
+                  name="position" 
+                  placeholder="Job title or position (optional)" 
+                  defaultValue={userToEdit?.position || ""}
+                  data-testid="input-edit-user-position" 
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="user-group-select">User Group</Label>
