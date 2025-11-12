@@ -3,6 +3,16 @@
 ## Overview
 La Perle - Borealis is a production-ready, full-stack web application designed to streamline theatrical production management. It empowers Stage Managers to efficiently handle daily training reports, show lineup management, comprehensive scheduling, and real-time attendance tracking. The application supports rich text notes, tracking by various criteria (act, department, artist, location), technician lead assignments, and PDF report exports. Key features include visual stage position layouts for lineups, detailed schedule views, and an Attendance System with geofencing and PIN-based artist sign-in/sign-out. The overarching goal is to professionalize and simplify administrative tasks for theatrical productions.
 
+## Recent Changes
+### User Management Bug Fix (November 2025)
+- **Fixed user creation display issue**: Newly created users now display their full name (firstName + lastName) instead of "Unnamed User"
+- **Fixed role visibility**: User cards now display the role field with proper formatting (e.g., "Role: Stage Management", "Role: Technical")
+- **Fixed position field**: Backend no longer incorrectly overwrites the position field with the role value during user creation
+- **Technical changes**: 
+  - Backend (server/routes.ts): Added `name` field assignment during user creation, removed incorrect position assignment
+  - Frontend (client/src/pages/Settings.tsx): Updated user card component to display and format the role field
+  - Future improvement suggestion: Centralize role-to-label mapping in a shared utility for consistency
+
 ## User Preferences
 - Administrators use a comprehensive Admin Dashboard to configure permissions, system settings, and features without coding.
 - The permission system controls sidebar visibility - users can only access features visible in their sidebar based on database permissions.
