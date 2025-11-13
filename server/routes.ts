@@ -456,7 +456,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const deleteUserSchema = z.object({
-    adminUsername: z.string(),
+    adminUsername: z.string().email(),
     adminPassword: z.string(),
   });
 
@@ -470,8 +470,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
 
-    // Verify admin credentials
-    if (validation.data.adminUsername !== "admin" || validation.data.adminPassword !== "laperleSM2025!") {
+    // Verify admin credentials by checking against the database
+    const adminUser = await storage.getUserByEmail(validation.data.adminUsername);
+    if (!adminUser || adminUser.role !== 'admin') {
+      return res.status(403).json({ error: "Invalid admin credentials" });
+    }
+
+    // Verify password
+    const isPasswordValid = await comparePasswords(validation.data.adminPassword, adminUser.password);
+    if (!isPasswordValid) {
       return res.status(403).json({ error: "Invalid admin credentials" });
     }
 

@@ -5878,17 +5878,23 @@ export default function Settings() {
                                 <SelectValue placeholder="Select profile" />
                               </SelectTrigger>
                               <SelectContent>
-                                {selectedProfileType === "artist" && unlinkedProfiles?.artists.map((artist) => (
+                                {selectedProfileType === "artist" && [...(unlinkedProfiles?.artists || [])]
+                                  .sort((a, b) => a.preferredName.localeCompare(b.preferredName))
+                                  .map((artist) => (
                                   <SelectItem key={artist.id} value={artist.id}>
                                     {artist.preferredName} ({artist.firstName} {artist.lastName})
                                   </SelectItem>
                                 ))}
-                                {selectedProfileType === "artisticStaff" && unlinkedProfiles?.artisticStaff.map((staff) => (
+                                {selectedProfileType === "artisticStaff" && [...(unlinkedProfiles?.artisticStaff || [])]
+                                  .sort((a, b) => a.preferredName.localeCompare(b.preferredName))
+                                  .map((staff) => (
                                   <SelectItem key={staff.id} value={staff.id}>
                                     {staff.preferredName} ({staff.firstName} {staff.lastName})
                                   </SelectItem>
                                 ))}
-                                {selectedProfileType === "technician" && unlinkedProfiles?.technicians.map((tech) => (
+                                {selectedProfileType === "technician" && [...(unlinkedProfiles?.technicians || [])]
+                                  .sort((a, b) => a.preferredName.localeCompare(b.preferredName))
+                                  .map((tech) => (
                                   <SelectItem key={tech.id} value={tech.id}>
                                     {tech.preferredName} ({tech.firstName} {tech.lastName})
                                   </SelectItem>
@@ -6312,13 +6318,13 @@ export default function Settings() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="admin-username">Admin Username</Label>
+              <Label htmlFor="admin-username">Admin Email</Label>
               <Input
                 id="admin-username"
-                type="text"
+                type="email"
                 value={adminUsername}
                 onChange={(e) => setAdminUsername(e.target.value)}
-                placeholder="Enter admin username"
+                placeholder="Enter admin email address"
                 data-testid="input-admin-username"
               />
             </div>
@@ -6669,7 +6675,9 @@ export default function Settings() {
                               {currentLinkedProfile.name} (Current)
                             </SelectItem>
                           )}
-                          {unlinkedProfiles?.artists.map((artist) => (
+                          {[...(unlinkedProfiles?.artists || [])]
+                            .sort((a, b) => a.preferredName.localeCompare(b.preferredName))
+                            .map((artist) => (
                             <SelectItem key={artist.id} value={artist.id}>
                               {artist.preferredName} ({artist.firstName} {artist.lastName})
                             </SelectItem>
@@ -6683,7 +6691,9 @@ export default function Settings() {
                               {currentLinkedProfile.name} (Current)
                             </SelectItem>
                           )}
-                          {unlinkedProfiles?.artisticStaff.map((staff) => (
+                          {[...(unlinkedProfiles?.artisticStaff || [])]
+                            .sort((a, b) => a.preferredName.localeCompare(b.preferredName))
+                            .map((staff) => (
                             <SelectItem key={staff.id} value={staff.id}>
                               {staff.preferredName} ({staff.firstName} {staff.lastName})
                             </SelectItem>
@@ -6697,7 +6707,9 @@ export default function Settings() {
                               {currentLinkedProfile.name} (Current)
                             </SelectItem>
                           )}
-                          {unlinkedProfiles?.technicians.map((tech) => (
+                          {[...(unlinkedProfiles?.technicians || [])]
+                            .sort((a, b) => a.preferredName.localeCompare(b.preferredName))
+                            .map((tech) => (
                             <SelectItem key={tech.id} value={tech.id}>
                               {tech.preferredName} ({tech.firstName} {tech.lastName})
                             </SelectItem>
