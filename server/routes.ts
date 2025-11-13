@@ -231,6 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     email: z.string().email(),
     role: z.string().min(1),
     password: z.string().min(6),
+    position: z.string().optional(),
     userGroupId: z.string().nullable().optional(),
     profileType: z.enum(['artist', 'artisticStaff', 'technician']).optional(),
     profileId: z.string().optional(),
@@ -254,6 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       email: validation.data.email.toLowerCase(),
       role: validation.data.role,
       password: validation.data.password,
+      position: validation.data.position,
       userGroupId: validation.data.userGroupId,
       profileType: validation.data.profileType,
       profileId: validation.data.profileId,
@@ -285,6 +287,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       email: formattedData.email,
       password: hashedPassword,
       role: formattedData.role as any,
+      position: formattedData.position,
     } as any);
 
     // Update userGroupId if provided

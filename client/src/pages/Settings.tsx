@@ -1727,7 +1727,8 @@ export default function Settings() {
       preferredName: string; 
       email: string; 
       role: string; 
-      password: string; 
+      password: string;
+      position?: string;
       userGroupId?: string;
       profileType?: string; 
       profileId?: string;
@@ -5672,6 +5673,7 @@ export default function Settings() {
                         const preferredName = formData.get("preferredName") as string;
                         const email = formData.get("email") as string;
                         const password = formData.get("password") as string;
+                        const position = formData.get("position") as string;
 
                         if (!selectedPermissionRole) {
                           toast({ 
@@ -5689,6 +5691,7 @@ export default function Settings() {
                           email,
                           role: selectedPermissionRole,
                           password,
+                          position: position || undefined,
                           userGroupId: selectedUserGroupId || undefined,
                           profileType: selectedProfileType || undefined,
                           profileId: selectedProfileId || undefined,
@@ -5724,6 +5727,14 @@ export default function Settings() {
                             placeholder="Preferred name" 
                             required
                             data-testid="input-create-user-preferredName" 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Position</Label>
+                          <Input 
+                            name="position" 
+                            placeholder="e.g. Head of Department, Lead Technician" 
+                            data-testid="input-create-user-position" 
                           />
                         </div>
                         <div className="space-y-2">
@@ -5908,20 +5919,9 @@ export default function Settings() {
                               <p className="font-medium" data-testid={`text-user-name-${user.id}`}>
                                 {user.name || "Unnamed User"}
                               </p>
-                              <p className="text-sm text-muted-foreground" data-testid={`text-user-email-${user.id}`}>
-                                {user.email}
-                              </p>
-                              {user.role && (
-                                <p className="text-sm text-muted-foreground" data-testid={`text-user-role-${user.id}`}>
-                                  Role: {user.role === 'stage_management' ? 'Stage Management' : 
-                                        user.role === 'performance_wellness' ? 'Performance & Wellness' : 
-                                        user.role === 'read_only' ? 'Read Only' : 
-                                        user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                                </p>
-                              )}
                               {user.position && (
                                 <p className="text-sm text-muted-foreground" data-testid={`text-user-position-${user.id}`}>
-                                  Position: {user.position}
+                                  {user.position}
                                 </p>
                               )}
                             </div>
