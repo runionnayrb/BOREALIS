@@ -55,7 +55,7 @@ type SimpleItem = {
 };
 
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState("acts");
+  const [activeTab, setActiveTab] = useState("users");
   const [peopleSubTab, setPeopleSubTab] = useState<'artists' | 'artistic-staff' | 'technicians'>('artists');
   const [sceneDialogOpen, setSceneDialogOpen] = useState(false);
   const [sceneFormOpen, setSceneFormOpen] = useState(false);
@@ -188,15 +188,52 @@ export default function Settings() {
   // Check if user is a stage manager or admin
   const isStageManager = user?.role === 'stage_management' || user?.role === 'admin';
 
-  // Fetch all settings data
-  const { data: scenes = [] } = useQuery<Scene[]>({ queryKey: ["/api/scenes"] });
-  const { data: acts = [] } = useQuery<Act[]>({ queryKey: ["/api/acts"] });
-  const { data: cues = [] } = useQuery<Cue[]>({ queryKey: ["/api/cues"] });
-  const { data: departments = [] } = useQuery<Department[]>({ queryKey: ["/api/departments"] });
-  const { data: locationTypes = [] } = useQuery<LocationType[]>({ queryKey: ["/api/location-types"] });
-  const { data: locations = [] } = useQuery<Location[]>({ queryKey: ["/api/locations"] });
-  const { data: artistGroups = [] } = useQuery<ArtistGroup[]>({ queryKey: ["/api/artist-groups"] });
-  const artistsQuery = useQuery<Artist[]>({ queryKey: ["/api/artists"] });
+  // Fetch all settings data with conditional loading based on active tab
+  // Scenes, acts, cues - load when their tabs are active or when people tab is active (needed for assignments)
+  const { data: scenes = [] } = useQuery<Scene[]>({ 
+    queryKey: ["/api/scenes"],
+    enabled: activeTab === 'acts' || activeTab === 'cues' || activeTab === 'people',
+  });
+  const { data: acts = [] } = useQuery<Act[]>({ 
+    queryKey: ["/api/acts"],
+    enabled: activeTab === 'acts' || activeTab === 'cues',
+  });
+  const { data: cues = [] } = useQuery<Cue[]>({ 
+    queryKey: ["/api/cues"],
+    enabled: activeTab === 'cues',
+  });
+  
+  // Departments - load when needed by departments, acts, people, template, or cues tabs
+  const { data: departments = [] } = useQuery<Department[]>({ 
+    queryKey: ["/api/departments"],
+    enabled: activeTab === 'departments' || activeTab === 'acts' || activeTab === 'people' || activeTab === 'report-template' || activeTab === 'cues',
+  });
+  
+  // Locations data - load when locations or template tabs are active
+  const { data: locationTypes = [] } = useQuery<LocationType[]>({ 
+    queryKey: ["/api/location-types"],
+    enabled: activeTab === 'locations' || activeTab === 'report-template',
+  });
+  const { data: locations = [] } = useQuery<Location[]>({ 
+    queryKey: ["/api/locations"],
+    enabled: activeTab === 'locations' || activeTab === 'report-template',
+  });
+  
+  // Template-specific data
+  const { data: reportTemplate } = useQuery<ReportTemplate | null>({ 
+    queryKey: ["/api/report-template"],
+    enabled: activeTab === 'report-template',
+  });
+  
+  // People tab data - load when needed by people, users, acts, or cues tabs
+  const { data: artistGroups = [] } = useQuery<ArtistGroup[]>({ 
+    queryKey: ["/api/artist-groups"],
+    enabled: activeTab === 'people' || activeTab === 'acts' || activeTab === 'cues',
+  });
+  const artistsQuery = useQuery<Artist[]>({ 
+    queryKey: ["/api/artists"],
+    enabled: activeTab === 'people' || activeTab === 'users' || activeTab === 'acts' || activeTab === 'cues' || createUserDialogOpen || editUserDialogOpen,
+  });
   const archivedArtistsQuery = useQuery<Artist[]>({ 
     queryKey: ["/api/artists/archived"],
     enabled: viewArchivedDialogOpen,
@@ -206,15 +243,22 @@ export default function Settings() {
     queryKey: ["/api/technicians/archived"],
     enabled: viewArchivedTechniciansDialogOpen,
   });
-  const techniciansQuery = useQuery<Technician[]>({ queryKey: ["/api/technicians"] });
+  const techniciansQuery = useQuery<Technician[]>({ 
+    queryKey: ["/api/technicians"],
+    enabled: activeTab === 'people' || activeTab === 'users' || createUserDialogOpen || editUserDialogOpen,
+  });
   const technicians = techniciansQuery.data || [];
-  const artisticStaffQuery = useQuery<ArtisticStaff[]>({ queryKey: ["/api/artistic-staff"] });
+  const artisticStaffQuery = useQuery<ArtisticStaff[]>({ 
+    queryKey: ["/api/artistic-staff"],
+    enabled: activeTab === 'people' || activeTab === 'users' || createUserDialogOpen || editUserDialogOpen,
+  });
   const artisticStaff = artisticStaffQuery.data || [];
   const archivedArtisticStaffQuery = useQuery<ArtisticStaff[]>({ 
     queryKey: ["/api/artistic-staff/archived"],
     enabled: viewArchivedArtisticStaffDialogOpen,
   });
-  const { data: reportTemplate } = useQuery<ReportTemplate | null>({ queryKey: ["/api/report-template"] });
+  
+  // Users data - always enabled as it's needed for the Users tab (most common tab)
   const usersQuery = useQuery<SafeUser[]>({ queryKey: ["/api/users"] });
   const users = usersQuery.data || [];
   const { data: userGroups = [] } = useQuery<UserGroup[]>({ queryKey: ["/api/user-groups"] });
@@ -224,9 +268,10 @@ export default function Settings() {
     retry: false,
   });
   
-  // Fetch all technician-department assignments for grouping
+  // Fetch all technician-department assignments for grouping - only when people tab active
   const { data: allTechnicianDepartments = [] } = useQuery<Array<{ technicianId: string; departmentId: string; sortOrder: number }>>({
     queryKey: ["/api/technician-departments/all"],
+    enabled: activeTab === 'people',
     queryFn: async () => {
       const res = await fetch("/api/technician-departments/all", {
         credentials: "include"
@@ -237,11 +282,12 @@ export default function Settings() {
     }
   });
   
-  // Fetch all artistic staff-department assignments for grouping
+  // Fetch all artistic staff-department assignments for grouping - only when people tab active
   const { 
     data: allArtisticStaffDepartments = []
   } = useQuery<Array<{ artisticStaffId: string; departmentId: string; sortOrder: number }>>({
     queryKey: ["/api/artistic-staff-departments/all"],
+    enabled: activeTab === 'people',
     queryFn: async () => {
       const res = await fetch("/api/artistic-staff-departments/all", {
         credentials: "include"
