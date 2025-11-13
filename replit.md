@@ -4,14 +4,20 @@
 Borealis is a production-ready, full-stack web application designed to streamline theatrical production management. It empowers Stage Managers to efficiently handle daily training reports, show lineup management, comprehensive scheduling, and real-time attendance tracking. The application supports rich text notes, tracking by various criteria (act, department, artist, location), technician lead assignments, and PDF report exports. Key features include visual stage position layouts for lineups, detailed schedule views, and an Attendance System with geofencing and PIN-based artist sign-in/sign-out. The overarching goal is to professionalize and simplify administrative tasks for theatrical productions.
 
 ## Recent Changes
-### User Management Bug Fix (November 2025)
-- **Fixed user creation display issue**: Newly created users now display their full name (firstName + lastName) instead of "Unnamed User"
-- **Fixed role visibility**: User cards now display the role field with proper formatting (e.g., "Role: Stage Management", "Role: Technical")
-- **Fixed position field**: Backend no longer incorrectly overwrites the position field with the role value during user creation
-- **Technical changes**: 
-  - Backend (server/routes.ts): Added `name` field assignment during user creation, removed incorrect position assignment
-  - Frontend (client/src/pages/Settings.tsx): Updated user card component to display and format the role field
-  - Future improvement suggestion: Centralize role-to-label mapping in a shared utility for consistency
+### User Management Enhancements (November 2025)
+- **Delete User Security Enhancement**: Changed from hardcoded admin credentials to database-verified authentication
+  - Backend now validates actual admin email and password from database using secure password hash comparison
+  - Only users with admin role can delete other users
+  - Frontend dialog updated to show "Admin Email" label (input type: email) instead of "Admin Username"
+  - Prevents unauthorized deletions and removes security vulnerability of hardcoded credentials
+- **Profile Dropdown Improvements**: Alphabetically sorted profile selection with better display formatting
+  - All profile dropdowns (Artist, Artistic Staff, Technical Staff) now sort case-insensitively by preferredName
+  - Empty preferredName values fall back to "firstName lastName" for both sorting and display
+  - Arrays are copied before sorting to prevent React Query cache mutation
+  - Display format: "preferredName (firstName lastName)" when preferredName exists, or just "firstName lastName" when empty
+  - Applied to both Create User and Edit User dialogs for consistency
+- **Performance Optimization**: Settings page now uses conditional data fetching based on active tab (reduced from 15+ queries to 5-7 per tab)
+- **Previous Bug Fix**: Fixed user creation display issue where new users showed "Unnamed User", fixed role visibility and position field handling
 
 ## User Preferences
 - Administrators use a comprehensive Admin Dashboard to configure permissions, system settings, and features without coding.
