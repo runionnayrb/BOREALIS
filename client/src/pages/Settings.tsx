@@ -5879,26 +5879,50 @@ export default function Settings() {
                               </SelectTrigger>
                               <SelectContent>
                                 {selectedProfileType === "artist" && [...(unlinkedProfiles?.artists || [])]
-                                  .sort((a, b) => a.preferredName.localeCompare(b.preferredName))
-                                  .map((artist) => (
-                                  <SelectItem key={artist.id} value={artist.id}>
-                                    {artist.preferredName} ({artist.firstName} {artist.lastName})
-                                  </SelectItem>
-                                ))}
+                                  .sort((a, b) => {
+                                    const keyA = a.preferredName?.trim() || `${a.firstName} ${a.lastName}`;
+                                    const keyB = b.preferredName?.trim() || `${b.firstName} ${b.lastName}`;
+                                    return keyA.localeCompare(keyB, undefined, { sensitivity: 'base', numeric: true });
+                                  })
+                                  .map((artist) => {
+                                    const displayName = artist.preferredName?.trim() || `${artist.firstName} ${artist.lastName}`;
+                                    const fullName = `${artist.firstName} ${artist.lastName}`;
+                                    return (
+                                      <SelectItem key={artist.id} value={artist.id}>
+                                        {artist.preferredName?.trim() ? `${artist.preferredName} (${fullName})` : fullName}
+                                      </SelectItem>
+                                    );
+                                  })}
                                 {selectedProfileType === "artisticStaff" && [...(unlinkedProfiles?.artisticStaff || [])]
-                                  .sort((a, b) => a.preferredName.localeCompare(b.preferredName))
-                                  .map((staff) => (
-                                  <SelectItem key={staff.id} value={staff.id}>
-                                    {staff.preferredName} ({staff.firstName} {staff.lastName})
-                                  </SelectItem>
-                                ))}
+                                  .sort((a, b) => {
+                                    const keyA = a.preferredName?.trim() || `${a.firstName} ${a.lastName}`;
+                                    const keyB = b.preferredName?.trim() || `${b.firstName} ${b.lastName}`;
+                                    return keyA.localeCompare(keyB, undefined, { sensitivity: 'base', numeric: true });
+                                  })
+                                  .map((staff) => {
+                                    const displayName = staff.preferredName?.trim() || `${staff.firstName} ${staff.lastName}`;
+                                    const fullName = `${staff.firstName} ${staff.lastName}`;
+                                    return (
+                                      <SelectItem key={staff.id} value={staff.id}>
+                                        {staff.preferredName?.trim() ? `${staff.preferredName} (${fullName})` : fullName}
+                                      </SelectItem>
+                                    );
+                                  })}
                                 {selectedProfileType === "technician" && [...(unlinkedProfiles?.technicians || [])]
-                                  .sort((a, b) => a.preferredName.localeCompare(b.preferredName))
-                                  .map((tech) => (
-                                  <SelectItem key={tech.id} value={tech.id}>
-                                    {tech.preferredName} ({tech.firstName} {tech.lastName})
-                                  </SelectItem>
-                                ))}
+                                  .sort((a, b) => {
+                                    const keyA = a.preferredName?.trim() || `${a.firstName} ${a.lastName}`;
+                                    const keyB = b.preferredName?.trim() || `${b.firstName} ${b.lastName}`;
+                                    return keyA.localeCompare(keyB, undefined, { sensitivity: 'base', numeric: true });
+                                  })
+                                  .map((tech) => {
+                                    const displayName = tech.preferredName?.trim() || `${tech.firstName} ${tech.lastName}`;
+                                    const fullName = `${tech.firstName} ${tech.lastName}`;
+                                    return (
+                                      <SelectItem key={tech.id} value={tech.id}>
+                                        {tech.preferredName?.trim() ? `${tech.preferredName} (${fullName})` : fullName}
+                                      </SelectItem>
+                                    );
+                                  })}
                               </SelectContent>
                             </Select>
                           </div>
@@ -6676,12 +6700,19 @@ export default function Settings() {
                             </SelectItem>
                           )}
                           {[...(unlinkedProfiles?.artists || [])]
-                            .sort((a, b) => a.preferredName.localeCompare(b.preferredName))
-                            .map((artist) => (
-                            <SelectItem key={artist.id} value={artist.id}>
-                              {artist.preferredName} ({artist.firstName} {artist.lastName})
-                            </SelectItem>
-                          ))}
+                            .sort((a, b) => {
+                              const keyA = a.preferredName?.trim() || `${a.firstName} ${a.lastName}`;
+                              const keyB = b.preferredName?.trim() || `${b.firstName} ${b.lastName}`;
+                              return keyA.localeCompare(keyB, undefined, { sensitivity: 'base', numeric: true });
+                            })
+                            .map((artist) => {
+                              const fullName = `${artist.firstName} ${artist.lastName}`;
+                              return (
+                                <SelectItem key={artist.id} value={artist.id}>
+                                  {artist.preferredName?.trim() ? `${artist.preferredName} (${fullName})` : fullName}
+                                </SelectItem>
+                              );
+                            })}
                         </>
                       )}
                       {selectedEditProfileType === "artisticStaff" && (
@@ -6692,12 +6723,19 @@ export default function Settings() {
                             </SelectItem>
                           )}
                           {[...(unlinkedProfiles?.artisticStaff || [])]
-                            .sort((a, b) => a.preferredName.localeCompare(b.preferredName))
-                            .map((staff) => (
-                            <SelectItem key={staff.id} value={staff.id}>
-                              {staff.preferredName} ({staff.firstName} {staff.lastName})
-                            </SelectItem>
-                          ))}
+                            .sort((a, b) => {
+                              const keyA = a.preferredName?.trim() || `${a.firstName} ${a.lastName}`;
+                              const keyB = b.preferredName?.trim() || `${b.firstName} ${b.lastName}`;
+                              return keyA.localeCompare(keyB, undefined, { sensitivity: 'base', numeric: true });
+                            })
+                            .map((staff) => {
+                              const fullName = `${staff.firstName} ${staff.lastName}`;
+                              return (
+                                <SelectItem key={staff.id} value={staff.id}>
+                                  {staff.preferredName?.trim() ? `${staff.preferredName} (${fullName})` : fullName}
+                                </SelectItem>
+                              );
+                            })}
                         </>
                       )}
                       {selectedEditProfileType === "technician" && (
@@ -6708,12 +6746,19 @@ export default function Settings() {
                             </SelectItem>
                           )}
                           {[...(unlinkedProfiles?.technicians || [])]
-                            .sort((a, b) => a.preferredName.localeCompare(b.preferredName))
-                            .map((tech) => (
-                            <SelectItem key={tech.id} value={tech.id}>
-                              {tech.preferredName} ({tech.firstName} {tech.lastName})
-                            </SelectItem>
-                          ))}
+                            .sort((a, b) => {
+                              const keyA = a.preferredName?.trim() || `${a.firstName} ${a.lastName}`;
+                              const keyB = b.preferredName?.trim() || `${b.firstName} ${b.lastName}`;
+                              return keyA.localeCompare(keyB, undefined, { sensitivity: 'base', numeric: true });
+                            })
+                            .map((tech) => {
+                              const fullName = `${tech.firstName} ${tech.lastName}`;
+                              return (
+                                <SelectItem key={tech.id} value={tech.id}>
+                                  {tech.preferredName?.trim() ? `${tech.preferredName} (${fullName})` : fullName}
+                                </SelectItem>
+                              );
+                            })}
                         </>
                       )}
                     </SelectContent>
