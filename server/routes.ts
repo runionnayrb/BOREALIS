@@ -8,6 +8,7 @@ import { trainings, actDepartments, departmentAssignments, technicians, technici
 import { asc, eq } from "drizzle-orm";
 import { setupWebSocket, broadcastAttendanceUpdate, broadcastArtistStatusUpdate, broadcastTickSheetUpdate } from "./websocket";
 import { isWithinVenue, getDistanceFromVenue, validateGeofence } from "./geofencing";
+import { getClientIp, isIpTrusted } from "./ip-utils";
 import { insertAttendanceRecordSchema, insertTickSheetSchema, insertTickSheetMarkSchema } from "@shared/schema";
 import { requireRole } from "./middleware/roleAuth";
 import { applyRolePermissions } from "./applyRolePermissions";
@@ -54,11 +55,52 @@ import {
   insertUserPermissionSchema,
   updateUserPermissionSchema,
   insertSystemSettingSchema,
+  insertTrustedIpSchema,
+  updateTrustedIpSchema,
   insertTrainingProgramSchema,
   featureNames,
   userRoles,
   bulkRolePageAccessSchema,
 } from "@shared/schema";
+
+/**
+ * Log IP verification attempts to audit trail for security monitoring
+ */
+async function logIpVerificationAttempt(params: {
+  success: boolean;
+  artistId: string;
+  userId?: string;
+  userRole?: string;
+  clientIp: string;
+  matchedPattern?: string;
+  trustedIpCount: number;
+  bypassReason?: 'none' | 'no_trusted_ips' | 'admin_override';
+  requestHeaders?: Record<string, string | string[] | undefined>;
+}) {
+  try {
+    await storage.createAuditTrail({
+      entityType: 'attendance_sign_in',
+      entityId: params.artistId,
+      userId: params.userId || 'unknown',
+      userRole: params.userRole,
+      action: params.success ? 'ip_verification_success' : 'ip_verification_failure',
+      note: params.success 
+        ? `IP verification succeeded from ${params.clientIp}`
+        : `IP verification failed from ${params.clientIp}`,
+      metadata: JSON.stringify({
+        clientIp: params.clientIp,
+        matchedPattern: params.matchedPattern || null,
+        trustedIpCount: params.trustedIpCount,
+        bypassReason: params.bypassReason || 'none',
+        userAgent: params.requestHeaders?.['user-agent'],
+        xForwardedFor: params.requestHeaders?.['x-forwarded-for'],
+      }),
+    });
+  } catch (error) {
+    console.error('[Audit] Failed to log IP verification attempt:', error);
+    // Don't throw - audit logging failures shouldn't block sign-in
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // sets up /api/register, /api/login, /api/logout, /api/user (from blueprint:javascript_auth_all_persistance)
@@ -1543,9 +1585,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const validation = z.object({
       artistId: z.string(),
       pinCode: z.string().length(4),
-      latitude: z.number(),
-      longitude: z.number(),
-      accuracy: z.number().optional().default(100), // GPS accuracy in meters
     }).safeParse(req.body);
     
     if (!validation.success) {
@@ -1574,35 +1613,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(403).json({ error: "You must be signed in to the account linked to this artist profile." });
     }
 
-    // Get existing geofence session for hysteresis
-    const session = await storage.getGeofenceSession(validation.data.artistId);
+    // WiFi/IP verification - check if request comes from trusted theater network
+    const clientIp = getClientIp(req);
+    const trustedIps = await storage.getActiveTrustedIps();
+    
+    // If no trusted IPs are configured, allow sign-in (WiFi verification is effectively disabled)
+    // This prevents hard lockout during initial setup or if all IPs are accidentally removed
+    if (trustedIps.length === 0) {
+      console.log(`[Attendance] WiFi verification disabled (no trusted IPs configured) - allowing sign-in from IP: ${clientIp}`);
+      
+      // Log bypass to audit trail
+      await logIpVerificationAttempt({
+        success: true,
+        artistId: validation.data.artistId,
+        userId: req.user?.id,
+        userRole: req.user?.role,
+        clientIp: clientIp || 'unknown',
+        trustedIpCount: 0,
+        bypassReason: 'no_trusted_ips',
+        requestHeaders: req.headers,
+      });
+    } else {
+      // WiFi verification is active - check if IP is trusted
+      const trustedIpAddresses = trustedIps.map(ip => ip.ipAddress);
+      
+      if (!isIpTrusted(clientIp, trustedIpAddresses)) {
+        console.log(`[Attendance] Sign-in rejected - untrusted IP: ${clientIp} - ${trustedIps.length} trusted IP(s) configured`);
+        
+        // Log failure to audit trail
+        await logIpVerificationAttempt({
+          success: false,
+          artistId: validation.data.artistId,
+          userId: req.user?.id,
+          userRole: req.user?.role,
+          clientIp: clientIp || 'unknown',
+          trustedIpCount: trustedIps.length,
+          requestHeaders: req.headers,
+        });
+        
+        return res.status(403).json({ 
+          error: "Not at theater", 
+          message: "You must be connected to the theater WiFi to sign in. Please ensure you're connected to the correct network.",
+        });
+      }
 
-    // Validate geofence with accuracy and hysteresis
-    const geofenceResult = validateGeofence(
-      validation.data.latitude,
-      validation.data.longitude,
-      validation.data.accuracy,
-      session
-    );
-
-    if (!geofenceResult.isInside) {
-      return res.status(403).json({ 
-        error: "Not at venue", 
-        message: geofenceResult.message,
-        distance: geofenceResult.distanceToEdge,
-        accuracy: Math.round(validation.data.accuracy),
+      console.log(`[Attendance] IP verified: ${clientIp} - Artist ${artist.preferredName || artist.firstName}`);
+      
+      // Log success to audit trail
+      const matchedPattern = trustedIps.find(ip => isIpTrusted(clientIp, [ip.ipAddress]))?.ipAddress;
+      await logIpVerificationAttempt({
+        success: true,
+        artistId: validation.data.artistId,
+        userId: req.user?.id,
+        userRole: req.user?.role,
+        clientIp: clientIp || 'unknown',
+        matchedPattern,
+        trustedIpCount: trustedIps.length,
+        requestHeaders: req.headers,
       });
     }
-
-    // Update geofence session
-    await storage.upsertGeofenceSession({
-      artistId: validation.data.artistId,
-      isInside: 1,
-      lastCheckedAt: new Date(),
-      lastLatitude: validation.data.latitude.toString(),
-      lastLongitude: validation.data.longitude.toString(),
-      lastAccuracy: validation.data.accuracy.toString(),
-    });
 
     const today = new Date().toISOString().split('T')[0];
     const existingRecord = await storage.getAttendanceRecord(validation.data.artistId, today);
@@ -1615,8 +1684,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (existingRecord && existingRecord.signOutTime) {
       record = await storage.updateAttendanceRecord(existingRecord.id, {
         signInTime: new Date(),
-        signInLatitude: validation.data.latitude.toString(),
-        signInLongitude: validation.data.longitude.toString(),
+        signInLatitude: null, // No longer tracking GPS coordinates
+        signInLongitude: null,
         signOutTime: null,
         signOutLatitude: null,
         signOutLongitude: null,
@@ -1626,8 +1695,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         artistId: validation.data.artistId,
         date: today,
         signInTime: new Date(),
-        signInLatitude: validation.data.latitude.toString(),
-        signInLongitude: validation.data.longitude.toString(),
+        signInLatitude: null, // No longer tracking GPS coordinates
+        signInLongitude: null,
       });
     }
 
@@ -1646,8 +1715,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const validation = z.object({
       artistId: z.string(),
       pinCode: z.string().length(4),
-      latitude: z.number(),
-      longitude: z.number(),
     }).safeParse(req.body);
     
     if (!validation.success) {
@@ -1689,8 +1756,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const updatedRecord = await storage.updateAttendanceRecord(record.id, {
       signOutTime: new Date(),
-      signOutLatitude: validation.data.latitude.toString(),
-      signOutLongitude: validation.data.longitude.toString(),
+      signOutLatitude: null, // No longer tracking GPS coordinates
+      signOutLongitude: null,
     });
 
     if (updatedRecord) {
@@ -2866,6 +2933,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error deleting setting:", error);
       res.status(500).json({ error: "Failed to delete setting" });
+    }
+  });
+
+  // Trusted IPs Routes (Admin only)
+  app.get("/api/admin/trusted-ips", requireRole('admin'), async (req, res) => {
+    try {
+      const ips = await storage.getAllTrustedIps();
+      res.json(ips);
+    } catch (error: any) {
+      console.error("Error fetching trusted IPs:", error);
+      res.status(500).json({ error: "Failed to fetch trusted IPs" });
+    }
+  });
+
+  app.get("/api/admin/trusted-ips/current-ip", requireRole('admin'), async (req, res) => {
+    try {
+      const clientIp = getClientIp(req);
+      res.json({ ip: clientIp || 'Unknown' });
+    } catch (error: any) {
+      console.error("Error detecting IP:", error);
+      res.status(500).json({ error: "Failed to detect IP" });
+    }
+  });
+
+  app.post("/api/admin/trusted-ips", requireRole('admin'), async (req, res) => {
+    try {
+      const validation = insertTrustedIpSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: validation.error.issues,
+        });
+      }
+
+      const ip = await storage.createTrustedIp({
+        ...validation.data,
+        createdBy: req.user?.id,
+      });
+      res.status(201).json(ip);
+    } catch (error: any) {
+      console.error("Error creating trusted IP:", error);
+      res.status(500).json({ error: "Failed to create trusted IP" });
+    }
+  });
+
+  app.patch("/api/admin/trusted-ips/:id", requireRole('admin'), async (req, res) => {
+    try {
+      const validation = updateTrustedIpSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: validation.error.issues,
+        });
+      }
+
+      const ip = await storage.updateTrustedIp(req.params.id, validation.data);
+      if (!ip) {
+        return res.status(404).json({ error: "Trusted IP not found" });
+      }
+      res.json(ip);
+    } catch (error: any) {
+      console.error("Error updating trusted IP:", error);
+      res.status(500).json({ error: "Failed to update trusted IP" });
+    }
+  });
+
+  app.delete("/api/admin/trusted-ips/:id", requireRole('admin'), async (req, res) => {
+    try {
+      await storage.deleteTrustedIp(req.params.id);
+      res.sendStatus(204);
+    } catch (error: any) {
+      console.error("Error deleting trusted IP:", error);
+      res.status(500).json({ error: "Failed to delete trusted IP" });
     }
   });
 

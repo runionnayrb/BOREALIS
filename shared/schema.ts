@@ -894,6 +894,74 @@ export const insertSystemSettingSchema = createInsertSchema(systemSettings).omit
 export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
 export type SystemSetting = typeof systemSettings.$inferSelect;
 
+// Trusted IPs - WiFi verification for attendance
+export const trustedIps = pgTable("trusted_ips", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ipAddress: text("ip_address").notNull(), // IP address or range (e.g., "123.45.67.89" or "123.45.67.*")
+  description: text("description"), // Human-readable label (e.g., "Main Theater WiFi")
+  isActive: integer("is_active").notNull().default(1), // 0 = inactive, 1 = active
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdBy: varchar("created_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Regex patterns for IP validation
+const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+const ipv4WildcardPattern = /^(\d{1,3}\.){2,3}\*$/;
+const ipv6Pattern = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/;
+
+export const insertTrustedIpSchema = createInsertSchema(trustedIps).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  ipAddress: z.string()
+    .trim()
+    .refine((val) => {
+      // Reject overly broad wildcards (just "*" or "*.*" etc)
+      const wildcardCount = (val.match(/\*/g) || []).length;
+      if (wildcardCount > 2) {
+        return false; // Too many wildcards
+      }
+      if (val === '*' || val === '*.*' || val === '*.*.*' || val === '*.*.*.*') {
+        return false; // Overly broad pattern
+      }
+      
+      // Allow valid IPv4 addresses
+      if (ipv4Pattern.test(val)) {
+        const parts = val.split('.');
+        return parts.every(part => parseInt(part) <= 255);
+      }
+      // Allow IPv4 wildcard patterns (e.g., "192.168.*" or "192.168.1.*")
+      // Must have at least 2 specific octets before wildcard
+      if (ipv4WildcardPattern.test(val)) {
+        const parts = val.split('.');
+        const numericParts = parts.filter(p => p !== '*');
+        // Require at least 2 specific octets (e.g., "192.168.*" is OK, "192.*" is not)
+        if (numericParts.length < 2) {
+          return false;
+        }
+        return numericParts.every(part => parseInt(part) <= 255);
+      }
+      // Allow valid IPv6 addresses
+      if (ipv6Pattern.test(val)) {
+        return true;
+      }
+      return false;
+    }, {
+      message: "Must be a valid IPv4, IPv6, or IPv4 wildcard pattern with at least 2 specific octets (e.g., 192.168.1.* or 192.168.*). Overly broad patterns like '*' or '192.*' are not allowed."
+    }),
+  isActive: z.number().min(0).max(1).optional(),
+});
+
+export const updateTrustedIpSchema = insertTrustedIpSchema.partial().omit({
+  createdBy: true, // Cannot change creator
+});
+
+export type InsertTrustedIp = z.infer<typeof insertTrustedIpSchema>;
+export type UpdateTrustedIp = z.infer<typeof updateTrustedIpSchema>;
+export type TrustedIp = typeof trustedIps.$inferSelect;
+
 // Page names for role-based page access control
 export const pageNames = [
   'admin',
@@ -1295,6 +1363,8 @@ export const auditActions = [
   'reverted_sign_off',
   'final_validation',
   'reverted_validation',
+  'ip_verification_success',
+  'ip_verification_failure',
 ] as const;
 export type AuditAction = typeof auditActions[number];
 

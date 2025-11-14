@@ -50,6 +50,7 @@ import {
   type FinalValidation, type InsertFinalValidation, finalValidations,
   type AuditTrail, type InsertAuditTrail, auditTrail,
   type ArtistCompetency, type InsertArtistCompetency, artistCompetencies,
+  type TrustedIp, type InsertTrustedIp, trustedIps,
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq, asc, desc, inArray, and, or, gte, lte, isNull, isNotNull, sql } from "drizzle-orm";
@@ -296,6 +297,14 @@ export interface IStorage {
   updateSystemSetting(key: string, value: string, updatedBy?: string): Promise<SystemSetting | undefined>;
   upsertSystemSetting(key: string, value: string, type: string, category: string, description?: string, updatedBy?: string): Promise<SystemSetting>;
   deleteSystemSetting(key: string): Promise<void>;
+
+  // Trusted IPs - WiFi verification
+  getAllTrustedIps(): Promise<TrustedIp[]>;
+  getActiveTrustedIps(): Promise<TrustedIp[]>;
+  getTrustedIp(id: string): Promise<TrustedIp | undefined>;
+  createTrustedIp(ip: InsertTrustedIp): Promise<TrustedIp>;
+  updateTrustedIp(id: string, updates: Partial<InsertTrustedIp>): Promise<TrustedIp | undefined>;
+  deleteTrustedIp(id: string): Promise<void>;
   
   // Role Page Access
   getAllRolePageAccess(): Promise<RolePageAccess[]>;
@@ -1737,6 +1746,39 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSystemSetting(key: string): Promise<void> {
     await db.delete(systemSettings).where(eq(systemSettings.settingKey, key));
+  }
+
+  // Trusted IPs - WiFi verification
+  async getAllTrustedIps(): Promise<TrustedIp[]> {
+    return await db.select().from(trustedIps).orderBy(desc(trustedIps.createdAt));
+  }
+
+  async getActiveTrustedIps(): Promise<TrustedIp[]> {
+    return await db.select().from(trustedIps)
+      .where(eq(trustedIps.isActive, 1))
+      .orderBy(desc(trustedIps.createdAt));
+  }
+
+  async getTrustedIp(id: string): Promise<TrustedIp | undefined> {
+    const result = await db.select().from(trustedIps).where(eq(trustedIps.id, id));
+    return result[0];
+  }
+
+  async createTrustedIp(ip: InsertTrustedIp): Promise<TrustedIp> {
+    const result = await db.insert(trustedIps).values(ip).returning();
+    return result[0];
+  }
+
+  async updateTrustedIp(id: string, updates: Partial<InsertTrustedIp>): Promise<TrustedIp | undefined> {
+    const result = await db.update(trustedIps)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(trustedIps.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteTrustedIp(id: string): Promise<void> {
+    await db.delete(trustedIps).where(eq(trustedIps.id, id));
   }
 
   // Role Page Access
