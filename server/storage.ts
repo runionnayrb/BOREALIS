@@ -481,6 +481,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(id: string): Promise<void> {
+    // Before deleting the user, unlink any artist/staff records that reference this user
+    // This prevents foreign key constraint violations while preserving artist/staff data
+    await db.update(artists)
+      .set({ userId: null })
+      .where(eq(artists.userId, id));
+    
+    await db.update(staffMembers)
+      .set({ userId: null })
+      .where(eq(staffMembers.userId, id));
+    
+    // User permissions will cascade delete automatically (they have onDelete: cascade in schema)
+    // Now safe to delete the user
     await db.delete(users).where(eq(users.id, id));
   }
 
