@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
@@ -32,6 +32,9 @@ export default function ArtistSignIn() {
   const [selectedArtist, setSelectedArtist] = useState<PublicArtist | null>(null);
   const [pin, setPin] = useState("");
   const [networkError, setNetworkError] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successAction, setSuccessAction] = useState<'sign-in' | 'sign-out' | null>(null);
+  const successTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
@@ -55,11 +58,26 @@ export default function ArtistSignIn() {
       return apiRequest("POST", "/api/attendance/sign-in", { artistId, pinCode });
     },
     onSuccess: () => {
+      // Clear any existing timeout before setting a new one
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current);
+        successTimeoutRef.current = null;
+      }
+      
       setNetworkError(null);
+      setSuccessAction('sign-in');
+      setShowSuccess(true);
+      
+      const artistName = selectedArtist ? getArtistDisplayName(selectedArtist) : "Artist";
       toast({
-        description: "Signed in successfully.",
+        description: `Welcome, ${artistName}! You've been signed in.`,
       });
-      handleClose();
+      
+      // Auto-close success screen after 3 seconds
+      successTimeoutRef.current = setTimeout(() => {
+        setShowSuccess(false);
+        handleClose();
+      }, 3000);
     },
     onError: (error: any) => {
       const errorMessage = error.message || "Invalid PIN or network.";
@@ -86,11 +104,26 @@ export default function ArtistSignIn() {
       return apiRequest("POST", "/api/attendance/sign-out", { artistId, pinCode });
     },
     onSuccess: () => {
+      // Clear any existing timeout before setting a new one
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current);
+        successTimeoutRef.current = null;
+      }
+      
       setNetworkError(null);
+      setSuccessAction('sign-out');
+      setShowSuccess(true);
+      
+      const artistName = selectedArtist ? getArtistDisplayName(selectedArtist) : "Artist";
       toast({
-        description: "Signed out successfully.",
+        description: `Goodbye, ${artistName}! You've been signed out.`,
       });
-      handleClose();
+      
+      // Auto-close success screen after 3 seconds
+      successTimeoutRef.current = setTimeout(() => {
+        setShowSuccess(false);
+        handleClose();
+      }, 3000);
     },
     onError: (error: any) => {
       const errorMessage = error.message || "Invalid PIN or network.";
@@ -117,6 +150,14 @@ export default function ArtistSignIn() {
   const isSignedIn = currentRecord && currentRecord.signInTime && !currentRecord.signOutTime;
 
   const handleArtistSelect = async (artist: PublicArtist) => {
+    // Clear any pending timeout and reset success states
+    if (successTimeoutRef.current) {
+      clearTimeout(successTimeoutRef.current);
+      successTimeoutRef.current = null;
+    }
+    setShowSuccess(false);
+    setSuccessAction(null);
+    
     // All artists must have linked accounts to sign in
     if (!artist.userId) {
       toast({
@@ -160,9 +201,18 @@ export default function ArtistSignIn() {
   };
 
   const handleClose = () => {
+    // Clear any pending timeout
+    if (successTimeoutRef.current) {
+      clearTimeout(successTimeoutRef.current);
+      successTimeoutRef.current = null;
+    }
+    
+    // Reset all state
     setSelectedArtist(null);
     setPin("");
     setNetworkError(null);
+    setShowSuccess(false);
+    setSuccessAction(null);
     queryClient.invalidateQueries({ queryKey: ["/api/attendance/status"] });
   };
 
@@ -312,20 +362,54 @@ export default function ArtistSignIn() {
             </DialogDescription>
           </DialogHeader>
 
-          {networkError && (
-            <Alert variant="destructive" className="mb-4">
-              <Wifi className="h-4 w-4" />
-              <AlertDescription>
-                <strong>WiFi Error:</strong> {networkError}
-                <div className="mt-2 text-sm">
-                  <p>Please ensure you're connected to the theater WiFi network and try again.</p>
-                  <p className="mt-1">If the problem persists, contact a stage manager.</p>
+          {showSuccess ? (
+            <div className="flex flex-col items-center justify-center py-8 space-y-6">
+              <div className="relative">
+                <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
+                <div className="relative bg-primary text-primary-foreground rounded-full p-6">
+                  {successAction === 'sign-in' ? (
+                    <LogIn className="w-12 h-12" />
+                  ) : (
+                    <LogOut className="w-12 h-12" />
+                  )}
                 </div>
-              </AlertDescription>
-            </Alert>
-          )}
+              </div>
+              
+              <div className="text-center space-y-2">
+                <h3 className="text-2xl font-bold">
+                  {successAction === 'sign-in' ? 'Welcome!' : 'See you later!'}
+                </h3>
+                <p className="text-lg text-muted-foreground">
+                  {selectedArtist && getArtistDisplayName(selectedArtist)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {successAction === 'sign-in' 
+                    ? "You've been signed in successfully" 
+                    : "You've been signed out successfully"
+                  }
+                </p>
+              </div>
+              
+              <div className="text-xs text-muted-foreground">
+                This window will close automatically...
+              </div>
+            </div>
+          ) : (
+            <>
+              {networkError && (
+                <Alert variant="destructive" className="mb-4">
+                  <Wifi className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>WiFi Error:</strong> {networkError}
+                    <div className="mt-2 text-sm">
+                      <p>Please ensure you're connected to the theater WiFi network and try again.</p>
+                      <p className="mt-1">If the problem persists, contact a stage manager.</p>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
 
-          <div className="flex justify-center gap-3 mb-6">
+              <div className="flex justify-center gap-3 mb-6">
             {[0, 1, 2, 3].map((i) => (
               <div
                 key={i}
@@ -374,11 +458,13 @@ export default function ArtistSignIn() {
             <div />
           </div>
 
-          {(signInMutation.isPending || signOutMutation.isPending) && (
-            <div className="flex items-center justify-center gap-2 mt-4">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm text-muted-foreground">Processing...</span>
-            </div>
+              {(signInMutation.isPending || signOutMutation.isPending) && (
+                <div className="flex items-center justify-center gap-2 mt-4">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm text-muted-foreground">Processing...</span>
+                </div>
+              )}
+            </>
           )}
         </DialogContent>
       </Dialog>
