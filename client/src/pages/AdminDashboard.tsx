@@ -1034,43 +1034,6 @@ export default function AdminDashboard() {
             <div className="grid gap-4 md:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Geofencing</CardTitle>
-                  <CardDescription>Control attendance check-in location restrictions</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="geofence-radius">Geofence Radius (meters)</Label>
-                    <Input
-                      id="geofence-radius"
-                      type="number"
-                      value={getSettingValue('geofence_radius_meters')}
-                      onChange={(e) => handleSettingChange(getSettingId('geofence_radius_meters'), e.target.value)}
-                      data-testid="input-geofence-radius"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="venue-lat">Venue Latitude</Label>
-                    <Input
-                      id="venue-lat"
-                      value={getSettingValue('geofence_latitude')}
-                      onChange={(e) => handleSettingChange(getSettingId('geofence_latitude'), e.target.value)}
-                      data-testid="input-venue-lat"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="venue-lng">Venue Longitude</Label>
-                    <Input
-                      id="venue-lng"
-                      value={getSettingValue('geofence_longitude')}
-                      onChange={(e) => handleSettingChange(getSettingId('geofence_longitude'), e.target.value)}
-                      data-testid="input-venue-lng"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
                   <CardTitle>PDF Settings</CardTitle>
                   <CardDescription>Configure PDF export settings</CardDescription>
                 </CardHeader>
@@ -1249,18 +1212,6 @@ export default function AdminDashboard() {
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label htmlFor="enable-geofencing">Geofencing Required</Label>
-                      <p className="text-xs text-muted-foreground">Require location verification for attendance</p>
-                    </div>
-                    <Checkbox
-                      id="enable-geofencing"
-                      checked={getSettingValue('feature_geofencing_required') === 'true'}
-                      onCheckedChange={(checked) => handleSettingChange(getSettingId('feature_geofencing_required'), checked ? 'true' : 'false')}
-                      data-testid="checkbox-enable-geofencing"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
                       <Label htmlFor="enable-email">Email Notifications</Label>
                       <p className="text-xs text-muted-foreground">Send email notifications for reports</p>
                     </div>
@@ -1269,18 +1220,6 @@ export default function AdminDashboard() {
                       checked={getSettingValue('feature_email_enabled') === 'true'}
                       onCheckedChange={(checked) => handleSettingChange(getSettingId('feature_email_enabled'), checked ? 'true' : 'false')}
                       data-testid="checkbox-enable-email"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="enable-geofence">Geofence Enabled</Label>
-                      <p className="text-xs text-muted-foreground">Enable/disable geofence validation globally</p>
-                    </div>
-                    <Checkbox
-                      id="enable-geofence"
-                      checked={getSettingValue('geofence_enabled') === 'true'}
-                      onCheckedChange={(checked) => handleSettingChange(getSettingId('geofence_enabled'), checked ? 'true' : 'false')}
-                      data-testid="checkbox-enable-geofence"
                     />
                   </div>
                 </CardContent>
