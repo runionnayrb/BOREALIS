@@ -285,6 +285,61 @@ const addPerformanceIndexes: MigrationFunction = {
 };
 
 /**
+ * Migration: Create trusted_ips table for WiFi verification
+ * Idempotent: Safe to run on fresh databases or already-migrated databases
+ */
+const createTrustedIpsTable: MigrationFunction = {
+  name: 'create_trusted_ips_table',
+  run: async () => {
+    console.log('🔄 Running migration: create_trusted_ips_table');
+    
+    try {
+      // Check if table already exists
+      const checkTable = await db.execute(sql`
+        SELECT to_regclass('public.trusted_ips') AS exists
+      `);
+      const tableExists = checkTable.rows[0]?.exists !== null;
+      
+      if (tableExists) {
+        console.log('  ℹ️  Table trusted_ips already exists, skipping');
+        return;
+      }
+      
+      // Create trusted_ips table
+      await db.execute(sql`
+        CREATE TABLE trusted_ips (
+          id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+          ip_address TEXT NOT NULL,
+          description TEXT,
+          is_active INTEGER NOT NULL DEFAULT 1,
+          created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          created_by VARCHAR REFERENCES users(id),
+          updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+        )
+      `);
+      console.log('  ✅ Created table: trusted_ips');
+      
+      // Create index on ip_address for fast lookups
+      await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_trusted_ips_address ON trusted_ips(ip_address)
+      `);
+      console.log('  ✅ Created index: idx_trusted_ips_address');
+      
+      // Create index on is_active for filtering
+      await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_trusted_ips_active ON trusted_ips(is_active)
+      `);
+      console.log('  ✅ Created index: idx_trusted_ips_active');
+      
+      console.log('  🎉 Migration complete!');
+    } catch (error) {
+      console.error('  ❌ Migration failed:', error);
+      throw error;
+    }
+  },
+};
+
+/**
  * Run all pending migrations
  */
 async function runMigrations() {
@@ -294,6 +349,7 @@ async function runMigrations() {
     consolidateAndRenameStaff,
     createRolePageAccessTable,
     addPerformanceIndexes,
+    createTrustedIpsTable,
   ];
   
   try {
