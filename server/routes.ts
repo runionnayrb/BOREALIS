@@ -461,51 +461,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.delete("/api/users/:id", requireRole('stage_management', 'admin'), async (req, res) => {
+    try {
+      const validation = deleteUserSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: validation.error.issues,
+        });
+      }
 
-    const validation = deleteUserSchema.safeParse(req.body);
-    if (!validation.success) {
-      return res.status(400).json({
-        error: "Validation failed",
-        details: validation.error.issues,
+      // Verify admin credentials by checking against the database
+      // Normalize email to lowercase for consistent lookup
+      const normalizedEmail = validation.data.adminUsername.toLowerCase();
+      console.log('[Delete User] Admin verification attempt for:', normalizedEmail);
+      const adminUser = await storage.getUserByEmail(normalizedEmail);
+      console.log('[Delete User] Admin user found:', adminUser ? `${adminUser.email} (role: ${adminUser.role})` : 'NO USER FOUND');
+      if (!adminUser || adminUser.role !== 'admin') {
+        console.log('[Delete User] Admin verification failed: Invalid credentials or not admin role');
+        return res.status(403).json({ error: "Invalid admin credentials" });
+      }
+
+      // Verify password
+      const isPasswordValid = await comparePasswords(validation.data.adminPassword, adminUser.password);
+      console.log('[Delete User] Password verification result:', isPasswordValid);
+      if (!isPasswordValid) {
+        console.log('[Delete User] Password verification failed');
+        return res.status(403).json({ error: "Invalid admin credentials" });
+      }
+      console.log('[Delete User] Admin credentials verified successfully');
+
+      // Prevent self-deletion
+      if (req.params.id === req.user!.id) {
+        return res.status(400).json({ error: "Cannot delete your own account" });
+      }
+
+      // Check if user has created or updated any reports
+      console.log('[Delete User] Checking if user has reports...');
+      const hasReports = await storage.hasUserReports(req.params.id);
+      console.log('[Delete User] Has reports:', hasReports);
+
+      if (hasReports) {
+        return res.status(400).json({ 
+          error: "Cannot delete user who has created or modified reports. Please reassign or delete their reports first." 
+        });
+      }
+
+      console.log('[Delete User] Deleting user...');
+      await storage.deleteUser(req.params.id);
+      console.log('[Delete User] User deleted successfully');
+      res.sendStatus(204);
+    } catch (error) {
+      console.error('[Delete User] Unexpected error:', error);
+      return res.status(500).json({ 
+        error: error instanceof Error ? error.message : "An unexpected error occurred while deleting the user" 
       });
     }
-
-    // Verify admin credentials by checking against the database
-    // Normalize email to lowercase for consistent lookup
-    const normalizedEmail = validation.data.adminUsername.toLowerCase();
-    console.log('[Delete User] Admin verification attempt for:', normalizedEmail);
-    const adminUser = await storage.getUserByEmail(normalizedEmail);
-    console.log('[Delete User] Admin user found:', adminUser ? `${adminUser.email} (role: ${adminUser.role})` : 'NO USER FOUND');
-    if (!adminUser || adminUser.role !== 'admin') {
-      console.log('[Delete User] Admin verification failed: Invalid credentials or not admin role');
-      return res.status(403).json({ error: "Invalid admin credentials" });
-    }
-
-    // Verify password
-    const isPasswordValid = await comparePasswords(validation.data.adminPassword, adminUser.password);
-    console.log('[Delete User] Password verification result:', isPasswordValid);
-    if (!isPasswordValid) {
-      console.log('[Delete User] Password verification failed');
-      return res.status(403).json({ error: "Invalid admin credentials" });
-    }
-    console.log('[Delete User] Admin credentials verified successfully');
-
-    // Prevent self-deletion
-    if (req.params.id === req.user!.id) {
-      return res.status(400).json({ error: "Cannot delete your own account" });
-    }
-
-    // Check if user has created or updated any reports
-    const hasReports = await storage.hasUserReports(req.params.id);
-
-    if (hasReports) {
-      return res.status(400).json({ 
-        error: "Cannot delete user who has created or modified reports. Please reassign or delete their reports first." 
-      });
-    }
-
-    await storage.deleteUser(req.params.id);
-    res.sendStatus(204);
   });
 
   // Password reset routes
