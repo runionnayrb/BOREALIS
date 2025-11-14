@@ -159,15 +159,15 @@ function WiFiVerificationSection() {
 
   const detectIpMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest<{ clientIp: string }>('GET', '/api/admin/trusted-ips/detect-ip');
+      return await apiRequest<{ ip: string }>('GET', '/api/admin/trusted-ips/current-ip');
     },
     onSuccess: (data) => {
-      setDetectedIp(data.clientIp);
-      setIpFormData({ ipAddress: data.clientIp, description: '' });
+      setDetectedIp(data.ip);
+      setIpFormData({ ipAddress: data.ip, description: '' });
       setAddDialogOpen(true);
       toast({
         title: "IP Detected",
-        description: `Current IP: ${data.clientIp}`,
+        description: `Current IP: ${data.ip}`,
       });
     },
     onError: (error: Error) => {
