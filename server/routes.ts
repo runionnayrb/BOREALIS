@@ -471,16 +471,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     // Verify admin credentials by checking against the database
-    const adminUser = await storage.getUserByEmail(validation.data.adminUsername);
+    // Normalize email to lowercase for consistent lookup
+    const normalizedEmail = validation.data.adminUsername.toLowerCase();
+    console.log('[Delete User] Admin verification attempt for:', normalizedEmail);
+    const adminUser = await storage.getUserByEmail(normalizedEmail);
+    console.log('[Delete User] Admin user found:', adminUser ? `${adminUser.email} (role: ${adminUser.role})` : 'NO USER FOUND');
     if (!adminUser || adminUser.role !== 'admin') {
+      console.log('[Delete User] Admin verification failed: Invalid credentials or not admin role');
       return res.status(403).json({ error: "Invalid admin credentials" });
     }
 
     // Verify password
     const isPasswordValid = await comparePasswords(validation.data.adminPassword, adminUser.password);
+    console.log('[Delete User] Password verification result:', isPasswordValid);
     if (!isPasswordValid) {
+      console.log('[Delete User] Password verification failed');
       return res.status(403).json({ error: "Invalid admin credentials" });
     }
+    console.log('[Delete User] Admin credentials verified successfully');
 
     // Prevent self-deletion
     if (req.params.id === req.user!.id) {
