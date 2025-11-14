@@ -1811,6 +1811,7 @@ export default function Settings() {
   // User delete mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (data: { id: string; adminUsername: string; adminPassword: string }) => {
+      console.log('[Delete User] Sending request with email:', data.adminUsername);
       const response = await fetch(`/api/users/${data.id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
@@ -1821,9 +1822,20 @@ export default function Settings() {
         }),
       });
 
+      console.log('[Delete User] Response status:', response.status, response.statusText);
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Failed to delete user" }));
-        throw new Error(errorData.error || "Failed to delete user");
+        let errorMessage = "Failed to delete user";
+        try {
+          const errorData = await response.json();
+          console.log('[Delete User] Error data:', errorData);
+          errorMessage = errorData.error || errorMessage;
+        } catch (parseError) {
+          console.error('[Delete User] Failed to parse error response:', parseError);
+          const textError = await response.text().catch(() => "Unknown error");
+          console.error('[Delete User] Raw error response:', textError);
+          errorMessage = `Server error (${response.status}): ${textError || response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       return response;
