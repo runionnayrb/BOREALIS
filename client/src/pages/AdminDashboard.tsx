@@ -29,7 +29,7 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Settings, Shield, Zap, Users, Lock, ToggleLeft, UserCog } from "lucide-react";
+import { Loader2, Settings, Shield, Zap, Users, Lock, ToggleLeft, UserCog, Wifi } from "lucide-react";
 import { useState, useEffect } from "react";
 
 type User = {
@@ -136,6 +136,391 @@ const FEATURE_LABELS: Record<string, string> = {
   'settings_users': 'Users',
   'settings_report_template': 'Report Template',
 };
+
+type TrustedIp = {
+  id: string;
+  ipAddress: string;
+  description: string | null;
+  isActive: number;
+  createdAt: string;
+  createdBy: string;
+};
+
+function WiFiVerificationSection() {
+  const { toast } = useToast();
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editingIp, setEditingIp] = useState<TrustedIp | null>(null);
+  const [detectedIp, setDetectedIp] = useState<string | null>(null);
+  const [ipFormData, setIpFormData] = useState({ ipAddress: '', description: '' });
+
+  const { data: trustedIps, isLoading } = useQuery<TrustedIp[]>({
+    queryKey: ['/api/admin/trusted-ips'],
+  });
+
+  const detectIpMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest<{ clientIp: string }>('GET', '/api/admin/trusted-ips/detect-ip');
+    },
+    onSuccess: (data) => {
+      setDetectedIp(data.clientIp);
+      setIpFormData({ ipAddress: data.clientIp, description: '' });
+      setAddDialogOpen(true);
+      toast({
+        title: "IP Detected",
+        description: `Current IP: ${data.clientIp}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to detect IP address",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createIpMutation = useMutation({
+    mutationFn: async (data: { ipAddress: string; description?: string }) => {
+      return await apiRequest('POST', '/api/admin/trusted-ips', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/trusted-ips'] });
+      setAddDialogOpen(false);
+      setIpFormData({ ipAddress: '', description: '' });
+      setDetectedIp(null);
+      toast({
+        title: "Success",
+        description: "Trusted IP added successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add trusted IP",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateIpMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<{ ipAddress: string; description: string; isActive: number }> }) => {
+      return await apiRequest('PATCH', `/api/admin/trusted-ips/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/trusted-ips'] });
+      setEditingIp(null);
+      toast({
+        title: "Success",
+        description: "Trusted IP updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update trusted IP",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteIpMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest('DELETE', `/api/admin/trusted-ips/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/trusted-ips'] });
+      toast({
+        title: "Success",
+        description: "Trusted IP deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete trusted IP",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleAddIp = () => {
+    if (!ipFormData.ipAddress.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "IP address is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    createIpMutation.mutate({
+      ipAddress: ipFormData.ipAddress.trim(),
+      description: ipFormData.description.trim() || undefined,
+    });
+  };
+
+  const handleEditIp = () => {
+    if (!editingIp) return;
+    if (!ipFormData.ipAddress.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "IP address is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    updateIpMutation.mutate({
+      id: editingIp.id,
+      data: {
+        ipAddress: ipFormData.ipAddress.trim(),
+        description: ipFormData.description.trim() || undefined,
+      },
+    });
+  };
+
+  const handleToggleActive = (ip: TrustedIp) => {
+    updateIpMutation.mutate({
+      id: ip.id,
+      data: { isActive: ip.isActive ? 0 : 1 },
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <CardTitle>WiFi Verification</CardTitle>
+              <CardDescription>
+                Manage trusted IP addresses for artist attendance sign-in. Artists must be connected to one of these networks to sign in.
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => detectIpMutation.mutate()}
+                disabled={detectIpMutation.isPending}
+                variant="outline"
+                data-testid="button-detect-ip"
+              >
+                {detectIpMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <Wifi className="w-4 h-4 mr-2" />
+                )}
+                Auto-Detect Current IP
+              </Button>
+              <Button
+                onClick={() => {
+                  setIpFormData({ ipAddress: '', description: '' });
+                  setDetectedIp(null);
+                  setAddDialogOpen(true);
+                }}
+                data-testid="button-add-ip"
+              >
+                Add IP Address
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {!trustedIps || trustedIps.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Wifi className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p className="mb-2">No trusted IP addresses configured</p>
+              <p className="text-sm">
+                Add IP addresses to enable WiFi-based attendance verification.
+                When no IPs are configured, sign-in is allowed from any network.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-3 font-semibold">IP Address</th>
+                    <th className="text-left p-3 font-semibold">Description</th>
+                    <th className="text-left p-3 font-semibold">Status</th>
+                    <th className="text-left p-3 font-semibold">Added</th>
+                    <th className="text-right p-3 font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {trustedIps.map((ip) => (
+                    <tr key={ip.id} className="border-b last:border-0" data-testid={`row-ip-${ip.id}`}>
+                      <td className="p-3 font-mono text-sm">{ip.ipAddress}</td>
+                      <td className="p-3 text-sm text-muted-foreground">
+                        {ip.description || <span className="italic">No description</span>}
+                      </td>
+                      <td className="p-3">
+                        <Button
+                          variant={ip.isActive ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handleToggleActive(ip)}
+                          disabled={updateIpMutation.isPending}
+                          data-testid={`button-toggle-${ip.id}`}
+                        >
+                          {ip.isActive ? 'Active' : 'Inactive'}
+                        </Button>
+                      </td>
+                      <td className="p-3 text-sm text-muted-foreground">
+                        {new Date(ip.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="p-3 text-right space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setEditingIp(ip);
+                            setIpFormData({ ipAddress: ip.ipAddress, description: ip.description || '' });
+                          }}
+                          data-testid={`button-edit-${ip.id}`}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm(`Delete IP address ${ip.ipAddress}?`)) {
+                              deleteIpMutation.mutate(ip.id);
+                            }
+                          }}
+                          disabled={deleteIpMutation.isPending}
+                          data-testid={`button-delete-${ip.id}`}
+                        >
+                          Delete
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent data-testid="dialog-add-ip">
+          <DialogHeader>
+            <DialogTitle>Add Trusted IP Address</DialogTitle>
+            <DialogDescription>
+              Add a new trusted IP address for WiFi verification. Supports wildcards (e.g., 192.168.1.*).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="ip-address">IP Address *</Label>
+              <Input
+                id="ip-address"
+                placeholder="e.g., 192.168.1.100 or 192.168.1.*"
+                value={ipFormData.ipAddress}
+                onChange={(e) => setIpFormData({ ...ipFormData, ipAddress: e.target.value })}
+                data-testid="input-ip-address"
+              />
+              {detectedIp && (
+                <p className="text-xs text-muted-foreground">
+                  Detected IP: {detectedIp}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="e.g., Theater Main WiFi"
+                value={ipFormData.description}
+                onChange={(e) => setIpFormData({ ...ipFormData, description: e.target.value })}
+                data-testid="input-description"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setAddDialogOpen(false);
+                  setIpFormData({ ipAddress: '', description: '' });
+                  setDetectedIp(null);
+                }}
+                data-testid="button-cancel-add"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAddIp}
+                disabled={createIpMutation.isPending}
+                data-testid="button-confirm-add"
+              >
+                {createIpMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Add IP Address
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingIp} onOpenChange={(open) => !open && setEditingIp(null)}>
+        <DialogContent data-testid="dialog-edit-ip">
+          <DialogHeader>
+            <DialogTitle>Edit Trusted IP Address</DialogTitle>
+            <DialogDescription>
+              Update the IP address or description.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-ip-address">IP Address *</Label>
+              <Input
+                id="edit-ip-address"
+                placeholder="e.g., 192.168.1.100 or 192.168.1.*"
+                value={ipFormData.ipAddress}
+                onChange={(e) => setIpFormData({ ...ipFormData, ipAddress: e.target.value })}
+                data-testid="input-edit-ip-address"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                placeholder="e.g., Theater Main WiFi"
+                value={ipFormData.description}
+                onChange={(e) => setIpFormData({ ...ipFormData, description: e.target.value })}
+                data-testid="input-edit-description"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setEditingIp(null)}
+                data-testid="button-cancel-edit"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleEditIp}
+                disabled={updateIpMutation.isPending}
+                data-testid="button-confirm-edit"
+              >
+                {updateIpMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -422,7 +807,7 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="permissions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-grid">
             <TabsTrigger value="permissions" data-testid="tab-permissions">
               <Users className="w-4 h-4 mr-2" />
               Permissions
@@ -446,6 +831,10 @@ export default function AdminDashboard() {
             <TabsTrigger value="features" data-testid="tab-features">
               <ToggleLeft className="w-4 h-4 mr-2" />
               Features
+            </TabsTrigger>
+            <TabsTrigger value="wifi" data-testid="tab-wifi">
+              <Wifi className="w-4 h-4 mr-2" />
+              WiFi
             </TabsTrigger>
           </TabsList>
 
@@ -931,6 +1320,10 @@ export default function AdminDashboard() {
                 </p>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="wifi" className="space-y-4">
+            <WiFiVerificationSection />
           </TabsContent>
         </Tabs>
 

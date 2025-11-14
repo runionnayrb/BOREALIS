@@ -7,7 +7,6 @@ import { db } from "./db";
 import { trainings, actDepartments, departmentAssignments, technicians, technicianDepartments } from "@shared/schema";
 import { asc, eq } from "drizzle-orm";
 import { setupWebSocket, broadcastAttendanceUpdate, broadcastArtistStatusUpdate, broadcastTickSheetUpdate } from "./websocket";
-import { isWithinVenue, getDistanceFromVenue, validateGeofence } from "./geofencing";
 import { getClientIp, isIpTrusted } from "./ip-utils";
 import { insertAttendanceRecordSchema, insertTickSheetSchema, insertTickSheetMarkSchema } from "@shared/schema";
 import { requireRole } from "./middleware/roleAuth";
