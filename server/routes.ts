@@ -1595,21 +1595,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).json({ error: "Artist not found" });
     }
 
-    // Require linked user account for all sign-ins
-    if (!artist.userId) {
-      return res.status(403).json({ error: "This artist profile must be linked to a user account before signing in. Please contact your stage manager." });
-    }
-
+    // Verify PIN first (before WiFi check for better UX)
     if (artist.pinCode !== validation.data.pinCode) {
-      return res.status(401).json({ error: "Invalid PIN" });
-    }
-
-    // Verify user authentication matches the linked account
-    if (!req.user) {
-      return res.status(401).json({ error: "You must be signed in to your account to sign in." });
-    }
-    if (req.user.id !== artist.userId) {
-      return res.status(403).json({ error: "You must be signed in to the account linked to this artist profile." });
+      return res.status(401).json({ error: "You entered the incorrect pin" });
     }
 
     // WiFi/IP verification - check if request comes from trusted theater network
@@ -1651,8 +1639,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         return res.status(403).json({ 
-          error: "Not at theater", 
-          message: "You must be connected to the theater WiFi to sign in. Please ensure you're connected to the correct network.",
+          error: "You must be logged onto La Perle WiFi to Sign In"
         });
       }
 
@@ -1725,32 +1712,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).json({ error: "Artist not found" });
     }
 
-    // Require linked user account for all sign-outs
-    if (!artist.userId) {
-      return res.status(403).json({ error: "This artist profile must be linked to a user account before signing out. Please contact your stage manager." });
-    }
-
+    // Verify PIN
     if (artist.pinCode !== validation.data.pinCode) {
-      return res.status(401).json({ error: "Invalid PIN" });
-    }
-
-    // Verify user authentication matches the linked account
-    if (!req.user) {
-      return res.status(401).json({ error: "You must be signed in to your account to sign out." });
-    }
-    if (req.user.id !== artist.userId) {
-      return res.status(403).json({ error: "You must be signed in to the account linked to this artist profile." });
+      return res.status(401).json({ error: "You entered the incorrect pin" });
     }
 
     const today = new Date().toISOString().split('T')[0];
     const record = await storage.getAttendanceRecord(validation.data.artistId, today);
 
     if (!record || !record.signInTime) {
-      return res.status(400).json({ error: "Not signed in" });
+      return res.status(400).json({ error: "You are not signed in" });
     }
 
     if (record.signOutTime) {
-      return res.status(400).json({ error: "Already signed out" });
+      return res.status(400).json({ error: "You are already signed out" });
     }
 
     const updatedRecord = await storage.updateAttendanceRecord(record.id, {

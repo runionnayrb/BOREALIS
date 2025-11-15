@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -9,7 +8,6 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
 import { Loader2, UserCircle2, LogIn, LogOut, Wifi, AlertCircle } from "lucide-react";
 import type { PublicArtist, ArtistGroup, Artist } from "@shared/schema";
 import logoPath from "@assets/LaPerle-logo-basic_1760100706441.png";
@@ -36,8 +34,6 @@ export default function ArtistSignIn() {
   const [successAction, setSuccessAction] = useState<'sign-in' | 'sign-out' | null>(null);
   const successTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
-  const [, setLocation] = useLocation();
 
   const { data: artists = [], isLoading } = useQuery<PublicArtist[]>({
     queryKey: ["/api/attendance/artists"],
@@ -157,34 +153,6 @@ export default function ArtistSignIn() {
     }
     setShowSuccess(false);
     setSuccessAction(null);
-    
-    // All artists must have linked accounts to sign in
-    if (!artist.userId) {
-      toast({
-        description: "This artist profile must be linked to a user account before signing in. Please contact your stage manager.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Check if user is logged in - if not, redirect to login page
-    if (!user) {
-      toast({
-        description: "Please log in to your account to sign in for attendance.",
-      });
-      // Redirect to auth page and return to this page after login
-      setLocation("/auth?returnTo=/attendance/sign-in");
-      return;
-    }
-    
-    // Verify logged-in user matches the artist's linked account
-    if (user.id !== artist.userId) {
-      toast({
-        description: "You must be logged in to the account linked to this artist profile.",
-        variant: "destructive",
-      });
-      return;
-    }
 
     setSelectedArtist(artist);
     setPin("");
