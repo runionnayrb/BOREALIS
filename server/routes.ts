@@ -1663,7 +1663,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const existingRecord = await storage.getAttendanceRecord(validation.data.artistId, today);
 
     if (existingRecord?.signInTime && !existingRecord.signOutTime) {
-      return res.status(400).json({ error: "Already signed in" });
+      // Already signed in - return success to show success screen instead of error
+      return res.json({ success: true, record: existingRecord });
     }
 
     let record;
@@ -1725,7 +1726,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     if (record.signOutTime) {
-      return res.status(400).json({ error: "You are already signed out" });
+      // Already signed out - return success to show success screen instead of error
+      return res.json({ success: true, record });
     }
 
     const updatedRecord = await storage.updateAttendanceRecord(record.id, {
