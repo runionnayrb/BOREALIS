@@ -13,6 +13,7 @@ import Settings from "@/pages/Settings";
 import Profile from "@/pages/Profile";
 import AuthPage from "@/pages/AuthPage";
 import ArtistSignIn from "@/pages/attendance/ArtistSignIn";
+import MyIP from "@/pages/attendance/MyIP";
 import AttendanceDashboard from "@/pages/attendance/Dashboard";
 import TickSheetPage from "@/pages/attendance/TickSheet";
 import LineupsList from "@/pages/LineupsList";
@@ -163,6 +164,8 @@ function AppRouter() {
       document.title = "BOREALIS | Sign In";
     } else if (location === "/attendance/sign-in") {
       document.title = "BOREALIS | Artist Sign In";
+    } else if (location === "/attendance/my-ip") {
+      document.title = "BOREALIS | Check IP";
     }
   }, [location]);
 
@@ -170,6 +173,7 @@ function AppRouter() {
     <Switch>
       <Route path="/auth" component={AuthPage} />
       <Route path="/attendance/sign-in" component={ArtistSignIn} />
+      <Route path="/attendance/my-ip" component={MyIP} />
       <Route component={AuthenticatedApp} />
     </Switch>
   );

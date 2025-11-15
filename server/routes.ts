@@ -1753,6 +1753,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(record || null);
   });
 
+  // Debug endpoint to show what IP the server sees
+  app.get("/api/attendance/my-ip", async (req, res) => {
+    const clientIp = getClientIp(req);
+    const trustedIps = await storage.getActiveTrustedIps();
+    const trustedIpAddresses = trustedIps.map(ip => ip.ipAddress);
+    const isTrusted = isIpTrusted(clientIp, trustedIpAddresses);
+    
+    res.json({
+      yourIp: clientIp || 'unknown',
+      isTrusted,
+      trustedIpsCount: trustedIps.length,
+      headers: {
+        'x-forwarded-for': req.headers['x-forwarded-for'],
+        'x-real-ip': req.headers['x-real-ip'],
+      }
+    });
+  });
+
   app.get("/api/attendance/today", requireRole('stage_management', 'admin'), async (req, res) => {
     const today = new Date().toISOString().split('T')[0];
     const records = await storage.getAttendanceRecordsByDate(today);
