@@ -39,13 +39,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Initialize database (ensure admin user exists)
-  await initializeDatabase();
-
   const server = await registerRoutes(app);
-
-  // Setup scheduled tasks (midnight auto-signout)
-  setupScheduledTasks();
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -76,4 +70,13 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
   });
+
+  // Initialize database in the background after server starts
+  // This ensures the port opens quickly for deployment health checks
+  initializeDatabase().catch((error) => {
+    console.error('Database initialization failed:', error);
+  });
+
+  // Setup scheduled tasks (midnight auto-signout)
+  setupScheduledTasks();
 })();
