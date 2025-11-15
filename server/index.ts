@@ -69,14 +69,17 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Initialize database in the background AFTER server is listening
+    // This ensures port 5000 opens immediately for deployment health checks
+    // Database init runs asynchronously without blocking the server
+    setImmediate(() => {
+      initializeDatabase().catch((error) => {
+        console.error('Database initialization failed:', error);
+      });
+    });
+    
+    // Setup scheduled tasks (midnight auto-signout)
+    setupScheduledTasks();
   });
-
-  // Initialize database in the background after server starts
-  // This ensures the port opens quickly for deployment health checks
-  initializeDatabase().catch((error) => {
-    console.error('Database initialization failed:', error);
-  });
-
-  // Setup scheduled tasks (midnight auto-signout)
-  setupScheduledTasks();
 })();
