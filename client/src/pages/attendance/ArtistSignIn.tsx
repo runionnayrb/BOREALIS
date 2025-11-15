@@ -344,6 +344,9 @@ export default function ArtistSignIn() {
                 <h3 className="text-2xl font-bold">
                   {successAction === 'sign-in' ? 'Welcome!' : 'See you later!'}
                 </h3>
+                <h3 className="text-2xl font-bold">
+                  {selectedArtist && getArtistDisplayName(selectedArtist)}
+                </h3>
                 <p className="text-sm text-muted-foreground">
                   {successAction === 'sign-in' 
                     ? "You've been signed in successfully" 
