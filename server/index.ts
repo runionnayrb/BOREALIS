@@ -68,6 +68,7 @@ app.use((req, res, next) => {
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
+    // Port is now open and ready for health checks
     log(`serving on port ${port}`);
     
     // Initialize database in the background AFTER server is listening
