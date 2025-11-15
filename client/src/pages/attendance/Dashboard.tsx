@@ -40,6 +40,7 @@ function getArtistDisplayName(artist: Artist): string {
 
 export default function AttendanceDashboard() {
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [activeTab, setActiveTab] = useState("today");
   const { toast } = useToast();
 
   const { data: todayStatus = [], isLoading: isLoadingToday } = useQuery<AttendanceStatus[]>({
@@ -53,6 +54,7 @@ export default function AttendanceDashboard() {
 
   const { data: weekRecords = [], isLoading: isLoadingWeek } = useQuery<WeekRecord[]>({
     queryKey: ["/api/attendance/week", weekStartFormatted, weekEndFormatted],
+    enabled: activeTab === "week",
     queryFn: async () => {
       const response = await fetch(
         `/api/attendance/week?startDate=${weekStartFormatted}&endDate=${weekEndFormatted}`,
@@ -183,7 +185,7 @@ export default function AttendanceDashboard() {
         <p className="text-muted-foreground">{format(new Date(), 'EEEE, MMMM d, yyyy')}</p>
       </div>
 
-      <Tabs defaultValue="today" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <TabsList data-testid="tabs-dashboard">
             <TabsTrigger value="today" data-testid="tab-today">
