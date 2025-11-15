@@ -76,10 +76,13 @@ export default function ArtistSignIn() {
       }, 3000);
     },
     onError: (error: any) => {
-      const errorMessage = error.message || "Invalid PIN or network.";
+      const errorMessage = error.message || "Something went wrong. Please try again.";
+      
+      // Clear PIN on error
+      setPin("");
       
       // Check if it's a network/WiFi error
-      if (errorMessage.toLowerCase().includes("theater") || errorMessage.toLowerCase().includes("wifi") || errorMessage.toLowerCase().includes("network")) {
+      if (errorMessage.toLowerCase().includes("wifi") || errorMessage.toLowerCase().includes("la perle")) {
         setNetworkError(errorMessage);
       } else {
         setNetworkError(null);
@@ -122,14 +125,12 @@ export default function ArtistSignIn() {
       }, 3000);
     },
     onError: (error: any) => {
-      const errorMessage = error.message || "Invalid PIN or network.";
+      const errorMessage = error.message || "Something went wrong. Please try again.";
       
-      // Check if it's a network/WiFi error
-      if (errorMessage.toLowerCase().includes("theater") || errorMessage.toLowerCase().includes("wifi") || errorMessage.toLowerCase().includes("network")) {
-        setNetworkError(errorMessage);
-      } else {
-        setNetworkError(null);
-      }
+      // Clear PIN on error
+      setPin("");
+      
+      setNetworkError(null);
       
       toast({
         description: errorMessage,
@@ -189,27 +190,21 @@ export default function ArtistSignIn() {
     queryClient.invalidateQueries({ queryKey: ["/api/attendance/status"] });
   }, []);
 
-  const handleSubmit = useCallback(() => {
-    if (pin.length !== 4 || !selectedArtist) return;
-
-    if (isSignedIn) {
-      signOutMutation.mutate({
-        artistId: selectedArtist.id,
-        pinCode: pin,
-      });
-    } else {
-      signInMutation.mutate({
-        artistId: selectedArtist.id,
-        pinCode: pin,
-      });
+  useEffect(() => {
+    if (pin.length === 4 && selectedArtist && !signInMutation.isPending && !signOutMutation.isPending) {
+      if (isSignedIn) {
+        signOutMutation.mutate({
+          artistId: selectedArtist.id,
+          pinCode: pin,
+        });
+      } else {
+        signInMutation.mutate({
+          artistId: selectedArtist.id,
+          pinCode: pin,
+        });
+      }
     }
   }, [pin, selectedArtist, isSignedIn, signInMutation, signOutMutation]);
-
-  useEffect(() => {
-    if (pin.length === 4 && selectedArtist) {
-      handleSubmit();
-    }
-  }, [pin, selectedArtist, handleSubmit]);
 
   if (isLoading) {
     return (
