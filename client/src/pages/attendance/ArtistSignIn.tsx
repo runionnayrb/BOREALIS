@@ -60,14 +60,11 @@ export default function ArtistSignIn() {
         successTimeoutRef.current = null;
       }
       
+      // Clear PIN to prevent re-submission
+      setPin("");
       setNetworkError(null);
       setSuccessAction('sign-in');
       setShowSuccess(true);
-      
-      const artistName = selectedArtist ? getArtistDisplayName(selectedArtist) : "Artist";
-      toast({
-        description: `Welcome, ${artistName}! You've been signed in.`,
-      });
       
       // Auto-close success screen after 3 seconds
       successTimeoutRef.current = setTimeout(() => {
@@ -109,14 +106,11 @@ export default function ArtistSignIn() {
         successTimeoutRef.current = null;
       }
       
+      // Clear PIN to prevent re-submission
+      setPin("");
       setNetworkError(null);
       setSuccessAction('sign-out');
       setShowSuccess(true);
-      
-      const artistName = selectedArtist ? getArtistDisplayName(selectedArtist) : "Artist";
-      toast({
-        description: `Goodbye, ${artistName}! You've been signed out.`,
-      });
       
       // Auto-close success screen after 3 seconds
       successTimeoutRef.current = setTimeout(() => {
