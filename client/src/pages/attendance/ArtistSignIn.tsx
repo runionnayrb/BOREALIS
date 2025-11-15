@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card } from "@/components/ui/card";
@@ -140,12 +140,14 @@ export default function ArtistSignIn() {
 
   const { data: currentRecord } = useQuery<AttendanceRecord | null>({
     queryKey: ["/api/attendance/status", selectedArtist?.id],
-    enabled: !!selectedArtist,
+    enabled: !!selectedArtist && !showSuccess,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
   });
 
   const isSignedIn = currentRecord && currentRecord.signInTime && !currentRecord.signOutTime;
 
-  const handleArtistSelect = async (artist: PublicArtist) => {
+  const handleArtistSelect = useCallback((artist: PublicArtist) => {
     // Clear any pending timeout and reset success states
     if (successTimeoutRef.current) {
       clearTimeout(successTimeoutRef.current);
@@ -156,19 +158,22 @@ export default function ArtistSignIn() {
 
     setSelectedArtist(artist);
     setPin("");
-  };
+  }, []);
 
-  const handlePinInput = (digit: string) => {
-    if (pin.length < 4) {
-      setPin(pin + digit);
-    }
-  };
+  const handlePinInput = useCallback((digit: string) => {
+    setPin(prev => {
+      if (prev.length < 4) {
+        return prev + digit;
+      }
+      return prev;
+    });
+  }, []);
 
-  const handleBackspace = () => {
-    setPin(pin.slice(0, -1));
-  };
+  const handleBackspace = useCallback(() => {
+    setPin(prev => prev.slice(0, -1));
+  }, []);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     // Clear any pending timeout
     if (successTimeoutRef.current) {
       clearTimeout(successTimeoutRef.current);
@@ -182,9 +187,9 @@ export default function ArtistSignIn() {
     setShowSuccess(false);
     setSuccessAction(null);
     queryClient.invalidateQueries({ queryKey: ["/api/attendance/status"] });
-  };
+  }, []);
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     if (pin.length !== 4 || !selectedArtist) return;
 
     if (isSignedIn) {
@@ -198,13 +203,13 @@ export default function ArtistSignIn() {
         pinCode: pin,
       });
     }
-  };
+  }, [pin, selectedArtist, isSignedIn, signInMutation, signOutMutation]);
 
   useEffect(() => {
-    if (pin.length === 4) {
+    if (pin.length === 4 && selectedArtist) {
       handleSubmit();
     }
-  }, [pin]);
+  }, [pin, selectedArtist, handleSubmit]);
 
   if (isLoading) {
     return (
@@ -396,7 +401,10 @@ export default function ArtistSignIn() {
                 variant="outline"
                 size="lg"
                 className="h-16 text-2xl"
-                onClick={() => handlePinInput(digit.toString())}
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  handlePinInput(digit.toString());
+                }}
                 disabled={signInMutation.isPending || signOutMutation.isPending || pin.length >= 4}
                 data-testid={`button-pin-${digit}`}
               >
@@ -407,7 +415,10 @@ export default function ArtistSignIn() {
               variant="outline"
               size="lg"
               className="h-16"
-              onClick={handleBackspace}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                handleBackspace();
+              }}
               disabled={signInMutation.isPending || signOutMutation.isPending || pin.length === 0}
               data-testid="button-pin-backspace"
             >
@@ -417,7 +428,10 @@ export default function ArtistSignIn() {
               variant="outline"
               size="lg"
               className="h-16 text-2xl"
-              onClick={() => handlePinInput("0")}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                handlePinInput("0");
+              }}
               disabled={signInMutation.isPending || signOutMutation.isPending || pin.length >= 4}
               data-testid="button-pin-0"
             >
