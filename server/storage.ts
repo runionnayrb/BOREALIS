@@ -252,6 +252,7 @@ export interface IStorage {
   
   // Attendance Records
   getAttendanceRecord(artistId: string, date: string): Promise<AttendanceRecord | undefined>;
+  getAllAttendanceRecords(): Promise<AttendanceRecord[]>;
   getAttendanceRecordsByDate(date: string): Promise<AttendanceRecord[]>;
   getAttendanceRecordsByDateRange(startDate: string, endDate: string, options?: { limit?: number; offset?: number }): Promise<AttendanceRecord[]>;
   getAttendanceRecordsByArtist(artistId: string, startDate?: string, endDate?: string): Promise<AttendanceRecord[]>;
@@ -1463,6 +1464,10 @@ export class DatabaseStorage implements IStorage {
         eq(attendanceRecords.date, date)
       ));
     return result[0];
+  }
+
+  async getAllAttendanceRecords(): Promise<AttendanceRecord[]> {
+    return await db.select().from(attendanceRecords);
   }
 
   async getAttendanceRecordsByDate(date: string): Promise<AttendanceRecord[]> {

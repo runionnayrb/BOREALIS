@@ -81,6 +81,10 @@ app.use((req, res, next) => {
     });
     
     // Setup scheduled tasks (midnight auto-signout)
-    setupScheduledTasks();
+    setImmediate(() => {
+      setupScheduledTasks().catch((error) => {
+        console.error('Failed to setup scheduled tasks:', error);
+      });
+    });
   });
 })();
