@@ -29,7 +29,7 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Settings, Shield, Zap, Users, Lock, ToggleLeft, UserCog, Wifi } from "lucide-react";
+import { Loader2, Settings, Shield, Zap, Users, Lock, ToggleLeft, UserCog, Wifi, Info } from "lucide-react";
 import { useState, useEffect } from "react";
 
 type User = {
@@ -163,11 +163,18 @@ function WiFiVerificationSection() {
     },
     onSuccess: (data) => {
       setDetectedIp(data.ip);
-      setIpFormData({ ipAddress: data.ip, description: '' });
+      // Convert to wildcard pattern (replace last octet with *)
+      // e.g., 192.168.1.45 becomes 192.168.1.*
+      const ipParts = data.ip.split('.');
+      const wildcardIp = ipParts.length === 4 
+        ? `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}.*`
+        : data.ip;
+      
+      setIpFormData({ ipAddress: wildcardIp, description: '' });
       setAddDialogOpen(true);
       toast({
         title: "IP Detected",
-        description: `Current IP: ${data.ip}`,
+        description: `Detected: ${data.ip}. Suggested pattern: ${wildcardIp} (allows all devices on this network)`,
       });
     },
     onError: (error: Error) => {
@@ -415,22 +422,34 @@ function WiFiVerificationSection() {
           <DialogHeader>
             <DialogTitle>Add Trusted IP Address</DialogTitle>
             <DialogDescription>
-              Add a new trusted IP address for WiFi verification. Supports wildcards (e.g., 192.168.1.*).
+              Add a trusted IP address or pattern for WiFi verification. Use wildcards to allow all devices on the same network.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-3 mb-4">
+              <div className="flex gap-2">
+                <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-blue-900 dark:text-blue-100">
+                  <p className="font-semibold mb-1">Recommended: Use wildcard patterns</p>
+                  <p className="text-blue-700 dark:text-blue-300">
+                    Using patterns like <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">192.168.1.*</code> allows all devices 
+                    on the same network to sign in, even if they get different IP addresses when reconnecting.
+                  </p>
+                </div>
+              </div>
+            </div>
             <div className="space-y-2">
-              <Label htmlFor="ip-address">IP Address *</Label>
+              <Label htmlFor="ip-address">IP Address or Pattern *</Label>
               <Input
                 id="ip-address"
-                placeholder="e.g., 192.168.1.100 or 192.168.1.*"
+                placeholder="e.g., 192.168.1.* (recommended) or 192.168.1.100"
                 value={ipFormData.ipAddress}
                 onChange={(e) => setIpFormData({ ...ipFormData, ipAddress: e.target.value })}
                 data-testid="input-ip-address"
               />
               {detectedIp && (
                 <p className="text-xs text-muted-foreground">
-                  Detected IP: {detectedIp}
+                  Your exact IP: {detectedIp}
                 </p>
               )}
             </div>
@@ -474,19 +493,22 @@ function WiFiVerificationSection() {
           <DialogHeader>
             <DialogTitle>Edit Trusted IP Address</DialogTitle>
             <DialogDescription>
-              Update the IP address or description.
+              Update the IP address pattern or description. Use wildcards (e.g., 192.168.1.*) to allow all devices on the same network.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-ip-address">IP Address *</Label>
+              <Label htmlFor="edit-ip-address">IP Address or Pattern *</Label>
               <Input
                 id="edit-ip-address"
-                placeholder="e.g., 192.168.1.100 or 192.168.1.*"
+                placeholder="e.g., 192.168.1.* (recommended) or 192.168.1.100"
                 value={ipFormData.ipAddress}
                 onChange={(e) => setIpFormData({ ...ipFormData, ipAddress: e.target.value })}
                 data-testid="input-edit-ip-address"
               />
+              <p className="text-xs text-muted-foreground">
+                Tip: Use wildcards like <code className="bg-muted px-1 rounded">192.168.1.*</code> to allow all devices on the network
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-description">Description</Label>
