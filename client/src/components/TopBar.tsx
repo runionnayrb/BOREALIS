@@ -50,7 +50,7 @@ export default function TopBar() {
     <header className="flex items-center justify-between h-14 px-4 border-b border-card-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
       <div className="flex items-center gap-4">
         <SidebarTrigger data-testid="button-sidebar-toggle" className="hidden md:flex" />
-        <h1 className="text-lg font-semibold tracking-tight">Borealis</h1>
+        <h1 className="text-lg font-semibold tracking-tight">BOREALIS</h1>
       </div>
       <div className="flex items-center gap-2">
         <Button
