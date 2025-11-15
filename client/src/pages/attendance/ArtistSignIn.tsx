@@ -297,53 +297,53 @@ export default function ArtistSignIn() {
 
       <Dialog open={!!selectedArtist} onOpenChange={(open) => !open && handleClose()}>
         <DialogContent className="sm:max-w-md" data-testid="dialog-pin-entry">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-3">
-              <Avatar className="w-12 h-12">
-                {selectedArtist?.photoUrl ? (
-                  <AvatarImage src={selectedArtist.photoUrl} alt={selectedArtist ? getArtistDisplayName(selectedArtist) : ''} />
-                ) : null}
-                <AvatarFallback>
-                  <UserCircle2 className="w-8 h-8" />
-                </AvatarFallback>
-              </Avatar>
-              <span>{selectedArtist ? getArtistDisplayName(selectedArtist) : ''}</span>
-            </DialogTitle>
-            <DialogDescription>
-              {isSignedIn ? (
-                <span className="flex items-center gap-2">
-                  <LogOut className="w-4 h-4" />
-                  Enter PIN to sign out
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <LogIn className="w-4 h-4" />
-                  Enter PIN to sign in
-                </span>
-              )}
-            </DialogDescription>
-          </DialogHeader>
+          {!showSuccess && (
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-3">
+                <Avatar className="w-12 h-12">
+                  {selectedArtist?.photoUrl ? (
+                    <AvatarImage src={selectedArtist.photoUrl} alt={selectedArtist ? getArtistDisplayName(selectedArtist) : ''} />
+                  ) : null}
+                  <AvatarFallback>
+                    <UserCircle2 className="w-8 h-8" />
+                  </AvatarFallback>
+                </Avatar>
+                <span>{selectedArtist ? getArtistDisplayName(selectedArtist) : ''}</span>
+              </DialogTitle>
+              <DialogDescription>
+                {isSignedIn ? (
+                  <span className="flex items-center gap-2">
+                    <LogOut className="w-4 h-4" />
+                    Enter PIN to sign out
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <LogIn className="w-4 h-4" />
+                    Enter PIN to sign in
+                  </span>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+          )}
 
           {showSuccess ? (
             <div className="flex flex-col items-center justify-center py-8 space-y-6">
               <div className="relative">
                 <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
-                <div className="relative bg-primary text-primary-foreground rounded-full p-6">
-                  {successAction === 'sign-in' ? (
-                    <LogIn className="w-12 h-12" />
-                  ) : (
-                    <LogOut className="w-12 h-12" />
-                  )}
-                </div>
+                <Avatar className="relative w-32 h-32">
+                  {selectedArtist?.photoUrl ? (
+                    <AvatarImage src={selectedArtist.photoUrl} alt={selectedArtist ? getArtistDisplayName(selectedArtist) : ''} />
+                  ) : null}
+                  <AvatarFallback className="text-4xl">
+                    <UserCircle2 className="w-20 h-20" />
+                  </AvatarFallback>
+                </Avatar>
               </div>
               
               <div className="text-center space-y-2">
                 <h3 className="text-2xl font-bold">
                   {successAction === 'sign-in' ? 'Welcome!' : 'See you later!'}
                 </h3>
-                <p className="text-lg text-muted-foreground">
-                  {selectedArtist && getArtistDisplayName(selectedArtist)}
-                </p>
                 <p className="text-sm text-muted-foreground">
                   {successAction === 'sign-in' 
                     ? "You've been signed in successfully" 
