@@ -66,6 +66,7 @@ export default function Settings() {
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   const [artistDialogOpen, setArtistDialogOpen] = useState(false);
+  const [artistEditMode, setArtistEditMode] = useState(false);
   const [artisticStaffDialogOpen, setArtisticStaffDialogOpen] = useState(false);
   const [techDialogOpen, setTechDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -956,7 +957,7 @@ export default function Settings() {
   });
 
   const createArtistMutation = useMutation({
-    mutationFn: async (data: { firstName: string; lastName: string; preferredName?: string; role?: string; photoUrl?: string; status?: string; artistGroupId?: string; pinCode?: string }) => {
+    mutationFn: async (data: { firstName: string; lastName: string; preferredName?: string; role?: string; photoUrl?: string; status?: string; artistGroupId?: string; pinCode?: string; email?: string; uaeMobile?: string; whatsappNumber?: string }) => {
       return await apiRequest("POST", "/api/artists", data);
     },
     onSuccess: () => {
@@ -1162,7 +1163,7 @@ export default function Settings() {
   });
 
   const updateArtistMutation = useMutation({
-    mutationFn: async (data: { id: string; firstName: string; lastName: string; preferredName?: string; role?: string; photoUrl?: string; status?: string; artistGroupId?: string; pinCode?: string }) => {
+    mutationFn: async (data: { id: string; firstName: string; lastName: string; preferredName?: string; role?: string; photoUrl?: string; status?: string; artistGroupId?: string; pinCode?: string; email?: string; uaeMobile?: string; whatsappNumber?: string }) => {
       return await apiRequest("PATCH", `/api/artists/${data.id}`, {
         firstName: data.firstName,
         lastName: data.lastName,
@@ -1172,12 +1173,16 @@ export default function Settings() {
         status: data.status,
         artistGroupId: data.artistGroupId,
         pinCode: data.pinCode,
+        email: data.email,
+        uaeMobile: data.uaeMobile,
+        whatsappNumber: data.whatsappNumber,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/artists"] });
       queryClient.invalidateQueries({ queryKey: ["/api/attendance/today"] });
       queryClient.invalidateQueries({ queryKey: ["/api/attendance/week"] });
+      setArtistEditMode(false);
       setArtistDialogOpen(false);
       setEditTarget(null);
       toast({ title: "Artist updated successfully" });
@@ -4641,6 +4646,7 @@ export default function Settings() {
                           setEditTarget(null);
                           setUploadedPhotoUrl(null);
                           setSelectedLinkedUserId(null);
+                          setArtistEditMode(false);
                         }
                       }}
                     >
@@ -4650,49 +4656,185 @@ export default function Settings() {
                           Add Artist
                         </Button>
                       </DialogTrigger>
-                    <DialogContent>
-                      <form
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          const formData = new FormData(e.currentTarget);
-                          const firstName = formData.get("firstName") as string;
-                          const lastName = formData.get("lastName") as string;
-                          const preferredName = formData.get("preferredName") as string;
-                          const role = (formData.get("role") as string) || undefined;
-                          const photoUrl = (formData.get("photoUrl") as string) || undefined;
-                          const status = (formData.get("status") as string) || "active";
-                          const artistGroupId = formData.get("groupId") as string;
-                          const pinCode = (formData.get("pinCode") as string) || undefined;
+                    <DialogContent className="max-h-[90vh] overflow-y-auto">
+                      {editTarget?.type === "artist" && !artistEditMode ? (
+                        <>
+                          <DialogHeader>
+                            <DialogTitle>Artist Profile</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="flex items-center gap-4">
+                              {editTarget.data.photoUrl && (
+                                <Avatar className="w-20 h-20">
+                                  <AvatarImage src={editTarget.data.photoUrl} alt="Artist photo" />
+                                  <AvatarFallback>
+                                    <UserCircle2 className="w-10 h-10" />
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
+                              <div className="flex-1">
+                                <h3 className="text-lg font-semibold">{editTarget.data.preferredName}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                  {editTarget.data.firstName} {editTarget.data.lastName}
+                                </p>
+                              </div>
+                            </div>
 
-                          if (editTarget?.type === "artist") {
-                            updateArtistMutation.mutate({
-                              id: editTarget.id,
-                              firstName,
-                              lastName,
-                              preferredName,
-                              role,
-                              photoUrl,
-                              status,
-                              artistGroupId,
-                              pinCode,
-                            });
-                          } else {
-                            createArtistMutation.mutate({
-                              firstName,
-                              lastName,
-                              preferredName,
-                              role,
-                              photoUrl,
-                              status,
-                              artistGroupId,
-                              pinCode,
-                            });
-                          }
-                        }}
-                      >
-                        <DialogHeader>
-                          <DialogTitle>{editTarget?.type === "artist" ? "Edit Artist" : "Add Artist"}</DialogTitle>
-                        </DialogHeader>
+                            {editTarget.data.role && (
+                              <div className="space-y-1">
+                                <Label className="text-muted-foreground text-xs">Role</Label>
+                                <p className="text-sm">{editTarget.data.role}</p>
+                              </div>
+                            )}
+
+                            <div className="space-y-1">
+                              <Label className="text-muted-foreground text-xs">Status</Label>
+                              <p className="text-sm capitalize">{editTarget.data.status.replace(/_/g, ' ')}</p>
+                            </div>
+
+                            <div className="space-y-1">
+                              <Label className="text-muted-foreground text-xs">Group</Label>
+                              <p className="text-sm">
+                                {artistGroups.find(g => g.id === editTarget.data.artistGroupId)?.name || 'No group'}
+                              </p>
+                            </div>
+
+                            {editTarget.data.email && (
+                              <div className="space-y-1">
+                                <Label className="text-muted-foreground text-xs">Email</Label>
+                                <a 
+                                  href={`mailto:${editTarget.data.email}`}
+                                  className="text-sm text-primary hover:underline flex items-center gap-1"
+                                  data-testid="link-artist-email"
+                                >
+                                  {editTarget.data.email}
+                                </a>
+                              </div>
+                            )}
+
+                            {editTarget.data.uaeMobile && (
+                              <div className="space-y-1">
+                                <Label className="text-muted-foreground text-xs">UAE Mobile</Label>
+                                <a 
+                                  href={`tel:${editTarget.data.uaeMobile}`}
+                                  className="text-sm text-primary hover:underline flex items-center gap-1"
+                                  data-testid="link-artist-mobile"
+                                >
+                                  {editTarget.data.uaeMobile}
+                                </a>
+                              </div>
+                            )}
+
+                            {editTarget.data.whatsappNumber && (
+                              <div className="space-y-1">
+                                <Label className="text-muted-foreground text-xs">WhatsApp</Label>
+                                <a 
+                                  href={`https://wa.me/${editTarget.data.whatsappNumber.replace(/\D/g, '')}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-primary hover:underline flex items-center gap-1"
+                                  data-testid="link-artist-whatsapp"
+                                >
+                                  {editTarget.data.whatsappNumber}
+                                </a>
+                              </div>
+                            )}
+
+                            {editTarget.data.pinCode && (
+                              <div className="space-y-1">
+                                <Label className="text-muted-foreground text-xs">PIN Code</Label>
+                                <p className="text-sm">****</p>
+                              </div>
+                            )}
+
+                            {isStageManager && editTarget.data.userId && (
+                              <div className="space-y-1 pt-2 border-t">
+                                <Label className="text-muted-foreground text-xs">Linked User Account</Label>
+                                <div className="flex items-center gap-2">
+                                  <UserCircle2 className="w-4 h-4" />
+                                  <span className="text-sm">
+                                    {users.find(u => u.id === editTarget.data.userId)?.name || "Unknown User"}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <DialogFooter className="flex justify-between items-center gap-2">
+                            <Button 
+                              type="button"
+                              variant="destructive"
+                              onClick={() => {
+                                setArtistToArchive(editTarget.id);
+                                setArchiveDialogOpen(true);
+                              }}
+                              disabled={archiveArtistMutation.isPending}
+                              data-testid="button-archive-artist"
+                            >
+                              Archive Artist
+                            </Button>
+                            <div className="flex-1"></div>
+                            <Button 
+                              type="button"
+                              onClick={() => setArtistEditMode(true)}
+                              data-testid="button-edit-artist"
+                            >
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit
+                            </Button>
+                          </DialogFooter>
+                        </>
+                      ) : (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.currentTarget);
+                            const firstName = formData.get("firstName") as string;
+                            const lastName = formData.get("lastName") as string;
+                            const preferredName = formData.get("preferredName") as string;
+                            const role = (formData.get("role") as string) || undefined;
+                            const photoUrl = (formData.get("photoUrl") as string) || undefined;
+                            const status = (formData.get("status") as string) || "active";
+                            const artistGroupId = formData.get("groupId") as string;
+                            const pinCode = (formData.get("pinCode") as string) || undefined;
+                            const email = (formData.get("email") as string) || undefined;
+                            const uaeMobile = (formData.get("uaeMobile") as string) || undefined;
+                            const whatsappNumber = (formData.get("whatsappNumber") as string) || undefined;
+
+                            if (editTarget?.type === "artist") {
+                              updateArtistMutation.mutate({
+                                id: editTarget.id,
+                                firstName,
+                                lastName,
+                                preferredName,
+                                role,
+                                photoUrl,
+                                status,
+                                artistGroupId,
+                                pinCode,
+                                email,
+                                uaeMobile,
+                                whatsappNumber,
+                              });
+                            } else {
+                              createArtistMutation.mutate({
+                                firstName,
+                                lastName,
+                                preferredName,
+                                role,
+                                photoUrl,
+                                status,
+                                artistGroupId,
+                                pinCode,
+                                email,
+                                uaeMobile,
+                                whatsappNumber,
+                              });
+                            }
+                          }}
+                        >
+                          <DialogHeader>
+                            <DialogTitle>{editTarget?.type === "artist" ? "Edit Artist" : "Add Artist"}</DialogTitle>
+                          </DialogHeader>
                         <div className="space-y-4 py-4">
                           <div className="space-y-2">
                             <Label>Artist Name</Label>
@@ -4815,6 +4957,39 @@ export default function Settings() {
                                 : "Artist will set their own PIN on first sign-in if left blank"}
                             </p>
                           </div>
+                          <div className="space-y-2">
+                            <Label>Email</Label>
+                            <Input 
+                              name="email" 
+                              type="email"
+                              placeholder="artist@example.com" 
+                              defaultValue={editTarget?.type === "artist" ? editTarget.data.email || "" : ""}
+                              data-testid="input-artist-email" 
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>UAE Mobile</Label>
+                            <Input 
+                              name="uaeMobile" 
+                              type="tel"
+                              placeholder="+971 50 123 4567" 
+                              defaultValue={editTarget?.type === "artist" ? editTarget.data.uaeMobile || "" : ""}
+                              data-testid="input-artist-mobile" 
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>WhatsApp Number</Label>
+                            <Input 
+                              name="whatsappNumber" 
+                              type="tel"
+                              placeholder="+971 50 123 4567" 
+                              defaultValue={editTarget?.type === "artist" ? editTarget.data.whatsappNumber || "" : ""}
+                              data-testid="input-artist-whatsapp" 
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Include country code (e.g., +971 for UAE)
+                            </p>
+                          </div>
                           {editTarget?.type === "artist" && isStageManager && (
                             <div className="space-y-2 pt-2 border-t">
                               <Label>Linked User Account</Label>
@@ -4924,6 +5099,7 @@ export default function Settings() {
                           </Button>
                         </DialogFooter>
                       </form>
+                      )}
                     </DialogContent>
                   </Dialog>
                 </div>
