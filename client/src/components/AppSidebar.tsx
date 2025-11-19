@@ -317,6 +317,9 @@ export default function AppSidebar() {
             </div>
           </div>
         </ScrollArea>
+        <div className="text-center text-sm text-muted-foreground pt-4 border-t" data-testid="text-copyright">
+          Copyright 2025. Designed and Created by Bryan Runion.
+        </div>
       </DialogContent>
     </Dialog>
   );
