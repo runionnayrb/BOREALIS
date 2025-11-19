@@ -340,6 +340,54 @@ const createTrustedIpsTable: MigrationFunction = {
 };
 
 /**
+ * Migration: Add contact fields to artists table
+ * Idempotent: Safe to run on fresh databases or already-migrated databases
+ */
+const addArtistContactFields: MigrationFunction = {
+  name: 'add_artist_contact_fields',
+  run: async () => {
+    console.log('🔄 Running migration: add_artist_contact_fields');
+    
+    try {
+      // Check if columns already exist
+      const checkEmail = await db.execute(sql`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'artists' AND column_name = 'email'
+      `);
+      
+      if (checkEmail.rows.length > 0) {
+        console.log('  ℹ️  Contact fields already exist, skipping');
+        return;
+      }
+      
+      // Add email column
+      await db.execute(sql`
+        ALTER TABLE artists ADD COLUMN IF NOT EXISTS email TEXT
+      `);
+      console.log('  ✅ Added column: email');
+      
+      // Add uae_mobile column
+      await db.execute(sql`
+        ALTER TABLE artists ADD COLUMN IF NOT EXISTS uae_mobile TEXT
+      `);
+      console.log('  ✅ Added column: uae_mobile');
+      
+      // Add whatsapp_number column
+      await db.execute(sql`
+        ALTER TABLE artists ADD COLUMN IF NOT EXISTS whatsapp_number TEXT
+      `);
+      console.log('  ✅ Added column: whatsapp_number');
+      
+      console.log('  🎉 Migration complete!');
+    } catch (error) {
+      console.error('  ❌ Migration failed:', error);
+      throw error;
+    }
+  },
+};
+
+/**
  * Run all pending migrations
  */
 async function runMigrations() {
@@ -350,6 +398,7 @@ async function runMigrations() {
     createRolePageAccessTable,
     addPerformanceIndexes,
     createTrustedIpsTable,
+    addArtistContactFields,
   ];
   
   try {

@@ -215,6 +215,9 @@ export const artists = pgTable("artists", {
   preferredName: text("preferred_name").notNull(),
   role: text("role"),
   photoUrl: text("photo_url"),
+  email: text("email"),
+  uaeMobile: text("uae_mobile"),
+  whatsappNumber: text("whatsapp_number"),
   pinCode: text("pin_code"), // Set by artist on first sign-in
   userId: varchar("user_id").references(() => users.id), // Linked user account for authentication
   status: text("status").notNull().default('active'), // active, out, long_term_out
