@@ -2686,7 +2686,7 @@ export default function Settings() {
               <div className="mt-8 space-y-6 border-t pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-md font-semibold">Custom Fields</h3>
+                    <h3 className="text-md font-semibold">Meeting Notes</h3>
                     <p className="text-sm text-muted-foreground">
                       Define fields for this meeting type
                     </p>
@@ -6735,7 +6735,6 @@ export default function Settings() {
           </TabsContent>
         </Tabs>
       </div>
-
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -6752,7 +6751,6 @@ export default function Settings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
       <AlertDialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -6777,7 +6775,6 @@ export default function Settings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
       <Dialog open={viewArchivedDialogOpen} onOpenChange={setViewArchivedDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh]">
           <DialogHeader>
@@ -6842,7 +6839,6 @@ export default function Settings() {
           </div>
         </DialogContent>
       </Dialog>
-
       <AlertDialog open={archiveArtisticStaffDialogOpen} onOpenChange={setArchiveArtisticStaffDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -6867,7 +6863,6 @@ export default function Settings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
       <Dialog open={viewArchivedArtisticStaffDialogOpen} onOpenChange={setViewArchivedArtisticStaffDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh]">
           <DialogHeader>
@@ -6932,7 +6927,6 @@ export default function Settings() {
           </div>
         </DialogContent>
       </Dialog>
-
       <AlertDialog open={archiveTechDialogOpen} onOpenChange={setArchiveTechDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -6957,7 +6951,6 @@ export default function Settings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
       <Dialog open={viewArchivedTechniciansDialogOpen} onOpenChange={setViewArchivedTechniciansDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh]">
           <DialogHeader>
@@ -7032,7 +7025,6 @@ export default function Settings() {
           </div>
         </DialogContent>
       </Dialog>
-
       <Dialog open={adminPasswordDialogOpen} onOpenChange={setAdminPasswordDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -7094,7 +7086,6 @@ export default function Settings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       <Dialog open={passwordResetDialogOpen} onOpenChange={setPasswordResetDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -7147,7 +7138,6 @@ export default function Settings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       <Dialog open={editUserDialogOpen} onOpenChange={(open) => {
         setEditUserDialogOpen(open);
         if (!open) {
@@ -7549,7 +7539,6 @@ export default function Settings() {
           </form>
         </DialogContent>
       </Dialog>
-
       {/* Field Management Dialog */}
       <Dialog open={fieldDialogOpen} onOpenChange={(open) => {
         setFieldDialogOpen(open);
@@ -7692,7 +7681,6 @@ export default function Settings() {
           </form>
         </DialogContent>
       </Dialog>
-
       {/* Create New Template Dialog */}
       <Dialog open={newTemplateDialogOpen} onOpenChange={setNewTemplateDialogOpen}>
         <DialogContent>
