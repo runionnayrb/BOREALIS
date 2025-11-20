@@ -3223,10 +3223,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const locations = await storage.getAllLocations();
 
       let emailBody = template.emailBodyPrefix ? `${template.emailBodyPrefix}\n\n` : '';
-      emailBody += `<h2>${meeting.title || template.name}</h2>`;
-      emailBody += `<p><strong>Date:</strong> ${dateFormatted}</p>\n\n`;
 
-      for (const field of fields.sort((a, b) => a.sortOrder - b.sortOrder)) {
+      const sortedFields = fields.sort((a, b) => a.sortOrder - b.sortOrder);
+      for (let i = 0; i < sortedFields.length; i++) {
+        const field = sortedFields[i];
         const fieldValue = fieldValues.find(fv => fv.fieldId === field.id);
         emailBody += `<p><strong>${field.fieldName}:</strong><br>`;
 
@@ -3247,6 +3247,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         emailBody += '</p>\n';
+        
+        // Add horizontal line between fields (but not after the last one)
+        if (i < sortedFields.length - 1) {
+          emailBody += '<hr style="border: none; border-top: 1px solid #ccc; margin: 16px 0;">\n';
+        }
       }
 
       res.json({ subject, body: emailBody });
@@ -3295,11 +3300,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Build email body
       let emailBody = template.emailBodyPrefix ? `${template.emailBodyPrefix}\n\n` : '';
-      emailBody += `<h2>${meeting.title || template.name}</h2>`;
-      emailBody += `<p><strong>Date:</strong> ${dateFormatted}</p>\n\n`;
       
       // Add field values to email body
-      for (const field of fields.sort((a, b) => a.sortOrder - b.sortOrder)) {
+      const sortedFields = fields.sort((a, b) => a.sortOrder - b.sortOrder);
+      for (let i = 0; i < sortedFields.length; i++) {
+        const field = sortedFields[i];
         const fieldValue = fieldValues.find(fv => fv.fieldId === field.id);
         emailBody += `<p><strong>${field.fieldName}:</strong><br>`;
         
@@ -3321,6 +3326,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         emailBody += '</p>\n';
+        
+        // Add horizontal line between fields (but not after the last one)
+        if (i < sortedFields.length - 1) {
+          emailBody += '<hr style="border: none; border-top: 1px solid #ccc; margin: 16px 0;">\n';
+        }
       }
       
       // Generate PDF for attachment (using the same logic as PDF endpoint)

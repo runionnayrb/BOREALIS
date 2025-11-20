@@ -455,7 +455,7 @@ export default function MeetingView() {
             <div className="space-y-2">
               <Label htmlFor="email-body">Email Body</Label>
               <div
-                className="min-h-[300px] border rounded-md p-4 bg-background overflow-auto prose prose-sm max-w-none [&_ul]:list-disc [&_ul]:ml-6 [&_ol]:list-decimal [&_ol]:ml-6 [&_li]:my-1 [&_*]:!text-foreground [&_strong]:!text-foreground [&_p]:!text-foreground"
+                className="min-h-[300px] border rounded-md p-4 bg-card text-card-foreground overflow-auto prose prose-sm max-w-none dark:prose-invert [&_ul]:list-disc [&_ul]:ml-6 [&_ol]:list-decimal [&_ol]:ml-6 [&_li]:my-1 [&_*]:!text-card-foreground [&_strong]:!text-card-foreground [&_p]:!text-card-foreground [&_hr]:!border-border"
                 dangerouslySetInnerHTML={{ __html: emailBody }}
                 data-testid="preview-email-body"
               />
