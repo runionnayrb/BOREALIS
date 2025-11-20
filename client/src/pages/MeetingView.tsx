@@ -30,7 +30,7 @@ export default function MeetingView() {
   });
 
   // Fetch template
-  const { data: template } = useQuery<MeetingTemplate>({
+  const { data: template, isLoading: templateLoading } = useQuery<MeetingTemplate>({
     queryKey: ['/api/meeting-templates', meeting?.templateId],
     enabled: !!meeting?.templateId,
   });
@@ -63,7 +63,7 @@ export default function MeetingView() {
     queryKey: ['/api/users'],
   });
 
-  if (meetingLoading || !meeting) {
+  if (meetingLoading || !meeting || templateLoading) {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">
