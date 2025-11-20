@@ -259,7 +259,7 @@ export default function MeetingEditor() {
             <RichTextEditor
               content={value}
               onChange={(html) => handleFieldChange(field.id, html)}
-              minHeight="min-h-32"
+              minHeight="min-h-96"
             />
           </div>
         );
