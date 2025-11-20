@@ -3228,7 +3228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (let i = 0; i < sortedFields.length; i++) {
         const field = sortedFields[i];
         const fieldValue = fieldValues.find(fv => fv.fieldId === field.id);
-        emailBody += `<p><strong>${field.fieldName}:</strong><br>`;
+        emailBody += `<p><strong>${field.fieldName}:</strong></p>`;
 
         if (field.fieldType === 'attendees' && fieldValue?.attendeeIds) {
           const attendeeIds = Array.isArray(fieldValue.attendeeIds) ? fieldValue.attendeeIds : [];
@@ -3236,17 +3236,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const user = users.find((u: any) => u.id === id);
             return user ? `${user.preferredName || user.firstName} ${user.lastName}` : '';
           }).filter(Boolean);
-          emailBody += attendeeNames.join(', ') || 'None';
+          emailBody += `<p>${attendeeNames.join(', ') || 'None'}</p>\n`;
         } else if (field.fieldType === 'location' && fieldValue?.locationId) {
           const location = locations.find((l: any) => l.id === fieldValue.locationId);
-          emailBody += location?.name || 'Unknown';
+          emailBody += `<p>${location?.name || 'Unknown'}</p>\n`;
         } else if (fieldValue?.textValue) {
-          emailBody += fieldValue.textValue.replace(/\n/g, '<br>');
+          emailBody += fieldValue.textValue.replace(/\n/g, '<br>') + '\n';
         } else {
-          emailBody += 'N/A';
+          emailBody += '<p>N/A</p>\n';
         }
-
-        emailBody += '</p>\n';
         
         // Add horizontal line between fields (but not after the last one)
         if (i < sortedFields.length - 1) {
@@ -3306,7 +3304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (let i = 0; i < sortedFields.length; i++) {
         const field = sortedFields[i];
         const fieldValue = fieldValues.find(fv => fv.fieldId === field.id);
-        emailBody += `<p><strong>${field.fieldName}:</strong><br>`;
+        emailBody += `<p><strong>${field.fieldName}:</strong></p>`;
         
         if (field.fieldType === 'attendees' && fieldValue?.attendeeIds) {
           // attendeeIds is already a string array from the database
@@ -3315,17 +3313,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const user = users.find((u: any) => u.id === id);
             return user ? `${user.preferredName || user.firstName} ${user.lastName}` : '';
           }).filter(Boolean);
-          emailBody += attendeeNames.join(', ') || 'None';
+          emailBody += `<p>${attendeeNames.join(', ') || 'None'}</p>\n`;
         } else if (field.fieldType === 'location' && fieldValue?.locationId) {
           const location = locations.find((l: any) => l.id === fieldValue.locationId);
-          emailBody += location?.name || 'Unknown';
+          emailBody += `<p>${location?.name || 'Unknown'}</p>\n`;
         } else if (fieldValue?.textValue) {
-          emailBody += fieldValue.textValue.replace(/\n/g, '<br>');
+          emailBody += fieldValue.textValue.replace(/\n/g, '<br>') + '\n';
         } else {
-          emailBody += 'N/A';
+          emailBody += '<p>N/A</p>\n';
         }
-        
-        emailBody += '</p>\n';
         
         // Add horizontal line between fields (but not after the last one)
         if (i < sortedFields.length - 1) {

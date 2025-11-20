@@ -8,21 +8,56 @@ import { useAuth } from "@/hooks/use-auth";
 import DOMPurify from "dompurify";
 import type { MeetingTemplate, MeetingTemplateField, Meeting, MeetingFieldValue, Location, SafeUser } from "@shared/schema";
 
-// Strip HTML tags to show clean text for editing
+// Strip HTML tags to show clean text for editing, preserving line breaks
 const stripHtml = (html: string): string => {
-  const temp = document.createElement('div');
-  temp.innerHTML = html;
-  return temp.textContent || temp.innerText || '';
-};
-
-// Convert plain text back to HTML with proper formatting
-const plainTextToHtml = (text: string): string => {
+  let text = html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<\/h[1-6]>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+  
   return text
     .split('\n')
     .map(line => line.trim())
-    .filter(line => line.length > 0)
-    .map(line => `<p>${line.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`)
-    .join('\n');
+    .join('\n')
+    .replace(/\n\n+/g, '\n\n')
+    .trim();
+};
+
+// Convert plain text back to HTML with proper formatting and list handling
+const plainTextToHtml = (text: string): string => {
+  const lines = text.split('\n');
+  const result: string[] = [];
+  let inList = false;
+  let listType = '';
+  
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+    
+    if (!trimmed) {
+      if (result.length > 0 && !result[result.length - 1].includes('</ul>') && !result[result.length - 1].includes('</ol>')) {
+        if (inList) {
+          result.push(listType === 'ol' ? '</ol>' : '</ul>');
+          inList = false;
+        }
+      }
+      return;
+    }
+    
+    const escaped = trimmed.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    result.push(`<p>${escaped}</p>`);
+  });
+  
+  if (inList) {
+    result.push(listType === 'ol' ? '</ol>' : '</ul>');
+  }
+  
+  return result.join('\n');
 };
 import { format } from "date-fns";
 import { useState } from "react";
