@@ -2742,7 +2742,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/meeting-templates/active", canViewMeetings, async (req, res) => {
-    const templates = await storage.getActiveMeetingTemplates();
+    if (!req.user) return res.sendStatus(401);
+    const templates = await storage.getActiveMeetingTemplatesForUser(req.user.id);
     res.json(templates);
   });
 
@@ -2839,27 +2840,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Meetings routes
   app.get("/api/meetings", canViewMeetings, async (req, res) => {
-    const meetings = await storage.getAllMeetings();
+    if (!req.user) return res.sendStatus(401);
+    const meetings = await storage.getMeetingsForUser(req.user.id);
     res.json(meetings);
   });
 
   app.get("/api/meetings/:id", canViewMeetings, async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
     const meeting = await storage.getMeeting(req.params.id);
     if (!meeting) return res.sendStatus(404);
+    
+    // Check if user has access to this meeting's template
+    const hasAccess = await storage.canUserAccessTemplate(req.user.id, meeting.templateId, 'view');
+    if (!hasAccess) return res.sendStatus(403);
+    
     res.json(meeting);
   });
 
   app.get("/api/meetings/template/:templateId", canViewMeetings, async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
+    
+    // Check if user has access to this template
+    const hasAccess = await storage.canUserAccessTemplate(req.user.id, req.params.templateId, 'view');
+    if (!hasAccess) return res.sendStatus(403);
+    
     const meetings = await storage.getMeetingsByTemplate(req.params.templateId);
     res.json(meetings);
   });
 
   app.post("/api/meetings", canCreateMeetings, async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
     const { fieldValues, ...meetingData } = req.body;
     
     const validation = insertMeetingSchema.safeParse(meetingData);
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    
+    // Check if user can create meetings for this template
+    const canCreate = await storage.canUserAccessTemplate(req.user.id, validation.data.templateId, 'create');
+    if (!canCreate) {
+      return res.status(403).json({ error: "You don't have permission to create meetings for this template" });
     }
     
     const meeting = await storage.createMeeting({
@@ -2902,7 +2923,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.patch("/api/meetings/:id", canEditMeetings, async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
     const { fieldValues, ...meetingData } = req.body;
+    
+    // Get existing meeting to check template
+    const existingMeeting = await storage.getMeeting(req.params.id);
+    if (!existingMeeting) return res.sendStatus(404);
+    
+    // Check if user can edit meetings for this template
+    const canEdit = await storage.canUserAccessTemplate(req.user.id, existingMeeting.templateId, 'edit');
+    if (!canEdit) {
+      return res.status(403).json({ error: "You don't have permission to edit meetings for this template" });
+    }
     
     const validation = insertMeetingSchema.partial().safeParse(meetingData);
     if (!validation.success) {
@@ -2949,6 +2981,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.delete("/api/meetings/:id", canEditMeetings, async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
+    
+    // Get existing meeting to check template
+    const existingMeeting = await storage.getMeeting(req.params.id);
+    if (!existingMeeting) return res.sendStatus(404);
+    
+    // Check if user can edit meetings for this template
+    const canEdit = await storage.canUserAccessTemplate(req.user.id, existingMeeting.templateId, 'edit');
+    if (!canEdit) {
+      return res.status(403).json({ error: "You don't have permission to delete meetings for this template" });
+    }
+    
     await storage.deleteMeeting(req.params.id);
     res.sendStatus(204);
   });
@@ -2971,6 +3015,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/meeting-field-values/:id", canEditMeetings, async (req, res) => {
     await storage.deleteMeetingFieldValue(req.params.id);
+    res.sendStatus(204);
+  });
+
+  // User Meeting Template Permissions routes
+  app.get("/api/admin/meeting-template-permissions", requireRole('admin'), async (req, res) => {
+    const permissions = await storage.getAllTemplatePermissions();
+    res.json(permissions);
+  });
+
+  app.get("/api/admin/meeting-template-permissions/user/:userId", requireRole('admin'), async (req, res) => {
+    const permissions = await storage.getUserTemplatePermissions(req.params.userId);
+    res.json(permissions);
+  });
+
+  app.post("/api/admin/meeting-template-permissions", requireRole('admin'), async (req, res) => {
+    const { userId, permissions } = req.body;
+    await storage.bulkUpsertUserTemplatePermissions(userId, permissions);
+    res.sendStatus(200);
+  });
+
+  app.delete("/api/admin/meeting-template-permissions/:userId/:templateId", requireRole('admin'), async (req, res) => {
+    await storage.deleteUserTemplatePermission(req.params.userId, req.params.templateId);
     res.sendStatus(204);
   });
 

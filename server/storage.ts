@@ -55,6 +55,7 @@ import {
   type MeetingTemplateField, type InsertMeetingTemplateField, meetingTemplateFields,
   type Meeting, type InsertMeeting, meetings,
   type MeetingFieldValue, type InsertMeetingFieldValue, meetingFieldValues,
+  type UserMeetingTemplatePermission, type InsertUserMeetingTemplatePermission, userMeetingTemplatePermissions,
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq, asc, desc, inArray, and, or, gte, lte, isNull, isNotNull, sql } from "drizzle-orm";
@@ -425,6 +426,7 @@ export interface IStorage {
   // Meeting Templates
   getAllMeetingTemplates(): Promise<MeetingTemplate[]>;
   getActiveMeetingTemplates(): Promise<MeetingTemplate[]>;
+  getActiveMeetingTemplatesForUser(userId: string): Promise<MeetingTemplate[]>;
   getMeetingTemplate(id: string): Promise<MeetingTemplate | undefined>;
   createMeetingTemplate(template: InsertMeetingTemplate): Promise<MeetingTemplate>;
   updateMeetingTemplate(id: string, updates: Partial<InsertMeetingTemplate>): Promise<MeetingTemplate | undefined>;
@@ -441,17 +443,27 @@ export interface IStorage {
   
   // Meetings
   getAllMeetings(): Promise<Meeting[]>;
+  getMeetingsForUser(userId: string): Promise<Meeting[]>;
   getMeeting(id: string): Promise<Meeting | undefined>;
   getMeetingsByTemplate(templateId: string): Promise<Meeting[]>;
   createMeeting(meeting: InsertMeeting): Promise<Meeting>;
   updateMeeting(id: string, updates: Partial<InsertMeeting>): Promise<Meeting | undefined>;
   deleteMeeting(id: string): Promise<void>;
+  canUserAccessTemplate(userId: string, templateId: string, permission: 'view' | 'create' | 'edit'): Promise<boolean>;
   
   // Meeting Field Values
   getMeetingFieldValues(meetingId: string): Promise<MeetingFieldValue[]>;
   getMeetingFieldValue(meetingId: string, fieldId: string): Promise<MeetingFieldValue | undefined>;
   upsertMeetingFieldValue(value: InsertMeetingFieldValue): Promise<MeetingFieldValue>;
   deleteMeetingFieldValue(id: string): Promise<void>;
+  
+  // User Meeting Template Permissions
+  getUserTemplatePermissions(userId: string): Promise<UserMeetingTemplatePermission[]>;
+  getUserTemplatePermission(userId: string, templateId: string): Promise<UserMeetingTemplatePermission | undefined>;
+  getAllTemplatePermissions(): Promise<UserMeetingTemplatePermission[]>;
+  upsertUserTemplatePermission(permission: InsertUserMeetingTemplatePermission): Promise<UserMeetingTemplatePermission>;
+  deleteUserTemplatePermission(userId: string, templateId: string): Promise<void>;
+  bulkUpsertUserTemplatePermissions(userId: string, permissions: InsertUserMeetingTemplatePermission[]): Promise<void>;
   
   sessionStore: Store;
 }
@@ -2397,6 +2409,40 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(meetingTemplates.sortOrder));
   }
 
+  async getActiveMeetingTemplatesForUser(userId: string): Promise<MeetingTemplate[]> {
+    // Get user's template permissions
+    const permissions = await db.select().from(userMeetingTemplatePermissions)
+      .where(
+        and(
+          eq(userMeetingTemplatePermissions.userId, userId),
+          eq(userMeetingTemplatePermissions.canView, 1)
+        )
+      );
+    
+    // CRITICAL: If no permissions, return empty array immediately
+    // Do NOT query templates with empty inArray as it may return all rows
+    if (permissions.length === 0) {
+      return [];
+    }
+    
+    const templateIds = permissions.map(p => p.templateId);
+    
+    // CRITICAL: Double-check templateIds is not empty before using inArray
+    if (templateIds.length === 0) {
+      return [];
+    }
+    
+    // Get active templates the user has access to
+    return await db.select().from(meetingTemplates)
+      .where(
+        and(
+          eq(meetingTemplates.isActive, 1),
+          inArray(meetingTemplates.id, templateIds)
+        )
+      )
+      .orderBy(asc(meetingTemplates.sortOrder));
+  }
+
   async getAllMeetingTemplatesWithFields(): Promise<Array<MeetingTemplate & { fields: MeetingTemplateField[] }>> {
     // Fetch all templates
     const templates = await db.select().from(meetingTemplates).orderBy(asc(meetingTemplates.sortOrder));
@@ -2496,6 +2542,35 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(meetings).orderBy(desc(meetings.meetingDate));
   }
 
+  async getMeetingsForUser(userId: string): Promise<Meeting[]> {
+    // Get user's template permissions
+    const permissions = await db.select().from(userMeetingTemplatePermissions)
+      .where(
+        and(
+          eq(userMeetingTemplatePermissions.userId, userId),
+          eq(userMeetingTemplatePermissions.canView, 1)
+        )
+      );
+    
+    // CRITICAL: If no permissions, return empty array immediately
+    // Do NOT query meetings with empty inArray as it may return all rows
+    if (permissions.length === 0) {
+      return [];
+    }
+    
+    const templateIds = permissions.map(p => p.templateId);
+    
+    // CRITICAL: Double-check templateIds is not empty before using inArray
+    if (templateIds.length === 0) {
+      return [];
+    }
+    
+    // Get meetings for templates the user has access to
+    return await db.select().from(meetings)
+      .where(inArray(meetings.templateId, templateIds))
+      .orderBy(desc(meetings.meetingDate));
+  }
+
   async getMeeting(id: string): Promise<Meeting | undefined> {
     const result = await db.select().from(meetings).where(eq(meetings.id, id));
     return result[0];
@@ -2505,6 +2580,25 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(meetings)
       .where(eq(meetings.templateId, templateId))
       .orderBy(desc(meetings.meetingDate));
+  }
+
+  async canUserAccessTemplate(userId: string, templateId: string, permission: 'view' | 'create' | 'edit'): Promise<boolean> {
+    const perm = await this.getUserTemplatePermission(userId, templateId);
+    
+    if (!perm) {
+      return false;
+    }
+    
+    switch (permission) {
+      case 'view':
+        return perm.canView === 1;
+      case 'create':
+        return perm.canCreate === 1;
+      case 'edit':
+        return perm.canEdit === 1;
+      default:
+        return false;
+    }
   }
 
   async createMeeting(meeting: InsertMeeting): Promise<Meeting> {
@@ -2564,6 +2658,61 @@ export class DatabaseStorage implements IStorage {
 
   async deleteMeetingFieldValue(id: string): Promise<void> {
     await db.delete(meetingFieldValues).where(eq(meetingFieldValues.id, id));
+  }
+
+  // User Meeting Template Permissions
+  async getUserTemplatePermissions(userId: string): Promise<UserMeetingTemplatePermission[]> {
+    return await db.select().from(userMeetingTemplatePermissions)
+      .where(eq(userMeetingTemplatePermissions.userId, userId));
+  }
+
+  async getUserTemplatePermission(userId: string, templateId: string): Promise<UserMeetingTemplatePermission | undefined> {
+    const result = await db.select().from(userMeetingTemplatePermissions)
+      .where(
+        and(
+          eq(userMeetingTemplatePermissions.userId, userId),
+          eq(userMeetingTemplatePermissions.templateId, templateId)
+        )
+      );
+    return result[0];
+  }
+
+  async getAllTemplatePermissions(): Promise<UserMeetingTemplatePermission[]> {
+    return await db.select().from(userMeetingTemplatePermissions);
+  }
+
+  async upsertUserTemplatePermission(permission: InsertUserMeetingTemplatePermission): Promise<UserMeetingTemplatePermission> {
+    const result = await db.insert(userMeetingTemplatePermissions)
+      .values(permission)
+      .onConflictDoUpdate({
+        target: [userMeetingTemplatePermissions.userId, userMeetingTemplatePermissions.templateId],
+        set: {
+          canView: permission.canView,
+          canCreate: permission.canCreate,
+          canEdit: permission.canEdit,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return result[0];
+  }
+
+  async deleteUserTemplatePermission(userId: string, templateId: string): Promise<void> {
+    await db.delete(userMeetingTemplatePermissions)
+      .where(
+        and(
+          eq(userMeetingTemplatePermissions.userId, userId),
+          eq(userMeetingTemplatePermissions.templateId, templateId)
+        )
+      );
+  }
+
+  async bulkUpsertUserTemplatePermissions(userId: string, permissions: InsertUserMeetingTemplatePermission[]): Promise<void> {
+    if (permissions.length === 0) return;
+    
+    await Promise.all(
+      permissions.map(permission => this.upsertUserTemplatePermission(permission))
+    );
   }
 }
 

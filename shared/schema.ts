@@ -1521,6 +1521,35 @@ export const insertMeetingFieldValueSchema = createInsertSchema(meetingFieldValu
 export type InsertMeetingFieldValue = z.infer<typeof insertMeetingFieldValueSchema>;
 export type MeetingFieldValue = typeof meetingFieldValues.$inferSelect;
 
+// User Meeting Template Permissions - Control which users can access which meeting templates
+export const userMeetingTemplatePermissions = pgTable("user_meeting_template_permissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  templateId: varchar("template_id").notNull().references(() => meetingTemplates.id, { onDelete: "cascade" }),
+  canView: integer("can_view").notNull().default(1), // 0 = no, 1 = yes
+  canCreate: integer("can_create").notNull().default(0), // 0 = no, 1 = yes
+  canEdit: integer("can_edit").notNull().default(0), // 0 = no, 1 = yes
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  userTemplateUnique: sql`UNIQUE (user_id, template_id)`,
+}));
+
+export const insertUserMeetingTemplatePermissionSchema = createInsertSchema(userMeetingTemplatePermissions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  canView: z.number().min(0).max(1),
+  canCreate: z.number().min(0).max(1),
+  canEdit: z.number().min(0).max(1),
+});
+
+export const updateUserMeetingTemplatePermissionSchema = insertUserMeetingTemplatePermissionSchema.partial();
+
+export type InsertUserMeetingTemplatePermission = z.infer<typeof insertUserMeetingTemplatePermissionSchema>;
+export type UserMeetingTemplatePermission = typeof userMeetingTemplatePermissions.$inferSelect;
+
 // Migrations - Track completed database migrations
 export const migrations = pgTable("migrations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
