@@ -208,7 +208,7 @@ export default function MeetingView() {
           </Link>
           <div>
             <h1 className="text-2xl font-semibold" data-testid="display-meeting-title">
-              {meeting.title || 'Untitled Meeting'}
+              {template?.name || 'Meeting Notes'}
             </h1>
             <p className="text-sm text-muted-foreground mt-1" data-testid="display-meeting-date">
               {format(new Date(meeting.meetingDate), "EEEE, MMMM d, yyyy")}
