@@ -182,7 +182,7 @@ export default function Settings() {
   
   // Archive artistic staff confirmation dialog
   const [archiveArtisticStaffDialogOpen, setArchiveArtisticStaffDialogOpen] = useState(false);
-  const [artisticStaff?ToArchive, setArtisticStaffToArchive] = useState<string | null>(null);
+  const [artisticStaffToArchive, setArtisticStaffToArchive] = useState<string | null>(null);
   
   // View archived artists dialog
   const [viewArchivedDialogOpen, setViewArchivedDialogOpen] = useState(false);
@@ -289,12 +289,12 @@ export default function Settings() {
     enabled: activeTab === 'people' || activeTab === 'users' || createUserDialogOpen || editUserDialogOpen,
   });
   const technicians = techniciansQuery.data || [];
-  const artisticStaff?Query = useQuery<ArtisticStaff[]>({ 
+  const artisticStaffQuery = useQuery<StaffMember[]>({ 
     queryKey: ["/api/artistic-staff"],
     enabled: activeTab === 'people' || activeTab === 'users' || createUserDialogOpen || editUserDialogOpen,
   });
-  const artisticStaff = artisticStaff?Query.data || [];
-  const archivedArtisticStaffQuery = useQuery<ArtisticStaff[]>({ 
+  const artisticStaff = artisticStaffQuery.data || [];
+  const archivedArtisticStaffQuery = useQuery<StaffMember[]>({ 
     queryKey: ["/api/artistic-staff/archived"],
     enabled: viewArchivedArtisticStaffDialogOpen,
   });
@@ -303,7 +303,7 @@ export default function Settings() {
   const usersQuery = useQuery<SafeUser[]>({ queryKey: ["/api/users"] });
   const users = usersQuery.data || [];
   const { data: userGroups = [] } = useQuery<UserGroup[]>({ queryKey: ["/api/user-groups"] });
-  const { data: unlinkedProfiles } = useQuery<{ artists: Artist[], staffMembers: ArtisticStaff[], technicians: Technician[] }>({ 
+  const { data: unlinkedProfiles } = useQuery<{ artists: Artist[], staffMembers: StaffMember[], technicians: Technician[] }>({ 
     queryKey: ["/api/users/unlinked-profiles"],
     enabled: (createUserDialogOpen || editUserDialogOpen) && isStageManager,
     retry: false,
@@ -326,7 +326,7 @@ export default function Settings() {
   // Fetch all artistic staff-department assignments for grouping - only when people tab active
   const { 
     data: allArtisticStaffDepartments = []
-  } = useQuery<Array<{ artisticStaff?Id: string; departmentId: string; sortOrder: number }>>({
+  } = useQuery<Array<{ artisticStaffId: string; departmentId: string; sortOrder: number }>>({
     queryKey: ["/api/artistic-staff-departments/all"],
     enabled: activeTab === 'people',
     queryFn: async () => {
@@ -335,7 +335,7 @@ export default function Settings() {
       });
       if (!res.ok) return [];
       const depts = await res.json();
-      return depts.map((d: any) => ({ artisticStaff?Id: d.technicianId, departmentId: d.departmentId, sortOrder: d.sortOrder || 0 }));
+      return depts.map((d: any) => ({ artisticStaffId: d.technicianId, departmentId: d.departmentId, sortOrder: d.sortOrder || 0 }));
     }
   });
   
@@ -358,7 +358,7 @@ export default function Settings() {
       // Check if user is linked to any profile (collections may be empty)
       const linkedArtist = artists?.find(a => a.userId === userToEdit.id);
       const linkedTechnician = technicians?.find(t => t.userId === userToEdit.id);
-      const linkedArtisticStaff = artisticStaff??.find(s => s.userId === userToEdit.id);
+      const linkedArtisticStaff = artisticStaff.find(s => s.userId === userToEdit.id);
 
       if (linkedArtist) {
         const profile = { type: 'artist' as const, id: linkedArtist.id, name: `${linkedArtist.preferredName} (${linkedArtist.firstName} ${linkedArtist.lastName})` };
@@ -377,11 +377,11 @@ export default function Settings() {
           setSelectedEditProfileId(linkedTechnician.id);
         }
       } else if (linkedArtisticStaff) {
-        const profile = { type: 'artisticStaff?' as const, id: linkedArtisticStaff.id, name: `${linkedArtisticStaff.preferredName} (${linkedArtisticStaff.firstName} ${linkedArtisticStaff.lastName})` };
+        const profile = { type: 'artisticStaff' as const, id: linkedArtisticStaff.id, name: `${linkedArtisticStaff.preferredName} (${linkedArtisticStaff.firstName} ${linkedArtisticStaff.lastName})` };
         // Only update if changed
-        if (currentLinkedProfile?.id !== linkedArtisticStaff.id || currentLinkedProfile?.type !== 'artisticStaff?') {
+        if (currentLinkedProfile?.id !== linkedArtisticStaff.id || currentLinkedProfile?.type !== 'artisticStaff') {
           setCurrentLinkedProfile(profile);
-          setSelectedEditProfileType('artisticStaff?');
+          setSelectedEditProfileType('artisticStaff');
           setSelectedEditProfileId(linkedArtisticStaff.id);
         }
       } else {
@@ -393,7 +393,7 @@ export default function Settings() {
         }
       }
     }
-  }, [userToEdit, artists, technicians, artisticStaff?, currentLinkedProfile]);
+  }, [userToEdit, artists, technicians, artisticStaff, currentLinkedProfile]);
 
   // Load technician status when editing a technician
   useEffect(() => {
@@ -693,7 +693,7 @@ export default function Settings() {
     // Reset state immediately to prevent leaking old state when switching artistic staff
     setSelectedArtisticStaffDepartmentIds([]);
     
-    if (editTarget?.type === "artistic-staff" && editTarget.id && artisticStaff?DialogOpen) {
+    if (editTarget?.type === "artistic-staff" && editTarget.id && artisticStaffDialogOpen) {
       fetch(`/api/artistic-staff/${editTarget.id}/departments`, {
         credentials: 'include',
         headers: {
@@ -714,7 +714,7 @@ export default function Settings() {
           setSelectedArtisticStaffDepartmentIds([]);
         });
     }
-  }, [editTarget, artisticStaff?DialogOpen]);
+  }, [editTarget, artisticStaffDialogOpen]);
 
   // Load artistic staff status when editing artistic staff
   useEffect(() => {
@@ -1767,10 +1767,10 @@ export default function Settings() {
   });
 
   const reorderArtisticStaffInDepartmentMutation = useMutation({
-    mutationFn: async ({ departmentId, artisticStaff?Ids }: { departmentId: string; artisticStaff?Ids: string[] }) => {
-      return await apiRequest("PUT", `/api/departments/${departmentId}/artistic-staff/reorder`, { artisticStaff?Ids });
+    mutationFn: async ({ departmentId, artisticStaffIds }: { departmentId: string; artisticStaffIds: string[] }) => {
+      return await apiRequest("PUT", `/api/departments/${departmentId}/artistic-staff/reorder`, { artisticStaffIds });
     },
-    onMutate: async ({ departmentId, artisticStaff?Ids }) => {
+    onMutate: async ({ departmentId, artisticStaffIds }) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["/api/artistic-staff-departments/all"] });
       
@@ -1783,7 +1783,7 @@ export default function Settings() {
       // Optimistically update the order
       setOptimisticArtisticStaffOrder(prev => {
         const newMap = new Map(prev);
-        newMap.set(departmentId, artisticStaff?Ids);
+        newMap.set(departmentId, artisticStaffIds);
         return newMap;
       });
       
@@ -1796,7 +1796,7 @@ export default function Settings() {
       console.error('[Frontend] Error reordering artistic staff in department:', {
         error,
         departmentId: variables.departmentId,
-        artisticStaff?Ids: variables.artisticStaff?Ids
+        artisticStaffIds: variables.artisticStaffIds
       });
       
       // Rollback on error
@@ -3073,7 +3073,7 @@ export default function Settings() {
     );
   };
 
-  const SortableArtisticStaffCard = ({ artisticStaff?, deptId }: { staffMembers: ArtisticStaff; deptId: string }) => {
+  const SortableArtisticStaffCard = ({ artisticStaff, deptId }: { staffMembers: ArtisticStaff; deptId: string }) => {
     const {
       attributes,
       listeners,
@@ -3081,7 +3081,7 @@ export default function Settings() {
       transform,
       transition,
       isDragging,
-    } = useSortable({ id: `${deptId}-${artisticStaff?.id}` });
+    } = useSortable({ id: `${deptId}-${artisticStaff.id}` });
 
     const style = {
       transform: CSS.Transform.toString(transform),
@@ -3095,23 +3095,23 @@ export default function Settings() {
         style={style}
         className="p-3 flex items-center gap-3 cursor-pointer hover-elevate active-elevate-2"
         onClick={() => {
-          setEditTarget({ type: "artistic-staff", id: artisticStaff?.id, data: artisticStaff? });
+          setEditTarget({ type: "artistic-staff", id: artisticStaff.id, data: artisticStaff });
           setArtisticStaffDialogOpen(true);
         }}
-        data-testid={`card-artistic-staff-${artisticStaff?.id}`}
+        data-testid={`card-artistic-staff-${artisticStaff.id}`}
       >
         <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing" onClick={(e) => e.stopPropagation()}>
           <GripVertical className="w-4 h-4 text-muted-foreground" />
         </div>
         <Avatar className="w-10 h-10">
-          {artisticStaff?.photoUrl && <AvatarImage src={artisticStaff?.photoUrl} alt={artisticStaff?.preferredName} />}
+          {artisticStaff.photoUrl && <AvatarImage src={artisticStaff.photoUrl} alt={artisticStaff.preferredName} />}
           <AvatarFallback className="bg-primary/10 text-primary text-sm">
-            {artisticStaff?.firstName.charAt(0)}{artisticStaff?.lastName.charAt(0)}
+            {artisticStaff.firstName.charAt(0)}{artisticStaff.lastName.charAt(0)}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1">
-          <p className="font-medium">{artisticStaff?.preferredName}</p>
-          {artisticStaff?.role && <p className="text-sm text-muted-foreground">{artisticStaff?.role}</p>}
+          <p className="font-medium">{artisticStaff.preferredName}</p>
+          {artisticStaff.role && <p className="text-sm text-muted-foreground">{artisticStaff.role}</p>}
         </div>
       </Card>
     );
@@ -3181,7 +3181,7 @@ export default function Settings() {
 
   const renderGroupedArtisticStaff = () => {
     // Show empty state when no artistic staff exist
-    if (artisticStaff?.length === 0) {
+    if (artisticStaff.length === 0) {
       return (
         <Card className="p-6 text-center text-muted-foreground">
           <p>No artistic staff yet. Click the button above to create one.</p>
@@ -3190,9 +3190,9 @@ export default function Settings() {
     }
 
     // Group artistic staff by department with proper ordering
-    const grouped = new Map<string, { staffMembers: ArtisticStaff[]; sortOrders: Map<string, number> }>();
+    const grouped = new Map<string, { staffMembers: StaffMember[]; sortOrders: Map<string, number> }>();
     
-    allArtisticStaffDepartments.forEach(({ artisticStaff?Id, departmentId, sortOrder }) => {
+    allArtisticStaffDepartments.forEach(({ artisticStaffId, departmentId, sortOrder }) => {
       // Filter for artistic type departments only
       const dept = departments.find(d => d.id === departmentId);
       // Skip if department not found or if it's not an artistic type department
@@ -3200,15 +3200,15 @@ export default function Settings() {
         return;
       }
       
-      const staff = artisticStaff?.find(s => s.id === artisticStaff?Id);
+      const staff = artisticStaff.find(s => s.id === artisticStaffId);
       if (!staff) return;
       
       if (!grouped.has(departmentId)) {
         grouped.set(departmentId, { staffMembers: [], sortOrders: new Map() });
       }
       const group = grouped.get(departmentId)!;
-      group.artisticStaff?.push(staff);
-      group.sortOrders.set(artisticStaff?Id, sortOrder);
+      group.artisticStaff.push(staff);
+      group.sortOrders.set(artisticStaffId, sortOrder);
     });
     
     // Sort each department's artistic staff by their sortOrder or optimistic order
@@ -3218,7 +3218,7 @@ export default function Settings() {
       
       if (optimisticOrder) {
         // Use optimistic order
-        group.artisticStaff?.sort((a, b) => {
+        group.artisticStaff.sort((a, b) => {
           const indexA = optimisticOrder.indexOf(a.id);
           const indexB = optimisticOrder.indexOf(b.id);
           // If not found in optimistic order, put at end
@@ -3229,7 +3229,7 @@ export default function Settings() {
         });
       } else {
         // Use server-side sortOrder
-        group.artisticStaff?.sort((a, b) => {
+        group.artisticStaff.sort((a, b) => {
           const orderA = group.sortOrders.get(a.id) ?? 0;
           const orderB = group.sortOrders.get(b.id) ?? 0;
           return orderA - orderB;
@@ -3252,7 +3252,7 @@ export default function Settings() {
           const group = grouped.get(deptId);
           if (!group) return null;
           
-          const staffInDept = group.artisticStaff?;
+          const staffInDept = group.artisticStaff;
           const dept = departments.find(d => d.id === deptId);
           const isNoDept = deptId === 'no-department';
           
@@ -3261,7 +3261,7 @@ export default function Settings() {
             const { active, over } = event;
             
             if (over && active.id !== over.id) {
-              // Extract artistic staff IDs from composite keys (format: "deptId-artisticStaff?Id")
+              // Extract artistic staff IDs from composite keys (format: "deptId-artisticStaffId")
               const activeParts = String(active.id).split('-');
               const overParts = String(over.id).split('-');
               
@@ -3281,7 +3281,7 @@ export default function Settings() {
               if (!isNoDept) {
                 reorderArtisticStaffInDepartmentMutation.mutate({
                   departmentId: deptId,
-                  artisticStaff?Ids: newOrder
+                  artisticStaffIds: newOrder
                 });
               }
             }
@@ -3301,7 +3301,7 @@ export default function Settings() {
                 <SortableContext items={staffInDept.map(s => `${deptId}-${s.id}`)} strategy={verticalListSortingStrategy}>
                   <div className="space-y-2">
                     {staffInDept.map((staff) => (
-                      <SortableArtisticStaffCard key={`${deptId}-${staff.id}`} artisticStaff?={staff} deptId={deptId} />
+                      <SortableArtisticStaffCard key={`${deptId}-${staff.id}`} artisticStaff={staff} deptId={deptId} />
                     ))}
                   </div>
                 </SortableContext>
@@ -5831,7 +5831,7 @@ export default function Settings() {
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">Artistic Staff</h2>
                   <Dialog 
-                    open={artisticStaff?DialogOpen} 
+                    open={artisticStaffDialogOpen} 
                     onOpenChange={(open) => {
                       setArtisticStaffDialogOpen(open);
                       if (!open) {
@@ -6096,7 +6096,7 @@ export default function Settings() {
                                     </SelectTrigger>
                                     <SelectContent>
                                       {users
-                                        .filter(u => !artisticStaff?.some(a => a.userId === u.id))
+                                        .filter(u => !artisticStaff.some(a => a.userId === u.id))
                                         .map(u => (
                                           <SelectItem key={u.id} value={u.id} data-testid={`option-user-${u.id}`}>
                                             {u.name} ({u.email})
@@ -6112,7 +6112,7 @@ export default function Settings() {
                                       onClick={() => {
                                         if (editTarget?.type === "artistic-staff") {
                                           linkUserToArtistMutation.mutate({ 
-                                            artisticStaff?Id: editTarget.id, 
+                                            artisticStaffId: editTarget.id, 
                                             userId: selectedLinkedArtisticStaffUserId 
                                           });
                                         }
@@ -6757,7 +6757,7 @@ export default function Settings() {
                             <SelectContent>
                               <SelectItem value="none">None</SelectItem>
                               <SelectItem value="artist">Link to Artist</SelectItem>
-                              <SelectItem value="artisticStaff?">Link to Artistic Staff</SelectItem>
+                              <SelectItem value="artisticStaff">Link to Artistic Staff</SelectItem>
                               <SelectItem value="technician">Link to Technical Staff</SelectItem>
                             </SelectContent>
                           </Select>
@@ -6766,7 +6766,7 @@ export default function Settings() {
                           <div className="space-y-2">
                             <Label>
                               {selectedProfileType === "artist" && "Select Artist"}
-                              {selectedProfileType === "artisticStaff?" && "Select Artistic Staff"}
+                              {selectedProfileType === "artisticStaff" && "Select Artistic Staff"}
                               {selectedProfileType === "technician" && "Select Technician"}
                             </Label>
                             <Select 
@@ -6792,7 +6792,7 @@ export default function Settings() {
                                       </SelectItem>
                                     );
                                   })}
-                                {selectedProfileType === "artisticStaff?" && [...(unlinkedProfiles?.artisticStaff? || [])]
+                                {selectedProfileType === "artisticStaff" && [...(unlinkedProfiles?.artisticStaff || [])]
                                   .sort((a, b) => {
                                     const keyA = a.preferredName?.trim() || `${a.firstName} ${a.lastName}`;
                                     const keyB = b.preferredName?.trim() || `${b.firstName} ${b.lastName}`;
@@ -7052,8 +7052,8 @@ export default function Settings() {
             <AlertDialogCancel data-testid="button-cancel-archive-artistic-staff">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => {
-                if (artisticStaff?ToArchive) {
-                  archiveArtisticStaffMutation.mutate(artisticStaff?ToArchive);
+                if (artisticStaffToArchive) {
+                  archiveArtisticStaffMutation.mutate(artisticStaffToArchive);
                 }
               }} 
               className="bg-destructive hover:bg-destructive/90"
@@ -7561,7 +7561,7 @@ export default function Settings() {
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
                     <SelectItem value="artist">Artist</SelectItem>
-                    <SelectItem value="artisticStaff?">Artistic Staff</SelectItem>
+                    <SelectItem value="artisticStaff">Artistic Staff</SelectItem>
                     <SelectItem value="technician">Technician</SelectItem>
                   </SelectContent>
                 </Select>
@@ -7570,7 +7570,7 @@ export default function Settings() {
                 <div className="space-y-2">
                   <Label>
                     {selectedEditProfileType === "artist" && "Select Artist"}
-                    {selectedEditProfileType === "artisticStaff?" && "Select Artistic Staff"}
+                    {selectedEditProfileType === "artisticStaff" && "Select Artistic Staff"}
                     {selectedEditProfileType === "technician" && "Select Technician"}
                   </Label>
                   <Select 
@@ -7604,14 +7604,14 @@ export default function Settings() {
                             })}
                         </>
                       )}
-                      {selectedEditProfileType === "artisticStaff?" && (
+                      {selectedEditProfileType === "artisticStaff" && (
                         <>
-                          {currentLinkedProfile?.type === 'artisticStaff?' && (
+                          {currentLinkedProfile?.type === 'artisticStaff' && (
                             <SelectItem key={currentLinkedProfile.id} value={currentLinkedProfile.id}>
                               {currentLinkedProfile.name} (Current)
                             </SelectItem>
                           )}
-                          {[...(unlinkedProfiles?.artisticStaff? || [])]
+                          {[...(unlinkedProfiles?.artisticStaff || [])]
                             .sort((a, b) => {
                               const keyA = a.preferredName?.trim() || `${a.firstName} ${a.lastName}`;
                               const keyB = b.preferredName?.trim() || `${b.firstName} ${b.lastName}`;
