@@ -227,6 +227,37 @@ export default function AppSidebar() {
               </div>
             </div>
 
+            {/* Meetings */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3 text-primary">Meetings</h3>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Customizable Meeting Templates</p>
+                  <p>Create multiple meeting types (e.g., Magic Carpet Notes, Production Meetings, Safety Briefings) with customized field configurations. Each template can have its own set of fields with specific types and ordering. Templates can be activated or deactivated to control which meeting types are available.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Flexible Field Types</p>
+                  <p>Configure meeting templates with seven field types: Rich Text (with full formatting), Plain Text, Date, Time, Checkbox, Location (from venue locations), Attendees (from user list), and Custom Dropdowns. Each field can be reordered using drag-and-drop to match your workflow.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Rich Text Editing</p>
+                  <p>Format meeting notes with bold, italic, underline, strikethrough, bullet lists, numbered lists, text alignment, custom colors, and highlighting. The rich text editor fills the entire meeting notes area for maximum typing space with zero list padding for clean formatting.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Meeting List & Organization</p>
+                  <p>Browse all meetings sorted by date with card-based views. Each meeting card shows the Meeting Type name as the title (e.g., "Magic Carpet Notes") with the meeting date displayed separately below. Filter meetings by template type using the sidebar menu.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">View & Edit Modes</p>
+                  <p>View meetings in a clean, read-only mode that displays the Meeting Type name as the page title with the meeting date as a subtitle. Authorized users (Admin, Stage Management) can click Edit to modify meeting details and field values. Meeting titles always display the template name, keeping meetings organized by type.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">PDF Export & Email Distribution</p>
+                  <p>Export individual meetings to PDF with customizable formatting. Send meeting notes via email using Outlook integration with configurable distribution lists and email templates. Each template can have independent PDF and email settings.</p>
+                </div>
+              </div>
+            </div>
+
             {/* Attendance */}
             <div>
               <h3 className="text-lg font-semibold mb-3 text-primary">Attendance</h3>
