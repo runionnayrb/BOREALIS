@@ -843,7 +843,6 @@ export const featureNames = [
   'settings_technicians',
   'settings_acts',
   'settings_users',
-  'settings_report_template',
   'settings_meeting_templates',
 ] as const;
 export type FeatureName = typeof featureNames[number];

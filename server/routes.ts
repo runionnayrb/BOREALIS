@@ -16,8 +16,6 @@ import {
   canViewReports,
   canCreateReports,
   canEditReports,
-  canViewSettingsReportTemplate,
-  canEditSettingsReportTemplate,
   canViewLineupsPositions,
   canCreateLineupsPositions,
   canEditLineupsPositions,
@@ -2184,12 +2182,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Report Template routes
-  app.get("/api/report-template", canViewSettingsReportTemplate, async (req, res) => {
+  app.get("/api/report-template", requireRole('stage_management', 'admin'), async (req, res) => {
     const template = await storage.getReportTemplate();
     res.json(template || null);
   });
 
-  app.put("/api/report-template", canEditSettingsReportTemplate, async (req, res) => {
+  app.put("/api/report-template", requireRole('stage_management', 'admin'), async (req, res) => {
     const validation = insertReportTemplateSchema.partial().safeParse(req.body);
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });

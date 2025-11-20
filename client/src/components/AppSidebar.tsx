@@ -612,7 +612,7 @@ export default function AppSidebar() {
               {/* Settings - show if user has any settings permission */}
               {(canView('settings_artists') || canView('settings_departments') || canView('settings_locations') || 
                 canView('settings_technicians') || canView('settings_acts') || canView('settings_users') || 
-                canView('settings_report_template')) && (
+                canView('settings_meeting_templates')) && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={location.startsWith("/settings")} data-testid="nav-settings">
                     <Link href="/settings" className="flex items-center gap-3">

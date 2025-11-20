@@ -134,7 +134,7 @@ const FEATURES = [
   'settings_locations',
   'settings_acts',
   'settings_users',
-  'settings_report_template',
+  'settings_meeting_templates',
 ] as const;
 
 const FEATURE_LABELS: Record<string, string> = {
@@ -152,7 +152,7 @@ const FEATURE_LABELS: Record<string, string> = {
   'settings_locations': 'Locations',
   'settings_acts': 'Acts',
   'settings_users': 'Users',
-  'settings_report_template': 'Report Template',
+  'settings_meeting_templates': 'Meeting Templates',
 };
 
 type TrustedIp = {

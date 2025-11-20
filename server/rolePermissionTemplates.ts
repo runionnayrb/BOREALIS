@@ -31,7 +31,6 @@ export const ROLE_PERMISSION_TEMPLATES: Record<UserRole, RolePermissionTemplate>
     settings_locations: FULL_ACCESS,
     settings_acts: FULL_ACCESS,
     settings_users: FULL_ACCESS,
-    settings_report_template: FULL_ACCESS,
   },
   
   stage_management: {
@@ -49,7 +48,6 @@ export const ROLE_PERMISSION_TEMPLATES: Record<UserRole, RolePermissionTemplate>
     settings_locations: FULL_ACCESS,
     settings_acts: FULL_ACCESS,
     settings_users: VIEW_ONLY,
-    settings_report_template: FULL_ACCESS,
   },
   
   technical: {
@@ -67,7 +65,6 @@ export const ROLE_PERMISSION_TEMPLATES: Record<UserRole, RolePermissionTemplate>
     settings_locations: VIEW_ONLY,
     settings_acts: VIEW_ONLY,
     settings_users: NO_ACCESS,
-    settings_report_template: VIEW_ONLY,
   },
   
   coaching: {
@@ -85,7 +82,6 @@ export const ROLE_PERMISSION_TEMPLATES: Record<UserRole, RolePermissionTemplate>
     settings_locations: VIEW_ONLY,
     settings_acts: VIEW_ONLY,
     settings_users: NO_ACCESS,
-    settings_report_template: VIEW_ONLY,
   },
   
   performance_wellness: {
@@ -103,7 +99,6 @@ export const ROLE_PERMISSION_TEMPLATES: Record<UserRole, RolePermissionTemplate>
     settings_locations: VIEW_ONLY,
     settings_acts: VIEW_ONLY,
     settings_users: NO_ACCESS,
-    settings_report_template: VIEW_ONLY,
   },
   
   read_only: {
@@ -121,7 +116,6 @@ export const ROLE_PERMISSION_TEMPLATES: Record<UserRole, RolePermissionTemplate>
     settings_locations: VIEW_ONLY,
     settings_acts: VIEW_ONLY,
     settings_users: NO_ACCESS,
-    settings_report_template: VIEW_ONLY,
   },
   
   artist: {
@@ -139,7 +133,6 @@ export const ROLE_PERMISSION_TEMPLATES: Record<UserRole, RolePermissionTemplate>
     settings_locations: NO_ACCESS,
     settings_acts: NO_ACCESS,
     settings_users: NO_ACCESS,
-    settings_report_template: NO_ACCESS,
   },
 };
 
