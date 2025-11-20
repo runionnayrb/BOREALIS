@@ -29,6 +29,7 @@ import FullSchedule from "@/pages/FullSchedule";
 import ChangePassword from "@/pages/ChangePassword";
 import AdminDashboard from "@/pages/AdminDashboard";
 import Meetings from "@/pages/Meetings";
+import MeetingEditor from "@/pages/MeetingEditor";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
@@ -150,6 +151,8 @@ function AuthenticatedApp() {
               <Route path="/lineups/:id" component={LineupBuilder} />
               <Route path="/schedule/full" component={FullSchedule} />
               <Route path="/schedule/artists" component={WeeklySchedule} />
+              <Route path="/meetings/new" component={MeetingEditor} />
+              <Route path="/meetings/:id" component={MeetingEditor} />
               <Route path="/meetings" component={Meetings} />
               <Route path="/settings" component={Settings} />
               <Route path="/profile" component={Profile} />

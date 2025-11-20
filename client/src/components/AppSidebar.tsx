@@ -3,7 +3,7 @@ import { FileText, Plus, Settings, ChevronRight, ChevronDown, ClipboardCheck, Ch
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import type { UserGroup } from "@shared/schema";
+import type { UserGroup, MeetingTemplate } from "@shared/schema";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type UserPermission = {
@@ -42,6 +42,7 @@ export default function AppSidebar() {
   const [lineupsOpen, setLineupsOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [attendanceOpen, setAttendanceOpen] = useState(false);
+  const [meetingsOpen, setMeetingsOpen] = useState(false);
   
   // Fetch user permissions from database
   const { data: permissions, isLoading: isLoadingPermissions } = useQuery<UserPermission[]>({
@@ -61,6 +62,21 @@ export default function AppSidebar() {
       return response.json();
     },
   });
+
+  // Fetch meeting templates for sidebar
+  const { data: meetingTemplates = [] } = useQuery<MeetingTemplate[]>({
+    queryKey: ['/api/meeting-templates'],
+    enabled: canView('meetings'),
+  });
+
+  // Get current template from URL query params
+  const getCurrentTemplate = () => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('template');
+    }
+    return null;
+  };
 
   // Check if user is an artist (case-insensitive)
   const isArtist = userGroup?.name?.toLowerCase() === "artist";
@@ -386,17 +402,42 @@ export default function AppSidebar() {
                 </SidebarMenuItem>
               )}
 
-              {/* Meetings - only show if user has permission */}
+              {/* Meetings with sub-menu - only show if user has permission */}
               {canView('meetings') && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={location === "/meetings"} data-testid="nav-meetings">
-                    <Link href="/meetings" className="flex items-center gap-3">
-                      <FileText className="w-4 h-4" />
-                      <span>Meetings</span>
-                      {location === "/meetings" && <ChevronRight className="w-4 h-4 ml-auto" />}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <Collapsible open={meetingsOpen} onOpenChange={setMeetingsOpen}>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton isActive={location.startsWith("/meetings")} data-testid="nav-meetings">
+                        <FileText className="w-4 h-4" />
+                        <span>Meetings</span>
+                        {meetingsOpen ? <ChevronDown className="w-4 h-4 ml-auto" /> : <ChevronRight className="w-4 h-4 ml-auto" />}
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {meetingTemplates
+                          .filter((template) => template.isActive === 1)
+                          .sort((a, b) => a.sortOrder - b.sortOrder)
+                          .map((template) => {
+                            const currentTemplate = getCurrentTemplate();
+                            return (
+                              <SidebarMenuSubItem key={template.id}>
+                                <SidebarMenuSubButton 
+                                  asChild 
+                                  isActive={currentTemplate === template.id} 
+                                  data-testid={`nav-meeting-${template.name.toLowerCase().replace(/\s+/g, '-')}`}
+                                >
+                                  <Link href={`/meetings?template=${template.id}`} className="flex items-center gap-3">
+                                    <span>{template.name}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            );
+                          })}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
               )}
 
               {/* Lineup with sub-menu - only show if user has permission */}

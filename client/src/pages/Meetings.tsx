@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Calendar, FileText, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,16 +24,37 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import ReportHeader from "@/components/ReportHeader";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import type { MeetingTemplate, Meeting } from "@shared/schema";
 import { format } from "date-fns";
 
 export default function Meetings() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [location] = useLocation();
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('template') || "";
+  });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [meetingToDelete, setMeetingToDelete] = useState<string | null>(null);
+
+  // Update selected template when URL changes (including query params)
+  useEffect(() => {
+    const handleLocationChange = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const templateParam = urlParams.get('template');
+      setSelectedTemplateId(templateParam || "");
+    };
+
+    // Listen for navigation events
+    window.addEventListener('popstate', handleLocationChange);
+    
+    // Also check on mount and when location changes
+    handleLocationChange();
+    
+    return () => window.removeEventListener('popstate', handleLocationChange);
+  }, [location]);
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery<MeetingTemplate[]>({
     queryKey: ['/api/meeting-templates'],
