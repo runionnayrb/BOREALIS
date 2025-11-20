@@ -45,9 +45,9 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import type { 
-  Scene, Act, Cue, Department, LocationType, Location, ArtistGroup, Artist, Technician, ArtisticStaff, ReportTemplate, SafeUser, UserGroup, DepartmentRole, MeetingTemplate
+  Scene, Act, Cue, Department, LocationType, Location, ArtistGroup, Artist, Technician, ArtisticStaff, ReportTemplate, SafeUser, UserGroup, DepartmentRole, MeetingTemplate, MeetingTemplateField
 } from "@shared/schema";
-import { cueTypes, type CueType } from "@shared/schema";
+import { cueTypes, type CueType, fieldTypes } from "@shared/schema";
 
 type SimpleItem = {
   id: string;
@@ -132,6 +132,11 @@ export default function Settings() {
   // Meeting template editing state
   const [meetingTemplateEdits, setMeetingTemplateEdits] = useState<Record<string, Partial<MeetingTemplate>>>({});
   const [orderedTechnicians, setOrderedTechnicians] = useState<Technician[]>([]);
+  
+  // Meeting template field management state
+  const [fieldDialogOpen, setFieldDialogOpen] = useState(false);
+  const [currentTemplateId, setCurrentTemplateId] = useState<string | null>(null);
+  const [editingField, setEditingField] = useState<MeetingTemplateField | null>(null);
 
   // Optimistic state for technician reordering per department
   // Maps departmentId to array of technicianIds in their current order
@@ -234,10 +239,18 @@ export default function Settings() {
     enabled: activeTab === 'report-template',
   });
   
-  const { data: meetingTemplates = [] } = useQuery<MeetingTemplate[]>({
+  // Backend now returns templates with fields included
+  type MeetingTemplateWithFields = MeetingTemplate & { fields?: MeetingTemplateField[] };
+  
+  const { data: meetingTemplates = [] } = useQuery<MeetingTemplateWithFields[]>({
     queryKey: ["/api/meeting-templates"],
     enabled: activeTab === 'report-template',
   });
+  
+  // Extract all fields from templates (backend includes them now)
+  const allMeetingTemplateFields = useMemo(() => {
+    return meetingTemplates.flatMap(template => template.fields || []);
+  }, [meetingTemplates]);  
   
   // People tab data - load when needed by people, users, acts, or cues tabs
   const { data: artistGroups = [] } = useQuery<ArtistGroup[]>({ 
@@ -2000,6 +2013,74 @@ export default function Settings() {
     },
   });
 
+  // Meeting template field mutations
+  const createFieldMutation = useMutation({
+    mutationFn: async (data: { templateId: string; fieldName: string; fieldType: string; required: number; sortOrder: number; dropdownOptions?: string[] }) => {
+      if (!data.templateId) {
+        throw new Error("Template ID is required");
+      }
+      return await apiRequest("POST", "/api/meeting-template-fields", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
+      setFieldDialogOpen(false);
+      setEditingField(null);
+      setCurrentTemplateId(null);
+      toast({ title: "Field added successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to add field", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateFieldMutation = useMutation({
+    mutationFn: async (data: { id: string; templateId: string; updates: Partial<MeetingTemplateField> }) => {
+      if (!data.templateId) {
+        throw new Error("Template ID is required for update");
+      }
+      return await apiRequest("PATCH", `/api/meeting-template-fields/${data.id}`, data.updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
+      setFieldDialogOpen(false);
+      setEditingField(null);
+      setCurrentTemplateId(null);
+      toast({ title: "Field updated successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to update field", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteFieldMutation = useMutation({
+    mutationFn: async (data: { id: string; templateId: string }) => {
+      if (!data.templateId) {
+        throw new Error("Template ID is required for delete");
+      }
+      return await apiRequest("DELETE", `/api/meeting-template-fields/${data.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
+      toast({ title: "Field deleted successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to delete field", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const reorderFieldsMutation = useMutation({
+    mutationFn: async (data: { templateId: string; fields: { id: string; sortOrder: number }[] }) => {
+      return await apiRequest("POST", "/api/meeting-template-fields/reorder", { fields: data.fields });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
+      toast({ title: "Fields reordered successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to reorder fields", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleDelete = () => {
     if (!deleteTarget) return;
 
@@ -3230,6 +3311,86 @@ export default function Settings() {
                                 {template.emailBcc || "No BCC recipients"}
                               </p>
                             </div>
+                          </div>
+                        </div>
+
+                        {/* Field Management Section */}
+                        <div className="mt-8 space-y-6 border-t pt-6">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="text-md font-semibold mb-2">Meeting Fields</h3>
+                              <p className="text-sm text-muted-foreground">
+                                Add custom fields for this meeting type
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                setCurrentTemplateId(template.id);
+                                setEditingField(null);
+                                setFieldDialogOpen(true);
+                              }}
+                              data-testid={`button-add-field-${template.id}`}
+                            >
+                              <Plus className="w-4 h-4 mr-2" />
+                              Add Field
+                            </Button>
+                          </div>
+
+                          <div className="space-y-2">
+                            {allMeetingTemplateFields
+                              .filter(f => f.templateId === template.id)
+                              .sort((a, b) => a.sortOrder - b.sortOrder)
+                              .map((field) => (
+                                <Card key={field.id} className="p-3 flex items-center justify-between hover-elevate">
+                                  <div className="flex items-center gap-3">
+                                    <GripVertical className="w-4 h-4 text-muted-foreground" />
+                                    <div>
+                                      <p className="font-medium">{field.fieldName}</p>
+                                      <p className="text-sm text-muted-foreground">
+                                        {field.fieldType}
+                                        {field.required === 1 && " • Required"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      disabled={!template.id}
+                                      onClick={() => {
+                                        setEditingField(field);
+                                        setCurrentTemplateId(template.id);
+                                        setFieldDialogOpen(true);
+                                      }}
+                                      data-testid={`button-edit-field-${field.id}`}
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      disabled={!template.id || deleteFieldMutation.isPending}
+                                      onClick={() => {
+                                        if (confirm(`Delete field "${field.fieldName}"?`)) {
+                                          deleteFieldMutation.mutate({ 
+                                            id: field.id, 
+                                            templateId: template.id 
+                                          });
+                                        }
+                                      }}
+                                      data-testid={`button-delete-field-${field.id}`}
+                                    >
+                                      <Trash2 className="w-4 h-4 text-destructive" />
+                                    </Button>
+                                  </div>
+                                </Card>
+                              ))}
+                            {allMeetingTemplateFields.filter(f => f.templateId === template.id).length === 0 && (
+                              <Card className="p-6 text-center text-muted-foreground">
+                                <p>No fields yet. Click "Add Field" to create one.</p>
+                              </Card>
+                            )}
                           </div>
                         </div>
 
@@ -7248,6 +7409,149 @@ export default function Settings() {
                 data-testid="button-save-edit-user"
               >
                 {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Field Management Dialog */}
+      <Dialog open={fieldDialogOpen} onOpenChange={(open) => {
+        setFieldDialogOpen(open);
+        if (!open) {
+          setEditingField(null);
+          setCurrentTemplateId(null);
+        }
+      }}>
+        <DialogContent>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            
+            if (!currentTemplateId && !editingField) {
+              toast({ 
+                title: "Error", 
+                description: "No template selected", 
+                variant: "destructive" 
+              });
+              return;
+            }
+
+            const formData = new FormData(e.currentTarget);
+            const fieldName = formData.get("fieldName") as string;
+            const fieldType = formData.get("fieldType") as string;
+            const required = formData.get("required") === "on" ? 1 : 0;
+            const dropdownOptions = fieldType === 'dropdown' 
+              ? (formData.get("dropdownOptions") as string).split(',').map(s => s.trim()).filter(Boolean)
+              : undefined;
+
+            if (!fieldName || !fieldType) {
+              toast({ 
+                title: "Validation Error", 
+                description: "Field name and type are required", 
+                variant: "destructive" 
+              });
+              return;
+            }
+
+            if (editingField) {
+              if (!currentTemplateId) {
+                toast({ 
+                  title: "Error", 
+                  description: "Template ID missing for update", 
+                  variant: "destructive" 
+                });
+                return;
+              }
+              updateFieldMutation.mutate({
+                id: editingField.id,
+                templateId: currentTemplateId,
+                updates: {
+                  fieldName,
+                  fieldType,
+                  required,
+                  dropdownOptions,
+                },
+              });
+            } else if (currentTemplateId) {
+              const existingFields = allMeetingTemplateFields.filter(f => f.templateId === currentTemplateId);
+              createFieldMutation.mutate({
+                templateId: currentTemplateId,
+                fieldName,
+                fieldType,
+                required,
+                sortOrder: existingFields.length,
+                dropdownOptions,
+              });
+            }
+          }}>
+            <DialogHeader>
+              <DialogTitle>{editingField ? "Edit Field" : "Add Field"}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="fieldName">Field Name</Label>
+                <Input
+                  id="fieldName"
+                  name="fieldName"
+                  placeholder="e.g., Agenda, Notes, Action Items"
+                  required
+                  defaultValue={editingField?.fieldName || ""}
+                  data-testid="input-field-name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fieldType">Field Type</Label>
+                <Select
+                  name="fieldType"
+                  defaultValue={editingField?.fieldType || "text"}
+                  required
+                >
+                  <SelectTrigger id="fieldType" data-testid="select-field-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fieldTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="required"
+                  name="required"
+                  defaultChecked={editingField?.required === 1}
+                  data-testid="checkbox-field-required"
+                />
+                <Label htmlFor="required" className="text-sm font-normal">
+                  Required field
+                </Label>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dropdownOptions">Dropdown Options (comma-separated)</Label>
+                <Input
+                  id="dropdownOptions"
+                  name="dropdownOptions"
+                  placeholder="Option 1, Option 2, Option 3"
+                  defaultValue={editingField?.dropdownOptions?.join(", ") || ""}
+                  data-testid="input-dropdown-options"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Only used if field type is "dropdown"
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="submit"
+                disabled={createFieldMutation.isPending || updateFieldMutation.isPending}
+                data-testid="button-save-field"
+              >
+                {(createFieldMutation.isPending || updateFieldMutation.isPending) 
+                  ? "Saving..." 
+                  : editingField ? "Update Field" : "Add Field"}
               </Button>
             </DialogFooter>
           </form>

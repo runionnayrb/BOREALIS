@@ -2397,6 +2397,29 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(meetingTemplates.sortOrder));
   }
 
+  async getAllMeetingTemplatesWithFields(): Promise<Array<MeetingTemplate & { fields: MeetingTemplateField[] }>> {
+    // Fetch all templates
+    const templates = await db.select().from(meetingTemplates).orderBy(asc(meetingTemplates.sortOrder));
+    
+    // Fetch all fields in a single query
+    const allFields = await db.select().from(meetingTemplateFields).orderBy(asc(meetingTemplateFields.sortOrder));
+    
+    // Group fields by templateId  
+    const fieldsByTemplate = new Map<string, MeetingTemplateField[]>();
+    for (const field of allFields) {
+      if (!fieldsByTemplate.has(field.templateId)) {
+        fieldsByTemplate.set(field.templateId, []);
+      }
+      fieldsByTemplate.get(field.templateId)!.push(field);
+    }
+    
+    // Combine templates with their fields
+    return templates.map(template => ({
+      ...template,
+      fields: fieldsByTemplate.get(template.id) || [],
+    }));
+  }
+
   async getMeetingTemplate(id: string): Promise<MeetingTemplate | undefined> {
     const result = await db.select().from(meetingTemplates).where(eq(meetingTemplates.id, id));
     return result[0];

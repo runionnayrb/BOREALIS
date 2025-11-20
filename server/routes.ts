@@ -2736,8 +2736,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Meeting Templates routes
   app.get("/api/meeting-templates", canViewSettingsMeetingTemplates, async (req, res) => {
-    const templates = await storage.getAllMeetingTemplates();
-    res.json(templates);
+    // Use efficient method that fetches templates and fields in just 2 queries
+    const templatesWithFields = await storage.getAllMeetingTemplatesWithFields();
+    res.json(templatesWithFields);
   });
 
   app.get("/api/meeting-templates/active", canViewMeetings, async (req, res) => {
