@@ -65,12 +65,6 @@ export default function AppSidebar() {
     },
   });
 
-  // Fetch meeting templates for sidebar
-  const { data: meetingTemplates = [] } = useQuery<MeetingTemplate[]>({
-    queryKey: ['/api/meeting-templates'],
-    enabled: canView('meetings'),
-  });
-
   // Check if user is an artist (case-insensitive)
   const isArtist = userGroup?.name?.toLowerCase() === "artist";
   
@@ -83,6 +77,12 @@ export default function AppSidebar() {
     const permission = permissions?.find(p => p.feature === feature);
     return permission?.canView === 1;
   };
+
+  // Fetch meeting templates for sidebar
+  const { data: meetingTemplates = [] } = useQuery<MeetingTemplate[]>({
+    queryKey: ['/api/meeting-templates'],
+    enabled: canView('meetings'),
+  });
 
   // Render version footer (shared across all states)
   const versionFooter = (
