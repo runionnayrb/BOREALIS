@@ -3030,7 +3030,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User-facing endpoint to get own template permissions
-  app.get("/api/meeting-template-permissions/me", requireAuth, async (req, res) => {
+  app.get("/api/meeting-template-permissions/me", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
     const permissions = await storage.getUserTemplatePermissions(req.user!.id);
     res.json(permissions);
   });
