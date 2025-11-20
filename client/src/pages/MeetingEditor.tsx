@@ -150,7 +150,7 @@ export default function MeetingEditor() {
         title: "Success",
         description: isNewMeeting ? "Meeting created successfully" : "Meeting updated successfully",
       });
-      setLocation('/meetings');
+      setLocation(`/meetings/template/${selectedTemplateId}`);
     },
     onError: (error: Error) => {
       toast({
@@ -169,7 +169,7 @@ export default function MeetingEditor() {
         title: "Meeting deleted",
         description: "The meeting has been deleted successfully",
       });
-      setLocation('/meetings');
+      setLocation(`/meetings/template/${meeting?.templateId || selectedTemplateId}`);
     },
     onError: (error: Error) => {
       toast({
