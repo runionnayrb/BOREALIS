@@ -496,19 +496,7 @@ export default function MeetingView() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Email Preview</Label>
-              <div 
-                className="border rounded-md p-4 bg-muted min-h-[200px] overflow-auto text-sm whitespace-pre-wrap font-mono"
-                style={{
-                  fontFamily: "system-ui, -apple-system, sans-serif",
-                  lineHeight: "1.5"
-                }}
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(plainTextToHtml(emailBody)) }}
-                data-testid="preview-email-body"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email-body">Edit Email Body</Label>
+              <Label htmlFor="email-body">Email Body</Label>
               <Textarea
                 id="email-body"
                 value={emailBody}
