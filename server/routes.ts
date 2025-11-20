@@ -3041,9 +3041,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/admin/meeting-template-permissions", requireRole('admin'), async (req, res) => {
-    const { userId, permissions } = req.body;
-    await storage.bulkUpsertUserTemplatePermissions(userId, permissions);
-    res.sendStatus(200);
+    try {
+      const { userId, permissions } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ error: "userId is required" });
+      }
+      
+      if (!Array.isArray(permissions)) {
+        return res.status(400).json({ error: "permissions must be an array" });
+      }
+      
+      await storage.bulkUpsertUserTemplatePermissions(userId, permissions);
+      res.sendStatus(200);
+    } catch (error: any) {
+      console.error("Error updating meeting template permissions:", error);
+      res.status(500).json({ error: "Failed to update meeting template permissions", details: error.message });
+    }
   });
 
   app.delete("/api/admin/meeting-template-permissions/:userId/:templateId", requireRole('admin'), async (req, res) => {
@@ -3484,6 +3498,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/permissions/bulk/:userId", requireRole('admin'), async (req, res) => {
     try {
       const { permissions } = req.body;
+      
       if (!Array.isArray(permissions)) {
         return res.status(400).json({ error: "Permissions must be an array" });
       }
@@ -3508,6 +3523,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({
             error: "Invalid permission data",
             details: validation.error.issues,
+            failedPermission: perm,
           });
         }
       }
@@ -3516,7 +3532,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, message: "Permissions updated successfully" });
     } catch (error: any) {
       console.error("Error bulk updating permissions:", error);
-      res.status(500).json({ error: "Failed to bulk update permissions" });
+      res.status(500).json({ error: "Failed to bulk update permissions", details: error.message });
     }
   });
 

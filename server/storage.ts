@@ -2707,11 +2707,20 @@ export class DatabaseStorage implements IStorage {
       );
   }
 
-  async bulkUpsertUserTemplatePermissions(userId: string, permissions: InsertUserMeetingTemplatePermission[]): Promise<void> {
+  async bulkUpsertUserTemplatePermissions(userId: string, permissions: any[]): Promise<void> {
     if (permissions.length === 0) return;
     
+    // Ensure userId is set on each permission object by explicitly constructing new objects
+    const permissionsWithUserId = permissions.map(permission => ({
+      userId: userId,
+      templateId: permission.templateId,
+      canView: permission.canView,
+      canCreate: permission.canCreate,
+      canEdit: permission.canEdit,
+    }));
+    
     await Promise.all(
-      permissions.map(permission => this.upsertUserTemplatePermission(permission))
+      permissionsWithUserId.map(permission => this.upsertUserTemplatePermission(permission))
     );
   }
 }
