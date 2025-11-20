@@ -24,6 +24,18 @@ export default function MeetingView() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const { toast } = useToast();
+  
+  // Email preview state
+  const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
+  const [emailTo, setEmailTo] = useState("");
+  const [emailCc, setEmailCc] = useState("");
+  const [emailBcc, setEmailBcc] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [showCc, setShowCc] = useState(false);
+  const [showBcc, setShowBcc] = useState(false);
+  const [isLoadingEmailPreview, setIsLoadingEmailPreview] = useState(false);
   
   // Check if user can edit meetings (admin or stage_management roles)
   const canEdit = user?.role === 'admin' || user?.role === 'stage_management';
@@ -71,6 +83,62 @@ export default function MeetingView() {
   // Fetch users for attendees display
   const { data: users = [] } = useQuery<SafeUser[]>({
     queryKey: ['/api/users'],
+  });
+
+  const handleOpenEmailPreview = async () => {
+    if (!id) return;
+    
+    setIsLoadingEmailPreview(true);
+    try {
+      const previewData = await fetch(`/api/meetings/${id}/email-preview`, { credentials: 'include' }).then(res => res.json());
+      
+      setEmailTo((template?.emailTo || []).join(', '));
+      const ccValue = (template?.emailCc || []).join(', ');
+      const bccValue = (template?.emailBcc || []).join(', ');
+      setEmailCc(ccValue);
+      setEmailBcc(bccValue);
+      setEmailSubject(previewData.subject || '');
+      setEmailBody(previewData.body || '');
+      setShowCc(ccValue.length > 0);
+      setShowBcc(bccValue.length > 0);
+
+      setEmailPreviewOpen(true);
+    } catch (error) {
+      console.error('Failed to load email preview:', error);
+      toast({
+        title: "Failed to load email preview",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingEmailPreview(false);
+    }
+  };
+
+  const sendEmailMutation = useMutation({
+    mutationFn: async (customValues?: {
+      to: string;
+      cc: string;
+      bcc: string;
+      subject: string;
+      body: string;
+    }) => {
+      if (!id) throw new Error("Meeting must be saved before sending");
+      return await apiRequest<{ success: boolean; message: string }>('POST', `/api/meetings/${id}/send-email`, customValues);
+    },
+    onSuccess: (data) => {
+      setEmailPreviewOpen(false);
+      toast({ 
+        title: "Email sent successfully", 
+        description: data.message 
+      });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to send email", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
   });
 
   if (meetingLoading || !meeting || templateLoading) {
@@ -218,15 +286,32 @@ export default function MeetingView() {
             {format(new Date(meeting.meetingDate), "EEEE, MMMM d, yyyy")}
           </p>
         </div>
-        {canEdit && (
-          <Button 
-            onClick={() => setLocation(`/meetings/${id}/edit`)}
-            data-testid="button-edit-meeting"
-          >
-            <Edit className="w-4 h-4 mr-2" />
-            Edit
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {canEdit && user?.outlookConnected && (
+            <Button 
+              variant="outline"
+              onClick={handleOpenEmailPreview}
+              disabled={isLoadingEmailPreview}
+              data-testid="button-send-email"
+            >
+              {isLoadingEmailPreview ? (
+                <Loader2 className="h-4 w-4 mr-2 text-foreground animate-spin" />
+              ) : (
+                <Mail className="h-4 w-4 mr-2 text-foreground" />
+              )}
+              Send
+            </Button>
+          )}
+          {canEdit && (
+            <Button 
+              onClick={() => setLocation(`/meetings/${id}/edit`)}
+              data-testid="button-edit-meeting"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Edit
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Meeting Fields */}
