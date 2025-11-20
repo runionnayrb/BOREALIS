@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryParams } from "@/hooks/use-query-params";
 import { ArrowLeft, Save, ChevronDown, Trash2, FileDown } from "lucide-react";
 import { Link } from "wouter";
+import RichTextEditor from "@/components/RichTextEditor";
 import type { MeetingTemplate, MeetingTemplateField, Meeting, MeetingFieldValue, Location, SafeUser } from "@shared/schema";
 import { format } from "date-fns";
 
@@ -99,6 +100,25 @@ export default function MeetingEditor() {
     }
   }, [meeting]);
 
+  // Initialize default values for text/richText fields
+  useEffect(() => {
+    if (templateFields.length > 0) {
+      const defaultRichTextValue = "<ol><li>No notes today.</li></ol>";
+      const defaults: Record<string, any> = {};
+      
+      templateFields.forEach((field) => {
+        if (field.fieldType === 'richtext' || field.fieldType === 'text') {
+          defaults[field.id] = defaultRichTextValue;
+        }
+      });
+      
+      setFieldValues((prev) => {
+        const merged = { ...defaults, ...prev };
+        return merged;
+      });
+    }
+  }, [templateFields]);
+
   // Load field values when editing
   useEffect(() => {
     if (existingFieldValues.length > 0) {
@@ -112,7 +132,7 @@ export default function MeetingEditor() {
           values[fv.fieldId] = fv.locationId;
         }
       });
-      setFieldValues(values);
+      setFieldValues((prev) => ({ ...prev, ...values }));
     }
   }, [existingFieldValues]);
 
@@ -236,22 +256,11 @@ export default function MeetingEditor() {
               {field.fieldName}
               {field.required === 1 && <span className="text-destructive ml-1">*</span>}
             </Label>
-            {field.fieldType === 'richtext' ? (
-              <Textarea
-                id={field.id}
-                value={value}
-                onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                rows={6}
-                data-testid={`textarea-${field.fieldName.toLowerCase().replace(/\s+/g, '-')}`}
-              />
-            ) : (
-              <Input
-                id={field.id}
-                value={value}
-                onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                data-testid={`input-${field.fieldName.toLowerCase().replace(/\s+/g, '-')}`}
-              />
-            )}
+            <RichTextEditor
+              content={value}
+              onChange={(html) => handleFieldChange(field.id, html)}
+              minHeight="min-h-32"
+            />
           </div>
         );
 

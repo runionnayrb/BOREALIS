@@ -1,20 +1,27 @@
+import { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
 import { TextStyle } from '@tiptap/extension-text-style';
+import { Color } from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
 import Underline from '@tiptap/extension-underline';
 import {
   Bold,
   Italic,
   Underline as UnderlineIcon,
+  Strikethrough,
   List,
   ListOrdered,
   AlignLeft,
   AlignCenter,
   AlignRight,
+  Palette,
+  Highlighter,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface RichTextEditorProps {
   content?: string;
@@ -30,6 +37,8 @@ export default function RichTextEditor({ content = '', onChange, minHeight = 'mi
         types: ['heading', 'paragraph'],
       }),
       TextStyle,
+      Color,
+      Highlight.configure({ multicolor: true }),
       Underline,
     ],
     content,
@@ -37,6 +46,13 @@ export default function RichTextEditor({ content = '', onChange, minHeight = 'mi
       onChange?.(editor.getHTML());
     },
   });
+
+  // Sync content prop changes to editor
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content);
+    }
+  }, [content, editor]);
 
   if (!editor) {
     return null;
@@ -76,6 +92,66 @@ export default function RichTextEditor({ content = '', onChange, minHeight = 'mi
         >
           <UnderlineIcon className="w-4 h-4" />
         </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          className={`w-9 h-9 ${editor.isActive('strike') ? 'bg-accent' : ''}`}
+          data-testid="button-strikethrough"
+        >
+          <Strikethrough className="w-4 h-4" />
+        </Button>
+        <div className="w-px h-6 bg-border mx-1" />
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-9 h-9"
+              data-testid="button-text-color"
+            >
+              <Palette className="w-4 h-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-3">
+            <div className="grid grid-cols-5 gap-2">
+              {['#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080', '#808080'].map(color => (
+                <button
+                  key={color}
+                  onClick={() => editor.chain().focus().setColor(color).run()}
+                  className="w-8 h-8 rounded border border-border hover-elevate active-elevate-2"
+                  style={{ backgroundColor: color }}
+                  data-testid={`color-${color}`}
+                />
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-9 h-9"
+              data-testid="button-highlight"
+            >
+              <Highlighter className="w-4 h-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-3">
+            <div className="grid grid-cols-5 gap-2">
+              {['#FFFF00', '#00FFFF', '#FF00FF', '#90EE90', '#FFA500', '#FFB6C1', '#E6E6FA', '#F0E68C', '#DDA0DD', '#D3D3D3'].map(color => (
+                <button
+                  key={color}
+                  onClick={() => editor.chain().focus().toggleHighlight({ color }).run()}
+                  className="w-8 h-8 rounded border border-border hover-elevate active-elevate-2"
+                  style={{ backgroundColor: color }}
+                  data-testid={`highlight-${color}`}
+                />
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
         <div className="w-px h-6 bg-border mx-1" />
         <Button
           variant="ghost"
@@ -144,7 +220,7 @@ export default function RichTextEditor({ content = '', onChange, minHeight = 'mi
       >
         <EditorContent
           editor={editor}
-          className={`prose prose-sm max-w-none p-4 ${minHeight} focus:outline-none [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0 [&_li]:mb-1 text-foreground [&_p]:text-foreground [&_li]:text-foreground [&_ul]:text-foreground [&_ol]:text-foreground [&_strong]:text-foreground [&_em]:text-foreground [&_u]:text-foreground [&_s]:text-foreground [&_li::marker]:text-foreground [&_ul_li::marker]:text-foreground [&_ol_li::marker]:text-foreground`}
+          className={`prose prose-sm max-w-none p-4 ${minHeight} focus:outline-none [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0 [&_li]:mb-1 text-foreground [&_p]:text-foreground [&_li]:text-foreground [&_ul]:text-foreground [&_ol]:text-foreground [&_strong]:text-foreground [&_em]:text-foreground [&_u]:text-foreground [&_s]:text-foreground [&_li::marker]:text-foreground [&_ul_li::marker]:text-foreground [&_ol_li::marker]:text-foreground [&_mark]:px-1 [&_mark]:rounded-sm`}
           data-testid="editor-content"
         />
       </div>
