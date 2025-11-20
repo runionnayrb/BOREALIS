@@ -77,19 +77,13 @@ export default function Meetings() {
                           </div>
                           <div>
                             <h3 className="font-semibold" data-testid={`text-meeting-title-${meeting.id}`}>
-                              {meeting.title || template?.name || "Meeting"}
+                              {template?.name || "Meeting"}
                             </h3>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Calendar className="w-4 h-4" />
                               <span data-testid={`text-meeting-date-${meeting.id}`}>
                                 {format(new Date(meeting.meetingDate), "MMMM d, yyyy")}
                               </span>
-                              {template && (
-                                <>
-                                  <span>•</span>
-                                  <span data-testid={`text-meeting-type-${meeting.id}`}>{template.name}</span>
-                                </>
-                              )}
                             </div>
                           </div>
                         </div>
