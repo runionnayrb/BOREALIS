@@ -2,12 +2,23 @@ import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { useQuery } from "@tanstack/react-query";
-import { Edit } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Edit, Mail, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import DOMPurify from "dompurify";
 import type { MeetingTemplate, MeetingTemplateField, Meeting, MeetingFieldValue, Location, SafeUser } from "@shared/schema";
 import { format } from "date-fns";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function MeetingView() {
   const { id } = useParams<{ id: string }>();
