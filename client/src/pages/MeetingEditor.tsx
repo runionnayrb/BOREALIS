@@ -477,7 +477,7 @@ export default function MeetingEditor() {
           {selectedTemplateId && sortedFields.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Meeting Fields</CardTitle>
+                <CardTitle>Meeting Notes</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {sortedFields.map((field) => renderField(field))}
@@ -520,7 +520,6 @@ export default function MeetingEditor() {
           </div>
         </div>
       </div>
-
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
