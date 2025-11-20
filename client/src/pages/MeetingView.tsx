@@ -291,6 +291,15 @@ export default function MeetingView() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {canEdit && (
+            <Button 
+              onClick={() => setLocation(`/meetings/${id}/edit`)}
+              data-testid="button-edit-meeting"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Edit
+            </Button>
+          )}
           {canEdit && user?.outlookConnected && (
             <Button 
               variant="outline"
@@ -304,15 +313,6 @@ export default function MeetingView() {
                 <Mail className="h-4 w-4 mr-2 text-foreground" />
               )}
               Send
-            </Button>
-          )}
-          {canEdit && (
-            <Button 
-              onClick={() => setLocation(`/meetings/${id}/edit`)}
-              data-testid="button-edit-meeting"
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              Edit
             </Button>
           )}
         </div>
