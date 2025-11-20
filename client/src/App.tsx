@@ -30,6 +30,7 @@ import ChangePassword from "@/pages/ChangePassword";
 import AdminDashboard from "@/pages/AdminDashboard";
 import Meetings from "@/pages/Meetings";
 import MeetingEditor from "@/pages/MeetingEditor";
+import MeetingView from "@/pages/MeetingView";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
@@ -90,8 +91,10 @@ function AuthenticatedApp() {
     if (!title) {
       if (location.startsWith("/report/")) {
         title = "Edit Report";
-      } else if (location.startsWith("/meetings/") && location !== "/meetings" && location !== "/meetings/new") {
+      } else if (location.match(/^\/meetings\/[^/]+\/edit$/)) {
         title = "Edit Meeting";
+      } else if (location.match(/^\/meetings\/[^/]+\/view$/)) {
+        title = "View Meeting";
       } else if (location.startsWith("/lineups/") && location !== "/lineups" && location !== "/lineups/new" && !location.includes("/training-programs") && !location.includes("/competencies") && !location.includes("/positions") && !location.includes("/rules") && !location.includes("/restrictions")) {
         title = "Edit Lineup";
       } else if (location.startsWith("/lineups/training-programs/") && location !== "/lineups/training-programs/templates") {
@@ -152,7 +155,8 @@ function AuthenticatedApp() {
               <Route path="/schedule/full" component={FullSchedule} />
               <Route path="/schedule/artists" component={WeeklySchedule} />
               <Route path="/meetings/new" component={MeetingEditor} />
-              <Route path="/meetings/:id" component={MeetingEditor} />
+              <Route path="/meetings/:id/edit" component={MeetingEditor} />
+              <Route path="/meetings/:id/view" component={MeetingView} />
               <Route path="/meetings" component={Meetings} />
               <Route path="/settings" component={Settings} />
               <Route path="/profile" component={Profile} />

@@ -68,7 +68,7 @@ export default function Meetings() {
               {sortedMeetings.map((meeting) => {
                 const template = getMeetingTemplate(meeting.templateId);
                 return (
-                  <Link key={meeting.id} href={`/meetings/${meeting.id}`}>
+                  <Link key={meeting.id} href={`/meetings/${meeting.id}/view`}>
                     <Card className="hover-elevate cursor-pointer" data-testid={`card-meeting-${meeting.id}`}>
                       <CardContent className="flex items-center justify-between p-6">
                         <div className="flex items-center gap-4">
