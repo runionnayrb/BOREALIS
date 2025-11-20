@@ -96,10 +96,11 @@ export default function Meetings() {
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold" data-testid="text-page-title">Meetings</h1>
-              <p className="text-muted-foreground">Manage your meeting notes</p>
-            </div>
+            <h1 className="text-3xl font-bold" data-testid="text-page-title">
+              {selectedTemplateId && selectedTemplateId !== "all" 
+                ? getMeetingTemplate(selectedTemplateId)?.name || "Meetings"
+                : "Meetings"}
+            </h1>
             <Link href="/meetings/new">
               <Button data-testid="button-new-meeting">
                 <Plus className="w-4 h-4 mr-2" />
@@ -107,41 +108,6 @@ export default function Meetings() {
               </Button>
             </Link>
           </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Filter</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <Select 
-                    value={selectedTemplateId} 
-                    onValueChange={(value) => {
-                      if (value === "all") {
-                        queryParams.remove('template');
-                      } else {
-                        queryParams.set('template', value);
-                      }
-                    }} 
-                    data-testid="select-template-filter"
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All meeting types" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All meeting types</SelectItem>
-                      {activeTemplates.map((template) => (
-                        <SelectItem key={template.id} value={template.id}>
-                          {template.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {meetingsLoading ? (
             <div className="text-center py-8 text-muted-foreground" data-testid="text-loading">
