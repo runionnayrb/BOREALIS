@@ -108,9 +108,9 @@ export default function MeetingEditor() {
   const saveMeetingMutation = useMutation({
     mutationFn: async (data: any) => {
       if (isNewMeeting) {
-        return apiRequest('/api/meetings', 'POST', data);
+        return apiRequest('POST', '/api/meetings', data);
       } else {
-        return apiRequest(`/api/meetings/${id}`, 'PATCH', data);
+        return apiRequest('PATCH', `/api/meetings/${id}`, data);
       }
     },
     onSuccess: () => {
