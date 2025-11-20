@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
@@ -22,6 +22,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface RichTextEditorProps {
   content?: string;
@@ -29,7 +32,27 @@ interface RichTextEditorProps {
   minHeight?: string;
 }
 
+// Modern, theme-aware color palettes
+const TEXT_COLORS = {
+  neutrals: ['#71717a', '#52525b', '#3f3f46', '#27272a', '#18181b'],
+  blues: ['#60a5fa', '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af'],
+  greens: ['#4ade80', '#22c55e', '#16a34a', '#15803d', '#166534'],
+  ambers: ['#fbbf24', '#f59e0b', '#d97706', '#b45309', '#92400e'],
+  reds: ['#f87171', '#ef4444', '#dc2626', '#b91c1c', '#991b1b'],
+  purples: ['#a78bfa', '#8b5cf6', '#7c3aed', '#6d28d9', '#5b21b6'],
+};
+
+const HIGHLIGHT_COLORS = {
+  yellows: ['#fef08a', '#fde047', '#facc15'],
+  greens: ['#bbf7d0', '#86efac', '#4ade80'],
+  blues: ['#bfdbfe', '#93c5fd', '#60a5fa'],
+  pinks: ['#fbcfe8', '#f9a8d4', '#f472b6'],
+  purples: ['#e9d5ff', '#d8b4fe', '#c084fc'],
+};
+
 export default function RichTextEditor({ content = '', onChange, minHeight = 'min-h-64' }: RichTextEditorProps) {
+  const [customTextColor, setCustomTextColor] = useState('#000000');
+  const [customHighlightColor, setCustomHighlightColor] = useState('#ffff00');
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -113,18 +136,72 @@ export default function RichTextEditor({ content = '', onChange, minHeight = 'mi
               <Palette className="w-4 h-4" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-3">
-            <div className="grid grid-cols-5 gap-2">
-              {['#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080', '#808080'].map(color => (
-                <button
-                  key={color}
-                  onClick={() => editor.chain().focus().setColor(color).run()}
-                  className="w-8 h-8 rounded border border-border hover-elevate active-elevate-2"
-                  style={{ backgroundColor: color }}
-                  data-testid={`color-${color}`}
-                />
-              ))}
-            </div>
+          <PopoverContent className="w-80 p-0">
+            <Tabs defaultValue="preset" className="w-full">
+              <TabsList className="w-full grid grid-cols-2">
+                <TabsTrigger value="preset" data-testid="tab-color-preset">Preset</TabsTrigger>
+                <TabsTrigger value="custom" data-testid="tab-color-custom">Custom</TabsTrigger>
+              </TabsList>
+              <TabsContent value="preset" className="p-3 space-y-3">
+                <div className="space-y-2">
+                  <button
+                    onClick={() => editor.chain().focus().unsetColor().run()}
+                    className="w-full h-9 px-3 rounded border border-border hover-elevate active-elevate-2 flex items-center justify-between text-sm"
+                    data-testid="button-color-default"
+                  >
+                    <span>Default (System)</span>
+                    <div className="w-6 h-6 rounded border border-border bg-gradient-to-r from-white to-black" />
+                  </button>
+                </div>
+                {Object.entries(TEXT_COLORS).map(([category, colors]) => (
+                  <div key={category} className="space-y-1">
+                    <Label className="text-xs capitalize">{category}</Label>
+                    <div className="flex gap-1">
+                      {colors.map(color => (
+                        <button
+                          key={color}
+                          onClick={() => editor.chain().focus().setColor(color).run()}
+                          className="w-8 h-8 rounded border border-border hover-elevate active-elevate-2"
+                          style={{ backgroundColor: color }}
+                          data-testid={`color-${color}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </TabsContent>
+              <TabsContent value="custom" className="p-3 space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="custom-text-color">Custom Color</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="custom-text-color"
+                      type="color"
+                      value={customTextColor}
+                      onChange={(e) => setCustomTextColor(e.target.value)}
+                      className="w-20 h-10 cursor-pointer"
+                      data-testid="input-custom-text-color-picker"
+                    />
+                    <Input
+                      type="text"
+                      value={customTextColor}
+                      onChange={(e) => setCustomTextColor(e.target.value)}
+                      placeholder="#000000"
+                      className="flex-1"
+                      data-testid="input-custom-text-color-hex"
+                    />
+                  </div>
+                  <Button
+                    onClick={() => editor.chain().focus().setColor(customTextColor).run()}
+                    className="w-full"
+                    size="sm"
+                    data-testid="button-apply-custom-text-color"
+                  >
+                    Apply Custom Color
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
           </PopoverContent>
         </Popover>
         <Popover>
@@ -138,18 +215,72 @@ export default function RichTextEditor({ content = '', onChange, minHeight = 'mi
               <Highlighter className="w-4 h-4" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-3">
-            <div className="grid grid-cols-5 gap-2">
-              {['#FFFF00', '#00FFFF', '#FF00FF', '#90EE90', '#FFA500', '#FFB6C1', '#E6E6FA', '#F0E68C', '#DDA0DD', '#D3D3D3'].map(color => (
-                <button
-                  key={color}
-                  onClick={() => editor.chain().focus().toggleHighlight({ color }).run()}
-                  className="w-8 h-8 rounded border border-border hover-elevate active-elevate-2"
-                  style={{ backgroundColor: color }}
-                  data-testid={`highlight-${color}`}
-                />
-              ))}
-            </div>
+          <PopoverContent className="w-80 p-0">
+            <Tabs defaultValue="preset" className="w-full">
+              <TabsList className="w-full grid grid-cols-2">
+                <TabsTrigger value="preset" data-testid="tab-highlight-preset">Preset</TabsTrigger>
+                <TabsTrigger value="custom" data-testid="tab-highlight-custom">Custom</TabsTrigger>
+              </TabsList>
+              <TabsContent value="preset" className="p-3 space-y-3">
+                <div className="space-y-2">
+                  <button
+                    onClick={() => editor.chain().focus().unsetHighlight().run()}
+                    className="w-full h-9 px-3 rounded border border-border hover-elevate active-elevate-2 flex items-center justify-between text-sm"
+                    data-testid="button-highlight-default"
+                  >
+                    <span>No Highlight</span>
+                    <div className="w-6 h-6 rounded border border-border bg-transparent" />
+                  </button>
+                </div>
+                {Object.entries(HIGHLIGHT_COLORS).map(([category, colors]) => (
+                  <div key={category} className="space-y-1">
+                    <Label className="text-xs capitalize">{category}</Label>
+                    <div className="flex gap-1">
+                      {colors.map(color => (
+                        <button
+                          key={color}
+                          onClick={() => editor.chain().focus().toggleHighlight({ color }).run()}
+                          className="w-8 h-8 rounded border border-border hover-elevate active-elevate-2"
+                          style={{ backgroundColor: color }}
+                          data-testid={`highlight-${color}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </TabsContent>
+              <TabsContent value="custom" className="p-3 space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="custom-highlight-color">Custom Highlight</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="custom-highlight-color"
+                      type="color"
+                      value={customHighlightColor}
+                      onChange={(e) => setCustomHighlightColor(e.target.value)}
+                      className="w-20 h-10 cursor-pointer"
+                      data-testid="input-custom-highlight-color-picker"
+                    />
+                    <Input
+                      type="text"
+                      value={customHighlightColor}
+                      onChange={(e) => setCustomHighlightColor(e.target.value)}
+                      placeholder="#ffff00"
+                      className="flex-1"
+                      data-testid="input-custom-highlight-color-hex"
+                    />
+                  </div>
+                  <Button
+                    onClick={() => editor.chain().focus().toggleHighlight({ color: customHighlightColor }).run()}
+                    className="w-full"
+                    size="sm"
+                    data-testid="button-apply-custom-highlight-color"
+                  >
+                    Apply Custom Highlight
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
           </PopoverContent>
         </Popover>
         <div className="w-px h-6 bg-border mx-1" />
