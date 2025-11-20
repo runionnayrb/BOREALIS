@@ -48,12 +48,22 @@ export default function MeetingEditor() {
   // Fetch meeting if editing (must complete before template fields load)
   const { data: meeting, isLoading: meetingLoading } = useQuery<Meeting>({
     queryKey: ['/api/meetings', id],
+    queryFn: async () => {
+      const response = await fetch(`/api/meetings/${id}`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch meeting');
+      return response.json();
+    },
     enabled: !!id && !isNewMeeting,
   });
 
   // Fetch field values if editing
   const { data: existingFieldValues = [] } = useQuery<MeetingFieldValue[]>({
     queryKey: ['/api/meetings', id, 'field-values'],
+    queryFn: async () => {
+      const response = await fetch(`/api/meetings/${id}/field-values`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch field values');
+      return response.json();
+    },
     enabled: !!id && !isNewMeeting && !!meeting,
   });
 
