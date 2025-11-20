@@ -432,9 +432,6 @@ export default function MeetingEditor() {
               <h1 className="text-3xl font-bold" data-testid="text-page-title">
                 {isNewMeeting ? "New Meeting" : "Edit Meeting"}
               </h1>
-              <p className="text-muted-foreground">
-                {isNewMeeting ? "Create a new meeting note" : "Update meeting details"}
-              </p>
             </div>
           </div>
 
