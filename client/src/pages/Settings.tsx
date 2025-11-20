@@ -2881,7 +2881,7 @@ export default function Settings() {
               
               <div className="mt-8 space-y-6 border-t pt-6">
                 <div>
-                  <h3 className="text-md font-semibold mb-4">Email Settings</h3>
+                  <h3 className="text-md font-semibold mb-4">Distro Settings</h3>
                   <p className="text-sm text-muted-foreground mb-4">
                     Configure email distribution and content for sending reports
                   </p>
@@ -3084,12 +3084,12 @@ export default function Settings() {
                     <CollapsibleContent>
                       <div className="px-6 pb-6 space-y-4 border-t">
                         <p className="text-sm text-muted-foreground mt-4">
-                          This header design will be used for {template.name.toLowerCase()}
+                          This header design will be used for {template.name.toLowerCase()} PDFs
                         </p>
                         <ReportHeader
-                          leftImageUrl={template.leftImage || ""}
-                          middleTitle={template.middleTitle || ""}
-                          rightImageUrl={template.rightImage || ""}
+                          leftImageUrl={template.pdfLeftImageUrl || ""}
+                          middleTitle={template.pdfTitle || ""}
+                          rightImageUrl={template.pdfRightImageUrl || ""}
                           dateString="Thursday, October 9, 2025"
                           onLeftImageChange={(url) => {
                             /* TODO: Save to template */
@@ -3101,10 +3101,84 @@ export default function Settings() {
                             /* TODO: Save to template */
                           }}
                         />
+                        
+                        <div className="mt-8 space-y-6 border-t pt-6">
+                          <div>
+                            <h3 className="text-md font-semibold mb-4">Distro Settings</h3>
+                            <p className="text-sm text-muted-foreground mb-4">
+                              Configure email distribution for {template.name.toLowerCase()}
+                            </p>
+                          </div>
+
+                          <div className="space-y-4">
+                            <div>
+                              <label className="text-sm font-medium mb-2 block">
+                                Subject Line Template
+                              </label>
+                              <Input
+                                value={template.emailSubjectTemplate || ""}
+                                onChange={(e) => {
+                                  /* TODO: Save to template */
+                                }}
+                                placeholder={`e.g., ${template.name} - {{date}}`}
+                              />
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Use {'{{date}}'} to insert the meeting date
+                              </p>
+                            </div>
+
+                            <div>
+                              <label className="text-sm font-medium mb-2 block">
+                                Email Body Prefix
+                              </label>
+                              <Textarea
+                                value={template.emailBodyPrefix || ""}
+                                onChange={(e) => {
+                                  /* TODO: Save to template */
+                                }}
+                                placeholder="Enter text that will appear before the meeting details..."
+                                rows={4}
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-sm font-medium mb-2 block">
+                                To Recipients
+                              </label>
+                              <p className="text-xs text-muted-foreground mb-2">
+                                {template.emailTo || "No recipients configured"}
+                              </p>
+                            </div>
+
+                            <div>
+                              <label className="text-sm font-medium mb-2 block">
+                                CC Recipients
+                              </label>
+                              <p className="text-xs text-muted-foreground mb-2">
+                                {template.emailCc || "No CC recipients"}
+                              </p>
+                            </div>
+
+                            <div>
+                              <label className="text-sm font-medium mb-2 block">
+                                BCC Recipients
+                              </label>
+                              <p className="text-xs text-muted-foreground mb-2">
+                                {template.emailBcc || "No BCC recipients"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
                         <div className="mt-6">
-                          <p className="text-sm text-muted-foreground">
-                            Template configuration for email and PDF generation coming soon
-                          </p>
+                          <Button
+                            onClick={() => {
+                              /* TODO: Save meeting template */
+                            }}
+                            disabled
+                          >
+                            Save Template (Coming Soon)
+                          </Button>
                         </div>
                       </div>
                     </CollapsibleContent>
