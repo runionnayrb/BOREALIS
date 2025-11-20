@@ -2632,6 +2632,132 @@ export default function Settings() {
   };
 
   // Sortable field component
+  const MeetingTemplateDistroForm = memo(({ template, onUpdate }: { template: MeetingTemplateWithFields; onUpdate: (updates: Partial<MeetingTemplate>) => void }) => {
+    const [emailSubject, setEmailSubject] = useState(template.emailSubjectTemplate || "");
+    const [emailBodyPrefix, setEmailBodyPrefix] = useState(template.emailBodyPrefix || "");
+    const [emailTo, setEmailTo] = useState(template.emailTo || "");
+    const [emailCc, setEmailCc] = useState(template.emailCc || "");
+    const [emailBcc, setEmailBcc] = useState(template.emailBcc || "");
+    const [lastSyncedData, setLastSyncedData] = useState<string>("");
+
+    useEffect(() => {
+      const templateData = JSON.stringify({
+        emailSubjectTemplate: template.emailSubjectTemplate,
+        emailBodyPrefix: template.emailBodyPrefix,
+        emailTo: template.emailTo,
+        emailCc: template.emailCc,
+        emailBcc: template.emailBcc,
+      });
+      if (templateData !== lastSyncedData) {
+        setEmailSubject(template.emailSubjectTemplate || "");
+        setEmailBodyPrefix(template.emailBodyPrefix || "");
+        setEmailTo(template.emailTo || "");
+        setEmailCc(template.emailCc || "");
+        setEmailBcc(template.emailBcc || "");
+        setLastSyncedData(templateData);
+      }
+    }, [template, lastSyncedData]);
+
+    return (
+      <div className="mt-8 space-y-6 border-t pt-6">
+        <div>
+          <h3 className="text-md font-semibold mb-4">Distro Settings</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Configure email distribution for {template.name.toLowerCase()}
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium mb-2 block">
+              Subject Line Template
+            </label>
+            <Input
+              value={emailSubject}
+              onChange={(e) => {
+                setEmailSubject(e.target.value);
+                onUpdate({ emailSubjectTemplate: e.target.value || null });
+              }}
+              placeholder={`e.g., ${template.name} - {{date}}`}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Use {'{{date}}'} to insert the meeting date
+            </p>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">
+              Email Body Prefix
+            </label>
+            <Textarea
+              value={emailBodyPrefix}
+              onChange={(e) => {
+                setEmailBodyPrefix(e.target.value);
+                onUpdate({ emailBodyPrefix: e.target.value || null });
+              }}
+              placeholder="Enter text that will appear before the meeting details..."
+              rows={4}
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">
+              To Recipients
+            </label>
+            <Input
+              value={emailTo}
+              onChange={(e) => {
+                setEmailTo(e.target.value);
+                onUpdate({ emailTo: e.target.value || null });
+              }}
+              placeholder="email1@example.com, email2@example.com"
+              data-testid={`input-email-to-${template.id}`}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Enter email addresses separated by commas
+            </p>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">
+              CC Recipients
+            </label>
+            <Input
+              value={emailCc}
+              onChange={(e) => {
+                setEmailCc(e.target.value);
+                onUpdate({ emailCc: e.target.value || null });
+              }}
+              placeholder="email1@example.com, email2@example.com"
+              data-testid={`input-email-cc-${template.id}`}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Enter email addresses separated by commas
+            </p>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">
+              BCC Recipients
+            </label>
+            <Input
+              value={emailBcc}
+              onChange={(e) => {
+                setEmailBcc(e.target.value);
+                onUpdate({ emailBcc: e.target.value || null });
+              }}
+              placeholder="email1@example.com, email2@example.com"
+              data-testid={`input-email-bcc-${template.id}`}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Enter email addresses separated by commas
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  });
+
   const SortableField = ({ field, template }: { field: MeetingTemplateField; template: MeetingTemplateWithFields }) => {
     const {
       attributes,
@@ -2770,112 +2896,15 @@ export default function Settings() {
                 }}
               />
               
-              <div className="mt-8 space-y-6 border-t pt-6">
-                <div>
-                  <h3 className="text-md font-semibold mb-4">Distro Settings</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Configure email distribution for {template.name.toLowerCase()}
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Subject Line Template
-                    </label>
-                    <Input
-                      value={meetingTemplateEdits[template.id]?.emailSubjectTemplate ?? template.emailSubjectTemplate ?? ""}
-                      onChange={(e) => {
-                        setMeetingTemplateEdits((prev) => ({
-                          ...prev,
-                          [template.id]: { ...prev[template.id], emailSubjectTemplate: e.target.value || null }
-                        }));
-                      }}
-                      placeholder={`e.g., ${template.name} - {{date}}`}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Use {'{{date}}'} to insert the meeting date
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Email Body Prefix
-                    </label>
-                    <Textarea
-                      value={meetingTemplateEdits[template.id]?.emailBodyPrefix ?? template.emailBodyPrefix ?? ""}
-                      onChange={(e) => {
-                        setMeetingTemplateEdits((prev) => ({
-                          ...prev,
-                          [template.id]: { ...prev[template.id], emailBodyPrefix: e.target.value || null }
-                        }));
-                      }}
-                      placeholder="Enter text that will appear before the meeting details..."
-                      rows={4}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      To Recipients
-                    </label>
-                    <Input
-                      value={meetingTemplateEdits[template.id]?.emailTo ?? template.emailTo ?? ""}
-                      onChange={(e) => {
-                        setMeetingTemplateEdits((prev) => ({
-                          ...prev,
-                          [template.id]: { ...prev[template.id], emailTo: e.target.value || null }
-                        }));
-                      }}
-                      placeholder="email1@example.com, email2@example.com"
-                      data-testid={`input-email-to-${template.id}`}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Enter email addresses separated by commas
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      CC Recipients
-                    </label>
-                    <Input
-                      value={meetingTemplateEdits[template.id]?.emailCc ?? template.emailCc ?? ""}
-                      onChange={(e) => {
-                        setMeetingTemplateEdits((prev) => ({
-                          ...prev,
-                          [template.id]: { ...prev[template.id], emailCc: e.target.value || null }
-                        }));
-                      }}
-                      placeholder="email1@example.com, email2@example.com"
-                      data-testid={`input-email-cc-${template.id}`}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Enter email addresses separated by commas
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      BCC Recipients
-                    </label>
-                    <Input
-                      value={meetingTemplateEdits[template.id]?.emailBcc ?? template.emailBcc ?? ""}
-                      onChange={(e) => {
-                        setMeetingTemplateEdits((prev) => ({
-                          ...prev,
-                          [template.id]: { ...prev[template.id], emailBcc: e.target.value || null }
-                        }));
-                      }}
-                      placeholder="email1@example.com, email2@example.com"
-                      data-testid={`input-email-bcc-${template.id}`}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Enter email addresses separated by commas
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <MeetingTemplateDistroForm
+                template={template}
+                onUpdate={(updates) => {
+                  setMeetingTemplateEdits((prev) => ({
+                    ...prev,
+                    [template.id]: { ...prev[template.id], ...updates }
+                  }));
+                }}
+              />
 
               <div className="mt-8 space-y-6 border-t pt-6">
                 <div className="flex items-center justify-between">
