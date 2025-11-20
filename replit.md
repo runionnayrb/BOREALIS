@@ -36,7 +36,7 @@ Borealis is a production-ready, full-stack web application designed to streamlin
 - **Real-time**: WebSocket server for live updates.
 - **Data Handling**: TanStack Query for caching, automatic department assignment, timezone-safe date parsing.
 - **Email**: Microsoft Graph API integration.
-- **Performance Optimization**: Optimistic updates with useRef for flags (avoid re-render triggers), useMemo for server data derivation, setState callbacks (prev pattern) to isolate local state from effect dependencies, and convergence detection in sync effects.
+- **Performance Optimization**: Optimistic drag-and-drop using useRef for flags (prevents re-render triggers), useMemo for server data derivation, setState callbacks to isolate local state from effect dependencies. Effects only depend on server data, not local state. Simplified sync logic: when not optimistic, always sync with server (captures all field changes); when optimistic, preserve local value; onSettled clears flags after mutation.
 
 ### Feature Specifications
 - **Authentication & User Management**: Secure login/signup, profile management, CRUD for users/groups, password reset, role-based access, artist account linking. Profile dropdowns are alphabetically sorted.
