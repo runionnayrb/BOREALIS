@@ -971,6 +971,7 @@ export type TrustedIp = typeof trustedIps.$inferSelect;
 export const pageNames = [
   'admin',
   'reports',
+  'meetings',
   'attendance_dashboard',
   'attendance_ticksheet',
   'lineups',

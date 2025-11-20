@@ -75,6 +75,7 @@ const PAGES = [...pageNames];
 const PAGE_LABELS: Record<string, string> = {
   'admin': 'Admin Dashboard',
   'reports': 'Reports',
+  'meetings': 'Meetings',
   'attendance_dashboard': 'Attendance Dashboard',
   'attendance_ticksheet': 'Tick Sheet',
   'lineups': 'Lineups',
@@ -103,6 +104,7 @@ const ROLE_LABELS: Record<string, string> = {
 
 const FEATURES = [
   'reports',
+  'meetings',
   'schedules',
   'lineups',
   'lineups_training_programs',
@@ -121,6 +123,7 @@ const FEATURES = [
 
 const FEATURE_LABELS: Record<string, string> = {
   'reports': 'Reports',
+  'meetings': 'Meetings',
   'schedules': 'Schedules',
   'lineups': 'Lineups',
   'lineups_training_programs': 'Training Programs',
