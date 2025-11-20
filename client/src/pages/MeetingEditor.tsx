@@ -17,7 +17,7 @@ import {
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import ReportHeader from "@/components/ReportHeader";
+import { useQueryParams } from "@/hooks/use-query-params";
 import { ArrowLeft, Save, ChevronDown } from "lucide-react";
 import { Link } from "wouter";
 import type { MeetingTemplate, MeetingTemplateField, Meeting, MeetingFieldValue, Location, SafeUser } from "@shared/schema";
@@ -27,9 +27,11 @@ export default function MeetingEditor() {
   const { id } = useParams<{ id?: string }>();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const queryParams = useQueryParams();
+  const templateFromUrl = queryParams.get('template');
   const isNewMeeting = !id;
 
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(templateFromUrl || "");
   const [meetingDate, setMeetingDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [title, setTitle] = useState<string>("");
   const [fieldValues, setFieldValues] = useState<Record<string, any>>({});
@@ -363,7 +365,6 @@ export default function MeetingEditor() {
   if (meetingLoading) {
     return (
       <div className="flex flex-col h-screen">
-        <ReportHeader dateString={format(new Date(), "MMMM d, yyyy")} />
         <div className="flex-1 flex items-center justify-center" data-testid="text-loading">
           <p className="text-muted-foreground">Loading meeting...</p>
         </div>
@@ -373,7 +374,6 @@ export default function MeetingEditor() {
 
   return (
     <div className="flex flex-col h-screen">
-      <ReportHeader dateString={format(new Date(), "MMMM d, yyyy")} />
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="flex items-center gap-4">

@@ -99,7 +99,7 @@ export default function Meetings() {
                 ? getMeetingTemplate(selectedTemplateId)?.name || "Meetings"
                 : "Meetings"}
             </h1>
-            <Link href="/meetings/new">
+            <Link href={selectedTemplateId && selectedTemplateId !== "all" ? `/meetings/new?template=${selectedTemplateId}` : "/meetings/new"}>
               <Button data-testid="button-new-meeting">
                 <Plus className="w-4 h-4 mr-2" />
                 New Meeting
