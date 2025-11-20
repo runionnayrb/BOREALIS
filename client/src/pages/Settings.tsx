@@ -231,6 +231,11 @@ export default function Settings() {
     enabled: activeTab === 'report-template',
   });
   
+  const { data: meetingTemplates = [] } = useQuery<MeetingTemplate[]>({
+    queryKey: ["/api/meeting-templates"],
+    enabled: activeTab === 'report-template',
+  });
+  
   // People tab data - load when needed by people, users, acts, or cues tabs
   const { data: artistGroups = [] } = useQuery<ArtistGroup[]>({ 
     queryKey: ["/api/artist-groups"],
@@ -2843,20 +2848,36 @@ export default function Settings() {
           </TabsList>
 
           <TabsContent value="report-template" className="space-y-4">
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Report Template</h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                This header design will be used for all training reports
-              </p>
-              <ReportHeader
-                leftImageUrl={leftImage}
-                middleTitle={title}
-                rightImageUrl={rightImage}
-                dateString="Thursday, October 9, 2025"
-                onLeftImageChange={setLeftImage}
-                onMiddleTitleChange={setTitle}
-                onRightImageChange={setRightImage}
-              />
+            {/* Training Report Template Section */}
+            <Collapsible
+              open={trainingReportTemplateOpen}
+              onOpenChange={setTrainingReportTemplateOpen}
+            >
+              <Card>
+                <CollapsibleTrigger className="w-full">
+                  <div className="flex items-center justify-between p-6 hover-elevate">
+                    <h2 className="text-lg font-semibold">Training Report Template</h2>
+                    {trainingReportTemplateOpen ? (
+                      <ChevronDown className="w-5 h-5" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5" />
+                    )}
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="px-6 pb-6 space-y-4 border-t">
+                    <p className="text-sm text-muted-foreground mt-4">
+                      This header design will be used for all training reports
+                    </p>
+                    <ReportHeader
+                      leftImageUrl={leftImage}
+                      middleTitle={title}
+                      rightImageUrl={rightImage}
+                      dateString="Thursday, October 9, 2025"
+                      onLeftImageChange={setLeftImage}
+                      onMiddleTitleChange={setTitle}
+                      onRightImageChange={setRightImage}
+                    />
               
               <div className="mt-8 space-y-6 border-t pt-6">
                 <div>
@@ -3020,16 +3041,76 @@ export default function Settings() {
                 </div>
               </div>
 
-              <div className="mt-6">
-                <Button
-                  onClick={() => saveTemplateMutation.mutate()}
-                  disabled={saveTemplateMutation.isPending}
-                  data-testid="button-save-template"
+                    <div className="mt-6">
+                      <Button
+                        onClick={() => saveTemplateMutation.mutate()}
+                        disabled={saveTemplateMutation.isPending}
+                        data-testid="button-save-template"
+                      >
+                        {saveTemplateMutation.isPending ? "Saving..." : "Save Template"}
+                      </Button>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+
+            {/* Meeting Templates Sections */}
+            {meetingTemplates
+              .filter((template) => template.isActive === 1)
+              .sort((a, b) => a.sortOrder - b.sortOrder)
+              .map((template) => (
+                <Collapsible
+                  key={template.id}
+                  open={meetingTemplateOpenStates[template.id] || false}
+                  onOpenChange={(open) =>
+                    setMeetingTemplateOpenStates((prev) => ({
+                      ...prev,
+                      [template.id]: open,
+                    }))
+                  }
                 >
-                  {saveTemplateMutation.isPending ? "Saving..." : "Save Template"}
-                </Button>
-              </div>
-            </div>
+                  <Card>
+                    <CollapsibleTrigger className="w-full">
+                      <div className="flex items-center justify-between p-6 hover-elevate">
+                        <h2 className="text-lg font-semibold">{template.name}</h2>
+                        {meetingTemplateOpenStates[template.id] ? (
+                          <ChevronDown className="w-5 h-5" />
+                        ) : (
+                          <ChevronRight className="w-5 h-5" />
+                        )}
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="px-6 pb-6 space-y-4 border-t">
+                        <p className="text-sm text-muted-foreground mt-4">
+                          This header design will be used for {template.name.toLowerCase()}
+                        </p>
+                        <ReportHeader
+                          leftImageUrl={template.leftImage || ""}
+                          middleTitle={template.middleTitle || ""}
+                          rightImageUrl={template.rightImage || ""}
+                          dateString="Thursday, October 9, 2025"
+                          onLeftImageChange={(url) => {
+                            /* TODO: Save to template */
+                          }}
+                          onMiddleTitleChange={(title) => {
+                            /* TODO: Save to template */
+                          }}
+                          onRightImageChange={(url) => {
+                            /* TODO: Save to template */
+                          }}
+                        />
+                        <div className="mt-6">
+                          <p className="text-sm text-muted-foreground">
+                            Template configuration for email and PDF generation coming soon
+                          </p>
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              ))}
           </TabsContent>
 
           <TabsContent value="acts" className="space-y-4">
