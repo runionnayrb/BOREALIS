@@ -3403,10 +3403,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pdfBase64 = pdfBuffer.toString('base64');
       const pdfFileName = `${meeting.title || template.name} - ${dateFormattedFile}.pdf`;
       
-      // Parse email recipients (ensure they're arrays)
-      const toEmails: string[] = Array.isArray(template.emailTo) ? template.emailTo : (template.emailTo ? [template.emailTo as string] : []);
-      const ccEmails: string[] = Array.isArray(template.emailCc) ? template.emailCc : (template.emailCc ? [template.emailCc as string] : []);
-      const bccEmails: string[] = Array.isArray(template.emailBcc) ? template.emailBcc : (template.emailBcc ? [template.emailBcc as string] : []);
+      // Parse email recipients (ensure they're arrays) and convert to lowercase
+      let toEmails: string[] = Array.isArray(template.emailTo) ? template.emailTo : (template.emailTo ? [template.emailTo as string] : []);
+      let ccEmails: string[] = Array.isArray(template.emailCc) ? template.emailCc : (template.emailCc ? [template.emailCc as string] : []);
+      let bccEmails: string[] = Array.isArray(template.emailBcc) ? template.emailBcc : (template.emailBcc ? [template.emailBcc as string] : []);
+      
+      // Convert all emails to lowercase
+      toEmails = toEmails.map(e => e.toLowerCase());
+      ccEmails = ccEmails.map(e => e.toLowerCase());
+      bccEmails = bccEmails.map(e => e.toLowerCase());
       
       // Get Outlook client and send email
       const client = await getUncachableOutlookClient();

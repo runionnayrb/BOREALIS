@@ -149,9 +149,9 @@ export default function MeetingView() {
       const ccEmails = Array.isArray(template?.emailCc) ? template.emailCc : (template?.emailCc ? [template.emailCc] : []);
       const bccEmails = Array.isArray(template?.emailBcc) ? template.emailBcc : (template?.emailBcc ? [template.emailBcc] : []);
       
-      setEmailTo(toEmails.join(', '));
-      const ccValue = ccEmails.join(', ');
-      const bccValue = bccEmails.join(', ');
+      setEmailTo(toEmails.map((e: string) => e.toLowerCase()).join(', '));
+      const ccValue = ccEmails.map((e: string) => e.toLowerCase()).join(', ');
+      const bccValue = bccEmails.map((e: string) => e.toLowerCase()).join(', ');
       setEmailCc(ccValue);
       setEmailBcc(bccValue);
       setEmailSubject(previewData.subject || '');
