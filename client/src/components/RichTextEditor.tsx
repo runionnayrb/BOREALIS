@@ -86,8 +86,8 @@ export default function RichTextEditor({ content = '', onChange, minHeight = 'mi
   };
 
   return (
-    <div className="border border-border rounded-md">
-      <div className="flex flex-wrap items-center gap-1 p-2 border-b border-border bg-muted/30">
+    <div className="border border-border rounded-md flex flex-col h-full">
+      <div className="flex flex-wrap items-center gap-1 p-2 border-b border-border bg-muted/30 flex-shrink-0">
         <Button
           variant="ghost"
           size="icon"
@@ -347,11 +347,11 @@ export default function RichTextEditor({ content = '', onChange, minHeight = 'mi
       </div>
       <div 
         onClick={() => editor.commands.focus()}
-        className="cursor-text"
+        className="cursor-text flex-1 overflow-auto flex flex-col"
       >
         <EditorContent
           editor={editor}
-          className={`prose prose-sm max-w-none p-4 ${minHeight} focus:outline-none [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0 [&_li]:mb-1 text-foreground [&_p]:text-foreground [&_li]:text-foreground [&_ul]:text-foreground [&_ol]:text-foreground [&_strong]:text-foreground [&_em]:text-foreground [&_u]:text-foreground [&_s]:text-foreground [&_li::marker]:text-foreground [&_ul_li::marker]:text-foreground [&_ol_li::marker]:text-foreground [&_mark]:px-1 [&_mark]:rounded-sm`}
+          className="prose prose-sm max-w-none p-4 flex-1 focus:outline-none [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0 [&_li]:mb-1 text-foreground [&_p]:text-foreground [&_li]:text-foreground [&_ul]:text-foreground [&_ol]:text-foreground [&_strong]:text-foreground [&_em]:text-foreground [&_u]:text-foreground [&_s]:text-foreground [&_li::marker]:text-foreground [&_ul_li::marker]:text-foreground [&_ol_li::marker]:text-foreground [&_mark]:px-1 [&_mark]:rounded-sm"
           data-testid="editor-content"
         />
       </div>

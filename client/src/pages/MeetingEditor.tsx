@@ -251,16 +251,17 @@ export default function MeetingEditor() {
       case 'richtext':
       case 'text':
         return (
-          <div key={field.id} className="space-y-2">
+          <div key={field.id} className="space-y-2 flex-1 flex flex-col">
             <Label htmlFor={field.id} data-testid={`label-${field.fieldName.toLowerCase().replace(/\s+/g, '-')}`}>
               {field.fieldName}
               {field.required === 1 && <span className="text-destructive ml-1">*</span>}
             </Label>
-            <RichTextEditor
-              content={value}
-              onChange={(html) => handleFieldChange(field.id, html)}
-              minHeight="min-h-96"
-            />
+            <div className="flex-1">
+              <RichTextEditor
+                content={value}
+                onChange={(html) => handleFieldChange(field.id, html)}
+              />
+            </div>
           </div>
         );
 
@@ -420,7 +421,7 @@ export default function MeetingEditor() {
   return (
     <div className="flex flex-col h-screen">
       <div className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="max-w-4xl mx-auto flex flex-col gap-6 h-full">
           <div className="flex items-center gap-4">
             <Link href="/meetings">
               <Button variant="ghost" size="icon" data-testid="button-back">
@@ -475,11 +476,11 @@ export default function MeetingEditor() {
           </Card>
 
           {selectedTemplateId && sortedFields.length > 0 && (
-            <Card>
+            <Card className="flex flex-col flex-1">
               <CardHeader>
                 <CardTitle>Meeting Notes</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="flex-1 flex flex-col space-y-4">
                 {sortedFields.map((field) => renderField(field))}
               </CardContent>
             </Card>
