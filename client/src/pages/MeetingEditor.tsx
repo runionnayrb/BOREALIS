@@ -450,7 +450,7 @@ export default function MeetingEditor() {
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder={
                     selectedTemplateId 
-                      ? `${templates.find(t => t.id === selectedTemplateId)?.name || ""} - ${format(new Date(meetingDate), "d MMMM yyyy")}`
+                      ? templates.find(t => t.id === selectedTemplateId)?.name || "Enter meeting title"
                       : "Enter meeting title"
                   }
                   data-testid="input-meeting-title"
