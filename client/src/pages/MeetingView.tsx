@@ -3,8 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Edit } from "lucide-react";
-import { Link } from "wouter";
+import { Edit } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import DOMPurify from "dompurify";
 import type { MeetingTemplate, MeetingTemplateField, Meeting, MeetingFieldValue, Location, SafeUser } from "@shared/schema";
@@ -200,20 +199,13 @@ export default function MeetingView() {
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       {/* Header with Meeting Title and Edit button */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Link href="/meetings">
-            <Button variant="ghost" size="icon" data-testid="button-back">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-semibold" data-testid="display-meeting-title">
-              {template?.name || 'Meeting Notes'}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1" data-testid="display-meeting-date">
-              {format(new Date(meeting.meetingDate), "EEEE, MMMM d, yyyy")}
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-semibold" data-testid="display-meeting-title">
+            {template?.name || 'Meeting Notes'}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1" data-testid="display-meeting-date">
+            {format(new Date(meeting.meetingDate), "EEEE, MMMM d, yyyy")}
+          </p>
         </div>
         {canEdit && (
           <Button 
