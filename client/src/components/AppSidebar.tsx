@@ -78,9 +78,9 @@ export default function AppSidebar() {
     return permission?.canView === 1;
   };
 
-  // Fetch user's template permissions
+  // Fetch user's template permissions (user-facing endpoint)
   const { data: templatePermissions = [] } = useQuery<Array<{userId: string; templateId: string; canView: number}>>({
-    queryKey: [`/api/admin/meeting-template-permissions/user/${user?.id}`],
+    queryKey: ['/api/meeting-template-permissions/me'],
     enabled: !!user?.id,
   });
 
@@ -93,11 +93,26 @@ export default function AppSidebar() {
     return templatePermissions.some(p => p.canView === 1);
   };
 
+  // Helper function to check if user can view a specific template
+  const canViewTemplate = (templateId: string): boolean => {
+    // Admins can see everything
+    if (user?.role === 'admin') return true;
+    
+    // Check if user has view permission for this specific template
+    const permission = templatePermissions.find(p => p.templateId === templateId);
+    return permission?.canView === 1;
+  };
+
   // Fetch meeting templates for sidebar (only templates user has access to)
-  const { data: meetingTemplates = [] } = useQuery<MeetingTemplate[]>({
+  const { data: allMeetingTemplates = [] } = useQuery<MeetingTemplate[]>({
     queryKey: ['/api/meeting-templates/active'],
     enabled: canViewAnyMeetingTemplate(),
   });
+
+  // Filter templates to only show ones user can view
+  const meetingTemplates = allMeetingTemplates.filter(template => 
+    user?.role === 'admin' || canViewTemplate(template.id)
+  );
 
   // Render version footer (shared across all states)
   const versionFooter = (

@@ -3029,6 +3029,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(permissions);
   });
 
+  // User-facing endpoint to get own template permissions
+  app.get("/api/meeting-template-permissions/me", requireAuth, async (req, res) => {
+    const permissions = await storage.getUserTemplatePermissions(req.user!.id);
+    res.json(permissions);
+  });
+
   app.post("/api/admin/meeting-template-permissions", requireRole('admin'), async (req, res) => {
     const { userId, permissions } = req.body;
     await storage.bulkUpsertUserTemplatePermissions(userId, permissions);
