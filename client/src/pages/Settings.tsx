@@ -133,6 +133,9 @@ export default function Settings() {
   const [meetingTemplateEdits, setMeetingTemplateEdits] = useState<Record<string, Partial<MeetingTemplate>>>({});
   const [orderedTechnicians, setOrderedTechnicians] = useState<Technician[]>([]);
   
+  // Local state for meeting template ordering
+  const [orderedMeetingTemplates, setOrderedMeetingTemplates] = useState<MeetingTemplateWithFields[]>([]);
+  
   // Meeting template field management state
   const [fieldDialogOpen, setFieldDialogOpen] = useState(false);
   const [currentTemplateId, setCurrentTemplateId] = useState<string | null>(null);
@@ -738,6 +741,13 @@ export default function Settings() {
     }
   }, [technicians]);
 
+  // Sync local meeting template order with query data
+  useEffect(() => {
+    if (meetingTemplates) {
+      setOrderedMeetingTemplates([...meetingTemplates].sort((a, b) => a.sortOrder - b.sortOrder));
+    }
+  }, [meetingTemplates]);
+
   // Clear optimistic state once server data is synced
   useEffect(() => {
     if (allTechnicianDepartments.length > 0) {
@@ -797,6 +807,27 @@ export default function Settings() {
       const newArtists = arrayMove(orderedArtists, oldIndex, newIndex);
       setOrderedArtists(newArtists);
       reorderArtistsMutation.mutate(newArtists.map(a => a.id));
+    }
+  };
+
+  // Drag-and-drop sensors for meeting template reordering
+  const meetingTemplateDragSensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleMeetingTemplateDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      const oldIndex = orderedMeetingTemplates.findIndex((t) => t.id === active.id);
+      const newIndex = orderedMeetingTemplates.findIndex((t) => t.id === over.id);
+      
+      const newTemplates = arrayMove(orderedMeetingTemplates, oldIndex, newIndex);
+      setOrderedMeetingTemplates(newTemplates);
+      reorderMeetingTemplatesMutation.mutate(newTemplates.map((t, index) => ({ id: t.id, sortOrder: index })));
     }
   };
 
@@ -2042,6 +2073,16 @@ export default function Settings() {
     },
   });
 
+  // Reorder meeting templates mutation
+  const reorderMeetingTemplatesMutation = useMutation({
+    mutationFn: async (templates: Array<{ id: string; sortOrder: number }>) => {
+      return await apiRequest("POST", "/api/meeting-templates/reorder", { templates });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
+    },
+  });
+
   // Meeting template field mutations
   const createFieldMutation = useMutation({
     mutationFn: async (data: { templateId: string; fieldName: string; fieldType: string; required: number; sortOrder: number; dropdownOptions?: string[] }) => {
@@ -3225,37 +3266,44 @@ export default function Settings() {
               </Button>
             </div>
             
-            {meetingTemplates
-              .filter((template) => template.isActive === 1)
-              .sort((a, b) => a.sortOrder - b.sortOrder)
-              .map((template) => (
-                <Collapsible
-                  key={template.id}
-                  open={meetingTemplateOpenStates[template.id] || false}
-                  onOpenChange={(open) =>
-                    setMeetingTemplateOpenStates((prev) => ({
-                      ...prev,
-                      [template.id]: open,
-                    }))
-                  }
-                >
-                  <Card>
-                    <CollapsibleTrigger className="w-full">
-                      <div className="flex items-center justify-between p-4 hover-elevate">
-                        <h2 className="text-lg font-semibold">{template.name}</h2>
-                        {meetingTemplateOpenStates[template.id] ? (
-                          <ChevronDown className="w-5 h-5" />
-                        ) : (
-                          <ChevronRight className="w-5 h-5" />
-                        )}
-                      </div>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <div className="px-6 pb-6 space-y-4 border-t">
-                        <p className="text-sm text-muted-foreground mt-4">
-                          This header design will be used for {template.name.toLowerCase()} PDFs
-                        </p>
-                        <ReportHeader
+            <DndContext sensors={meetingTemplateDragSensors} collisionDetection={closestCenter} onDragEnd={handleMeetingTemplateDragEnd}>
+              <SortableContext items={orderedMeetingTemplates.filter(t => t.isActive === 1).map(t => t.id)} strategy={verticalListSortingStrategy}>
+                {orderedMeetingTemplates
+                  .filter((template) => template.isActive === 1)
+                  .map((template) => (
+                    <Collapsible
+                      key={template.id}
+                      open={meetingTemplateOpenStates[template.id] || false}
+                      onOpenChange={(open) =>
+                        setMeetingTemplateOpenStates((prev) => ({
+                          ...prev,
+                          [template.id]: open,
+                        }))
+                      }
+                    >
+                      <Card>
+                        <CollapsibleTrigger className="w-full">
+                          <div className="flex items-center gap-3 p-4 hover-elevate">
+                            <div 
+                              onClick={(e) => e.stopPropagation()} 
+                              className="cursor-grab active:cursor-grabbing"
+                            >
+                              <GripVertical className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                            <h2 className="text-lg font-semibold flex-1 text-left">{template.name}</h2>
+                            {meetingTemplateOpenStates[template.id] ? (
+                              <ChevronDown className="w-5 h-5" />
+                            ) : (
+                              <ChevronRight className="w-5 h-5" />
+                            )}
+                          </div>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <div className="px-6 pb-6 space-y-4 border-t">
+                            <p className="text-sm text-muted-foreground mt-4">
+                              This header design will be used for {template.name.toLowerCase()} PDFs
+                            </p>
+                            <ReportHeader
                           leftImageUrl={meetingTemplateEdits[template.id]?.pdfLeftImageUrl ?? template.pdfLeftImageUrl ?? ""}
                           middleTitle={meetingTemplateEdits[template.id]?.pdfTitle ?? template.pdfTitle ?? ""}
                           rightImageUrl={meetingTemplateEdits[template.id]?.pdfRightImageUrl ?? template.pdfRightImageUrl ?? ""}
@@ -3453,6 +3501,8 @@ export default function Settings() {
                   </Card>
                 </Collapsible>
               ))}
+              </SortableContext>
+            </DndContext>
           </TabsContent>
 
           <TabsContent value="acts" className="space-y-4">
