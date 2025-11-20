@@ -137,6 +137,10 @@ export default function Settings() {
   const [fieldDialogOpen, setFieldDialogOpen] = useState(false);
   const [currentTemplateId, setCurrentTemplateId] = useState<string | null>(null);
   const [editingField, setEditingField] = useState<MeetingTemplateField | null>(null);
+  
+  // New template creation state
+  const [newTemplateDialogOpen, setNewTemplateDialogOpen] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState("");
 
   // Optimistic state for technician reordering per department
   // Maps departmentId to array of technicianIds in their current order
@@ -2013,6 +2017,31 @@ export default function Settings() {
     },
   });
 
+  // Create new meeting template mutation
+  const createMeetingTemplateMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const maxSortOrder = meetingTemplates.reduce((max, t) => Math.max(max, t.sortOrder || 0), 0);
+      return await apiRequest("POST", "/api/meeting-templates", {
+        name: name.trim(),
+        isActive: 1,
+        sortOrder: maxSortOrder + 1,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
+      setNewTemplateDialogOpen(false);
+      setNewTemplateName("");
+      toast({ title: "Meeting template created successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to create meeting template", 
+        description: error.message || "An error occurred",
+        variant: "destructive"
+      });
+    },
+  });
+
   // Meeting template field mutations
   const createFieldMutation = useMutation({
     mutationFn: async (data: { templateId: string; fieldName: string; fieldType: string; required: number; sortOrder: number; dropdownOptions?: string[] }) => {
@@ -3185,6 +3214,17 @@ export default function Settings() {
             </Collapsible>
 
             {/* Meeting Templates Sections */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Meeting Templates</h2>
+              <Button
+                onClick={() => setNewTemplateDialogOpen(true)}
+                data-testid="button-create-meeting-template"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create New Template
+              </Button>
+            </div>
+            
             {meetingTemplates
               .filter((template) => template.isActive === 1)
               .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -7552,6 +7592,65 @@ export default function Settings() {
                 {(createFieldMutation.isPending || updateFieldMutation.isPending) 
                   ? "Saving..." 
                   : editingField ? "Update Field" : "Add Field"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create New Template Dialog */}
+      <Dialog open={newTemplateDialogOpen} onOpenChange={setNewTemplateDialogOpen}>
+        <DialogContent>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const trimmedName = newTemplateName.trim();
+            if (!trimmedName) {
+              toast({ 
+                title: "Validation Error", 
+                description: "Template name is required", 
+                variant: "destructive" 
+              });
+              return;
+            }
+            createMeetingTemplateMutation.mutate(trimmedName);
+          }}>
+            <DialogHeader>
+              <DialogTitle>Create New Meeting Template</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="templateName">Template Name</Label>
+                <Input
+                  id="templateName"
+                  value={newTemplateName}
+                  onChange={(e) => setNewTemplateName(e.target.value)}
+                  placeholder="e.g., Weekly Notes, Production Meeting"
+                  data-testid="input-template-name"
+                  autoFocus
+                />
+                <p className="text-xs text-muted-foreground">
+                  This name will appear in the sidebar and throughout the app
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setNewTemplateDialogOpen(false);
+                  setNewTemplateName("");
+                }}
+                data-testid="button-cancel-template"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={createMeetingTemplateMutation.isPending}
+                data-testid="button-save-template"
+              >
+                {createMeetingTemplateMutation.isPending ? "Creating..." : "Create Template"}
               </Button>
             </DialogFooter>
           </form>
