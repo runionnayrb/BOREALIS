@@ -128,6 +128,9 @@ export default function Settings() {
   // Collapsible template sections
   const [trainingReportTemplateOpen, setTrainingReportTemplateOpen] = useState(false);
   const [meetingTemplateOpenStates, setMeetingTemplateOpenStates] = useState<Record<string, boolean>>({});
+  
+  // Meeting template editing state
+  const [meetingTemplateEdits, setMeetingTemplateEdits] = useState<Record<string, Partial<MeetingTemplate>>>({});
   const [orderedTechnicians, setOrderedTechnicians] = useState<Technician[]>([]);
 
   // Optimistic state for technician reordering per department
@@ -1952,6 +1955,51 @@ export default function Settings() {
     },
   });
 
+  // Meeting Template mutation
+  const saveMeetingTemplateMutation = useMutation({
+    mutationFn: async (data: { id: string; updates: Partial<MeetingTemplate> }) => {
+      // Validate updates before sending
+      const cleanedUpdates = { ...data.updates };
+      
+      // Clean up string fields - trim and convert empty strings to null
+      if (cleanedUpdates.pdfLeftImageUrl !== undefined) {
+        cleanedUpdates.pdfLeftImageUrl = cleanedUpdates.pdfLeftImageUrl?.trim() || null;
+      }
+      if (cleanedUpdates.pdfTitle !== undefined) {
+        cleanedUpdates.pdfTitle = cleanedUpdates.pdfTitle?.trim() || null;
+      }
+      if (cleanedUpdates.pdfRightImageUrl !== undefined) {
+        cleanedUpdates.pdfRightImageUrl = cleanedUpdates.pdfRightImageUrl?.trim() || null;
+      }
+      if (cleanedUpdates.emailSubjectTemplate !== undefined) {
+        // Allow empty subject template (user can clear it)
+        cleanedUpdates.emailSubjectTemplate = cleanedUpdates.emailSubjectTemplate?.trim() || null;
+      }
+      if (cleanedUpdates.emailBodyPrefix !== undefined) {
+        cleanedUpdates.emailBodyPrefix = cleanedUpdates.emailBodyPrefix?.trim() || null;
+      }
+      
+      return await apiRequest("PATCH", `/api/meeting-templates/${data.id}`, cleanedUpdates);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
+      // Clear edits for this template
+      setMeetingTemplateEdits((prev) => {
+        const updated = { ...prev };
+        delete updated[variables.id];
+        return updated;
+      });
+      toast({ title: "Meeting template saved successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to save meeting template", 
+        description: error.message || "An error occurred while saving",
+        variant: "destructive"
+      });
+    },
+  });
+
   const handleDelete = () => {
     if (!deleteTarget) return;
 
@@ -3087,18 +3135,27 @@ export default function Settings() {
                           This header design will be used for {template.name.toLowerCase()} PDFs
                         </p>
                         <ReportHeader
-                          leftImageUrl={template.pdfLeftImageUrl || ""}
-                          middleTitle={template.pdfTitle || ""}
-                          rightImageUrl={template.pdfRightImageUrl || ""}
+                          leftImageUrl={meetingTemplateEdits[template.id]?.pdfLeftImageUrl ?? template.pdfLeftImageUrl ?? ""}
+                          middleTitle={meetingTemplateEdits[template.id]?.pdfTitle ?? template.pdfTitle ?? ""}
+                          rightImageUrl={meetingTemplateEdits[template.id]?.pdfRightImageUrl ?? template.pdfRightImageUrl ?? ""}
                           dateString="Thursday, October 9, 2025"
                           onLeftImageChange={(url) => {
-                            /* TODO: Save to template */
+                            setMeetingTemplateEdits((prev) => ({
+                              ...prev,
+                              [template.id]: { ...prev[template.id], pdfLeftImageUrl: url || null }
+                            }));
                           }}
                           onMiddleTitleChange={(title) => {
-                            /* TODO: Save to template */
+                            setMeetingTemplateEdits((prev) => ({
+                              ...prev,
+                              [template.id]: { ...prev[template.id], pdfTitle: title || null }
+                            }));
                           }}
                           onRightImageChange={(url) => {
-                            /* TODO: Save to template */
+                            setMeetingTemplateEdits((prev) => ({
+                              ...prev,
+                              [template.id]: { ...prev[template.id], pdfRightImageUrl: url || null }
+                            }));
                           }}
                         />
                         
@@ -3116,9 +3173,12 @@ export default function Settings() {
                                 Subject Line Template
                               </label>
                               <Input
-                                value={template.emailSubjectTemplate || ""}
+                                value={meetingTemplateEdits[template.id]?.emailSubjectTemplate ?? template.emailSubjectTemplate ?? ""}
                                 onChange={(e) => {
-                                  /* TODO: Save to template */
+                                  setMeetingTemplateEdits((prev) => ({
+                                    ...prev,
+                                    [template.id]: { ...prev[template.id], emailSubjectTemplate: e.target.value || null }
+                                  }));
                                 }}
                                 placeholder={`e.g., ${template.name} - {{date}}`}
                               />
@@ -3132,9 +3192,12 @@ export default function Settings() {
                                 Email Body Prefix
                               </label>
                               <Textarea
-                                value={template.emailBodyPrefix || ""}
+                                value={meetingTemplateEdits[template.id]?.emailBodyPrefix ?? template.emailBodyPrefix ?? ""}
                                 onChange={(e) => {
-                                  /* TODO: Save to template */
+                                  setMeetingTemplateEdits((prev) => ({
+                                    ...prev,
+                                    [template.id]: { ...prev[template.id], emailBodyPrefix: e.target.value || null }
+                                  }));
                                 }}
                                 placeholder="Enter text that will appear before the meeting details..."
                                 rows={4}
@@ -3173,11 +3236,15 @@ export default function Settings() {
                         <div className="mt-6">
                           <Button
                             onClick={() => {
-                              /* TODO: Save meeting template */
+                              const edits = meetingTemplateEdits[template.id];
+                              if (edits && Object.keys(edits).length > 0) {
+                                saveMeetingTemplateMutation.mutate({ id: template.id, updates: edits });
+                              }
                             }}
-                            disabled
+                            disabled={saveMeetingTemplateMutation.isPending || !meetingTemplateEdits[template.id]}
+                            data-testid={`button-save-meeting-template-${template.id}`}
                           >
-                            Save Template (Coming Soon)
+                            {saveMeetingTemplateMutation.isPending ? "Saving..." : "Save Template"}
                           </Button>
                         </div>
                       </div>

@@ -28,7 +28,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryParams } from "@/hooks/use-query-params";
-import { ArrowLeft, Save, ChevronDown, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, ChevronDown, Trash2, FileDown } from "lucide-react";
 import { Link } from "wouter";
 import type { MeetingTemplate, MeetingTemplateField, Meeting, MeetingFieldValue, Location, SafeUser } from "@shared/schema";
 import { format } from "date-fns";
@@ -513,6 +513,14 @@ export default function MeetingEditor() {
               </Button>
             )}
             <div className="flex gap-4 ml-auto">
+              {!isNewMeeting && (
+                <a href={`/api/meetings/${id}/pdf`} download>
+                  <Button variant="outline" data-testid="button-export-pdf">
+                    <FileDown className="w-4 h-4 mr-2" />
+                    Export PDF
+                  </Button>
+                </a>
+              )}
               <Button
                 onClick={handleSave}
                 disabled={saveMeetingMutation.isPending}

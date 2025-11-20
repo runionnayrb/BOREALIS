@@ -2522,8 +2522,14 @@ export class DatabaseStorage implements IStorage {
     const existing = await this.getMeetingFieldValue(value.meetingId, value.fieldId);
     
     if (existing) {
+      // Explicitly set all value columns to ensure mutually-exclusive semantics
       const result = await db.update(meetingFieldValues)
-        .set({ ...value, updatedAt: new Date() })
+        .set({ 
+          textValue: value.textValue ?? null,
+          attendeeIds: value.attendeeIds ?? null,
+          locationId: value.locationId ?? null,
+          updatedAt: new Date() 
+        })
         .where(eq(meetingFieldValues.id, existing.id))
         .returning();
       return result[0];

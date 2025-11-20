@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, sanitizeUser, hashPassword, toTitleCase, comparePasswords } from "./auth";
 import { z } from "zod";
+import { format } from "date-fns";
 import { db } from "./db";
 import { trainings, actDepartments, departmentAssignments, technicians, technicianDepartments } from "@shared/schema";
 import { asc, eq } from "drizzle-orm";
@@ -70,6 +71,25 @@ import {
   userRoles,
   bulkRolePageAccessSchema,
 } from "@shared/schema";
+
+/**
+ * Safely parse a JSON array field that might be a string, array, or empty
+ */
+function safeParseJsonArray(data: any): string[] {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (typeof data === 'string') {
+    const trimmed = data.trim();
+    if (!trimmed || trimmed === '[]') return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
 
 /**
  * Log IP verification attempts to audit trail for security monitoring
@@ -2834,28 +2854,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/meetings", canCreateMeetings, async (req, res) => {
-    const validation = insertMeetingSchema.safeParse(req.body);
+    const { fieldValues, ...meetingData } = req.body;
+    
+    const validation = insertMeetingSchema.safeParse(meetingData);
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
     }
+    
     const meeting = await storage.createMeeting({
       ...validation.data,
       createdBy: req.user?.id,
       updatedBy: req.user?.id,
     });
+    
+    // Save field values if provided
+    if (Array.isArray(fieldValues) && fieldValues.length > 0) {
+      for (const fv of fieldValues) {
+        // Enforce mutually-exclusive columns by explicitly nulling unused ones
+        const valueToStore: any = {
+          meetingId: meeting.id,
+          fieldId: fv.fieldId,
+          textValue: null,
+          attendeeIds: null,
+          locationId: null,
+        };
+        
+        // Set only the relevant column based on what was provided
+        if (fv.attendeeIds && Array.isArray(fv.attendeeIds)) {
+          valueToStore.attendeeIds = fv.attendeeIds;
+        } else if (fv.locationId) {
+          valueToStore.locationId = fv.locationId;
+        } else if (fv.textValue !== undefined) {
+          valueToStore.textValue = fv.textValue;
+        }
+        
+        // Include existing ID if provided (for updates)
+        if (fv.id) {
+          valueToStore.id = fv.id;
+        }
+        
+        await storage.upsertMeetingFieldValue(valueToStore);
+      }
+    }
+    
     res.json(meeting);
   });
 
   app.patch("/api/meetings/:id", canEditMeetings, async (req, res) => {
-    const validation = insertMeetingSchema.partial().safeParse(req.body);
+    const { fieldValues, ...meetingData } = req.body;
+    
+    const validation = insertMeetingSchema.partial().safeParse(meetingData);
     if (!validation.success) {
       return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
     }
+    
     const meeting = await storage.updateMeeting(req.params.id, {
       ...validation.data,
       updatedBy: req.user?.id,
     });
     if (!meeting) return res.sendStatus(404);
+    
+    // Save field values if provided
+    if (Array.isArray(fieldValues) && fieldValues.length > 0) {
+      for (const fv of fieldValues) {
+        // Enforce mutually-exclusive columns by explicitly nulling unused ones
+        const valueToStore: any = {
+          meetingId: meeting.id,
+          fieldId: fv.fieldId,
+          textValue: null,
+          attendeeIds: null,
+          locationId: null,
+        };
+        
+        // Set only the relevant column based on what was provided
+        if (fv.attendeeIds && Array.isArray(fv.attendeeIds)) {
+          valueToStore.attendeeIds = fv.attendeeIds;
+        } else if (fv.locationId) {
+          valueToStore.locationId = fv.locationId;
+        } else if (fv.textValue !== undefined) {
+          valueToStore.textValue = fv.textValue;
+        }
+        
+        // Include existing ID if provided (for updates)
+        if (fv.id) {
+          valueToStore.id = fv.id;
+        }
+        
+        await storage.upsertMeetingFieldValue(valueToStore);
+      }
+    }
+    
     res.json(meeting);
   });
 
@@ -2867,6 +2955,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Meeting Field Values routes
   app.get("/api/meetings/:meetingId/field-values", canViewMeetings, async (req, res) => {
     const values = await storage.getMeetingFieldValues(req.params.meetingId);
+    // attendeeIds is already an array from the database (text[].array() schema)
     res.json(values);
   });
 
@@ -2882,6 +2971,320 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/meeting-field-values/:id", canEditMeetings, async (req, res) => {
     await storage.deleteMeetingFieldValue(req.params.id);
     res.sendStatus(204);
+  });
+
+  // Meeting PDF generation
+  app.get("/api/meetings/:id/pdf", canViewMeetings, async (req, res) => {
+    try {
+      const { generatePdfFromHtml } = await import("./pdfGenerator");
+      
+      // Fetch meeting data
+      const meeting = await storage.getMeeting(req.params.id);
+      if (!meeting) {
+        return res.status(404).send("Meeting not found");
+      }
+      
+      // Validate templateId before fetching
+      if (!meeting.templateId) {
+        return res.status(400).send("Meeting has no template assigned");
+      }
+      
+      // Fetch template
+      const template = await storage.getMeetingTemplate(meeting.templateId);
+      if (!template) {
+        return res.status(404).send("Meeting template not found");
+      }
+      
+      // Fetch field values
+      const fieldValues = await storage.getMeetingFieldValues(meeting.id);
+      
+      // Fetch template fields to get field names and types
+      const fields = await storage.getTemplateFields(meeting.templateId);
+      
+      // Fetch all users for attendee lookups
+      const users = await storage.getAllUsers();
+      
+      // Fetch all locations for location lookups
+      const locations = await storage.getAllLocations();
+      
+      // Build HTML for PDF
+      const dateFormatted = format(new Date(meeting.meetingDate), "MMMM d, yyyy");
+      
+      // Build header HTML
+      let headerHtml = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #333;">';
+      
+      if (template.pdfLeftImageUrl) {
+        headerHtml += `<div style="flex: 1;"><img src="${template.pdfLeftImageUrl}" style="max-height: 80px; max-width: 200px;" /></div>`;
+      } else {
+        headerHtml += '<div style="flex: 1;"></div>';
+      }
+      
+      headerHtml += `<div style="flex: 2; text-center;"><h1 style="margin: 0; font-size: 24px;">${template.pdfTitle || template.name}</h1><p style="margin: 5px 0 0 0; font-size: 14px; color: #666;">${dateFormatted}</p></div>`;
+      
+      if (template.pdfRightImageUrl) {
+        headerHtml += `<div style="flex: 1; text-align: right;"><img src="${template.pdfRightImageUrl}" style="max-height: 80px; max-width: 200px;" /></div>`;
+      } else {
+        headerHtml += '<div style="flex: 1;"></div>';
+      }
+      
+      headerHtml += '</div>';
+      
+      // Build content HTML
+      let contentHtml = `<h2 style="margin-top: 0;">${meeting.title || template.name}</h2>`;
+      contentHtml += `<p style="color: #666; margin-bottom: 30px;">${dateFormatted}</p>`;
+      
+      // Add field values
+      for (const field of fields.sort((a, b) => a.sortOrder - b.sortOrder)) {
+        const fieldValue = fieldValues.find(fv => fv.fieldId === field.id);
+        contentHtml += `<div style="margin-bottom: 20px;">`;
+        contentHtml += `<h3 style="font-size: 16px; margin-bottom: 10px; color: #333;">${field.fieldName}</h3>`;
+        
+        if (field.fieldType === 'attendees' && fieldValue?.attendeeIds) {
+          // attendeeIds is already a string array from the database
+          const attendeeIds = Array.isArray(fieldValue.attendeeIds) ? fieldValue.attendeeIds : [];
+          const attendeeNames = attendeeIds.map((id: string) => {
+            const user = users.find((u: any) => u.id === id);
+            return user ? `${user.preferredName || user.firstName} ${user.lastName}` : '';
+          }).filter(Boolean);
+          contentHtml += `<p style="margin: 0;">${attendeeNames.join(', ') || 'None'}</p>`;
+        } else if (field.fieldType === 'location' && fieldValue?.locationId) {
+          const location = locations.find((l: any) => l.id === fieldValue.locationId);
+          contentHtml += `<p style="margin: 0;">${location?.name || 'Unknown'}</p>`;
+        } else if (fieldValue?.textValue) {
+          // Preserve line breaks for rich text
+          const text = fieldValue.textValue.replace(/\n/g, '<br>');
+          contentHtml += `<p style="margin: 0; white-space: pre-wrap;">${text}</p>`;
+        } else {
+          contentHtml += `<p style="margin: 0; color: #999;">N/A</p>`;
+        }
+        
+        contentHtml += `</div>`;
+      }
+      
+      // Complete HTML
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              line-height: 1.6; 
+              color: #333;
+              padding: 20px;
+            }
+            h1, h2, h3 { 
+              font-weight: normal; 
+            }
+          </style>
+        </head>
+        <body>
+          ${headerHtml}
+          ${contentHtml}
+        </body>
+        </html>
+      `;
+      
+      // Generate PDF
+      const pdfBuffer = await generatePdfFromHtml(htmlContent);
+      
+      // Set headers for PDF download
+      const fileName = `${meeting.title || template.name} - ${dateFormatted}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.send(pdfBuffer);
+      
+    } catch (error: any) {
+      console.error("Failed to generate meeting PDF:", error);
+      res.status(500).send(error.message || "Failed to generate PDF");
+    }
+  });
+
+  // Meeting email sending endpoint
+  app.post("/api/meetings/:id/send-email", canEditMeetings, async (req, res) => {
+    try {
+      const { getUncachableOutlookClient } = await import("./outlook");
+      const { generatePdfFromHtml } = await import("./pdfGenerator");
+      
+      // Fetch meeting data
+      const meeting = await storage.getMeeting(req.params.id);
+      if (!meeting) {
+        return res.status(404).send("Meeting not found");
+      }
+      
+      // Validate templateId before fetching
+      if (!meeting.templateId) {
+        return res.status(400).send("Meeting has no template assigned");
+      }
+      
+      // Fetch template
+      const template = await storage.getMeetingTemplate(meeting.templateId);
+      if (!template) {
+        return res.status(404).send("Meeting template not found");
+      }
+      
+      if (!template.emailSubjectTemplate) {
+        return res.status(400).send("Email template not configured for this meeting type");
+      }
+      
+      // Format email subject (replace {{date}} with meeting date)
+      const dateFormatted = format(new Date(meeting.meetingDate), "MMMM d, yyyy");
+      const subject = template.emailSubjectTemplate.replace(/\{\{date\}\}/g, dateFormatted);
+      
+      // Fetch field values
+      const fieldValues = await storage.getMeetingFieldValues(meeting.id);
+      const fields = await storage.getTemplateFields(meeting.templateId);
+      const users = await storage.getAllUsers();
+      const locations = await storage.getAllLocations();
+      
+      // Build email body
+      let emailBody = template.emailBodyPrefix ? `${template.emailBodyPrefix}\n\n` : '';
+      emailBody += `<h2>${meeting.title || template.name}</h2>`;
+      emailBody += `<p><strong>Date:</strong> ${dateFormatted}</p>\n\n`;
+      
+      // Add field values to email body
+      for (const field of fields.sort((a, b) => a.sortOrder - b.sortOrder)) {
+        const fieldValue = fieldValues.find(fv => fv.fieldId === field.id);
+        emailBody += `<p><strong>${field.fieldName}:</strong><br>`;
+        
+        if (field.fieldType === 'attendees' && fieldValue?.attendeeIds) {
+          // attendeeIds is already a string array from the database
+          const attendeeIds = Array.isArray(fieldValue.attendeeIds) ? fieldValue.attendeeIds : [];
+          const attendeeNames = attendeeIds.map((id: string) => {
+            const user = users.find((u: any) => u.id === id);
+            return user ? `${user.preferredName || user.firstName} ${user.lastName}` : '';
+          }).filter(Boolean);
+          emailBody += attendeeNames.join(', ') || 'None';
+        } else if (field.fieldType === 'location' && fieldValue?.locationId) {
+          const location = locations.find((l: any) => l.id === fieldValue.locationId);
+          emailBody += location?.name || 'Unknown';
+        } else if (fieldValue?.textValue) {
+          emailBody += fieldValue.textValue.replace(/\n/g, '<br>');
+        } else {
+          emailBody += 'N/A';
+        }
+        
+        emailBody += '</p>\n';
+      }
+      
+      // Generate PDF for attachment (using the same logic as PDF endpoint)
+      const dateFormattedFile = format(new Date(meeting.meetingDate), "MMMM d, yyyy");
+      
+      let headerHtml = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #333;">';
+      if (template.pdfLeftImageUrl) {
+        headerHtml += `<div style="flex: 1;"><img src="${template.pdfLeftImageUrl}" style="max-height: 80px; max-width: 200px;" /></div>`;
+      } else {
+        headerHtml += '<div style="flex: 1;"></div>';
+      }
+      headerHtml += `<div style="flex: 2; text-center;"><h1 style="margin: 0; font-size: 24px;">${template.pdfTitle || template.name}</h1><p style="margin: 5px 0 0 0; font-size: 14px; color: #666;">${dateFormattedFile}</p></div>`;
+      if (template.pdfRightImageUrl) {
+        headerHtml += `<div style="flex: 1; text-align: right;"><img src="${template.pdfRightImageUrl}" style="max-height: 80px; max-width: 200px;" /></div>`;
+      } else {
+        headerHtml += '<div style="flex: 1;"></div>';
+      }
+      headerHtml += '</div>';
+      
+      let contentHtml = `<h2 style="margin-top: 0;">${meeting.title || template.name}</h2>`;
+      contentHtml += `<p style="color: #666; margin-bottom: 30px;">${dateFormattedFile}</p>`;
+      
+      for (const field of fields.sort((a, b) => a.sortOrder - b.sortOrder)) {
+        const fieldValue = fieldValues.find(fv => fv.fieldId === field.id);
+        contentHtml += `<div style="margin-bottom: 20px;">`;
+        contentHtml += `<h3 style="font-size: 16px; margin-bottom: 10px; color: #333;">${field.fieldName}</h3>`;
+        
+        if (field.fieldType === 'attendees' && fieldValue?.attendeeIds) {
+          // attendeeIds is already a string array from the database
+          const attendeeIds = Array.isArray(fieldValue.attendeeIds) ? fieldValue.attendeeIds : [];
+          const attendeeNames = attendeeIds.map((id: string) => {
+            const user = users.find((u: any) => u.id === id);
+            return user ? `${user.preferredName || user.firstName} ${user.lastName}` : '';
+          }).filter(Boolean);
+          contentHtml += `<p style="margin: 0;">${attendeeNames.join(', ') || 'None'}</p>`;
+        } else if (field.fieldType === 'location' && fieldValue?.locationId) {
+          const location = locations.find((l: any) => l.id === fieldValue.locationId);
+          contentHtml += `<p style="margin: 0;">${location?.name || 'Unknown'}</p>`;
+        } else if (fieldValue?.textValue) {
+          const text = fieldValue.textValue.replace(/\n/g, '<br>');
+          contentHtml += `<p style="margin: 0; white-space: pre-wrap;">${text}</p>`;
+        } else {
+          contentHtml += `<p style="margin: 0; color: #999;">N/A</p>`;
+        }
+        
+        contentHtml += `</div>`;
+      }
+      
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              line-height: 1.6; 
+              color: #333;
+              padding: 20px;
+            }
+            h1, h2, h3 { 
+              font-weight: normal; 
+            }
+          </style>
+        </head>
+        <body>
+          ${headerHtml}
+          ${contentHtml}
+        </body>
+        </html>
+      `;
+      
+      const pdfBuffer = await generatePdfFromHtml(htmlContent);
+      const pdfBase64 = pdfBuffer.toString('base64');
+      const pdfFileName = `${meeting.title || template.name} - ${dateFormattedFile}.pdf`;
+      
+      // Parse email recipients (ensure they're arrays)
+      const toEmails: string[] = Array.isArray(template.emailTo) ? template.emailTo : (template.emailTo ? [template.emailTo as string] : []);
+      const ccEmails: string[] = Array.isArray(template.emailCc) ? template.emailCc : (template.emailCc ? [template.emailCc as string] : []);
+      const bccEmails: string[] = Array.isArray(template.emailBcc) ? template.emailBcc : (template.emailBcc ? [template.emailBcc as string] : []);
+      
+      // Get Outlook client and send email
+      const client = await getUncachableOutlookClient();
+      
+      const message = {
+        subject,
+        body: {
+          contentType: 'HTML',
+          content: emailBody,
+        },
+        toRecipients: toEmails.filter(e => e).map(email => ({
+          emailAddress: { address: email }
+        })),
+        ccRecipients: ccEmails.filter(e => e).map(email => ({
+          emailAddress: { address: email }
+        })),
+        bccRecipients: bccEmails.filter(e => e).map(email => ({
+          emailAddress: { address: email }
+        })),
+        attachments: [
+          {
+            "@odata.type": "#microsoft.graph.fileAttachment",
+            "name": pdfFileName,
+            "contentType": "application/pdf",
+            "contentBytes": pdfBase64
+          }
+        ]
+      };
+      
+      await client.api('/me/sendMail').post({ message });
+      
+      res.json({ success: true, message: "Email sent successfully with PDF attachment" });
+    } catch (error: any) {
+      console.error("Meeting email sending error:", error);
+      res.status(500).json({ 
+        error: "Failed to send email", 
+        message: error.message || "Unknown error" 
+      });
+    }
   });
 
   // User Permissions Routes (Admin only)
