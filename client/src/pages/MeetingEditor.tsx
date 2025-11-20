@@ -490,10 +490,11 @@ export default function MeetingEditor() {
               <Button
                 variant="destructive"
                 onClick={() => setDeleteDialogOpen(true)}
+                disabled={deleteMeetingMutation.isPending}
                 data-testid="button-delete"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Delete Meeting
+                {deleteMeetingMutation.isPending ? "Deleting..." : "Delete Meeting"}
               </Button>
             )}
             <div className="flex gap-4 ml-auto">
@@ -529,9 +530,15 @@ export default function MeetingEditor() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteMeetingMutation.mutate()} data-testid="button-confirm-delete">
-              Delete
+            <AlertDialogCancel data-testid="button-cancel-delete" disabled={deleteMeetingMutation.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => deleteMeetingMutation.mutate()} 
+              disabled={deleteMeetingMutation.isPending}
+              data-testid="button-confirm-delete"
+            >
+              {deleteMeetingMutation.isPending ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
