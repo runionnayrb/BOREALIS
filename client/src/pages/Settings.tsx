@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit, Settings as SettingsIcon, Shield, UserCircle2, GripVertical, KeyRound, Copy, Check, Archive, Info } from "lucide-react";
+import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit, Settings as SettingsIcon, Shield, UserCircle2, GripVertical, KeyRound, Copy, Check, Archive, Info, ChevronDown, ChevronRight } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -44,7 +45,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import type { 
-  Scene, Act, Cue, Department, LocationType, Location, ArtistGroup, Artist, Technician, ArtisticStaff, ReportTemplate, SafeUser, UserGroup, DepartmentRole
+  Scene, Act, Cue, Department, LocationType, Location, ArtistGroup, Artist, Technician, ArtisticStaff, ReportTemplate, SafeUser, UserGroup, DepartmentRole, MeetingTemplate
 } from "@shared/schema";
 import { cueTypes, type CueType } from "@shared/schema";
 
@@ -123,6 +124,10 @@ export default function Settings() {
   const [orderedArtists, setOrderedArtists] = useState<Artist[]>([]);
 
   // Local state for technician ordering
+  
+  // Collapsible template sections
+  const [trainingReportTemplateOpen, setTrainingReportTemplateOpen] = useState(false);
+  const [meetingTemplateOpenStates, setMeetingTemplateOpenStates] = useState<Record<string, boolean>>({});
   const [orderedTechnicians, setOrderedTechnicians] = useState<Technician[]>([]);
 
   // Optimistic state for technician reordering per department

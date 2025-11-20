@@ -24,7 +24,6 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useQueryParams } from "@/hooks/use-query-params";
-import ReportHeader from "@/components/ReportHeader";
 import { Link } from "wouter";
 import type { MeetingTemplate, Meeting } from "@shared/schema";
 import { format } from "date-fns";
@@ -92,7 +91,6 @@ export default function Meetings() {
 
   return (
     <div className="flex flex-col h-screen">
-      <ReportHeader dateString={format(new Date(), "MMMM d, yyyy")} />
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
