@@ -454,10 +454,13 @@ export default function MeetingView() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="email-body">Email Body</Label>
-              <div
-                className="min-h-[300px] border rounded-md p-4 bg-card text-card-foreground overflow-auto prose prose-sm max-w-none dark:prose-invert [&_ul]:list-disc [&_ul]:ml-6 [&_ol]:list-decimal [&_ol]:ml-6 [&_li]:my-1 [&_*]:!text-card-foreground [&_strong]:!text-card-foreground [&_p]:!text-card-foreground [&_hr]:!border-border"
-                dangerouslySetInnerHTML={{ __html: emailBody }}
-                data-testid="preview-email-body"
+              <Textarea
+                id="email-body"
+                value={emailBody}
+                onChange={(e) => setEmailBody(e.target.value)}
+                placeholder="Edit email body before sending"
+                className="min-h-[300px] resize-none"
+                data-testid="input-email-body"
               />
             </div>
           </div>

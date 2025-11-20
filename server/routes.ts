@@ -3222,7 +3222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const users = await storage.getAllUsers();
       const locations = await storage.getAllLocations();
 
-      let emailBody = template.emailBodyPrefix ? `${template.emailBodyPrefix}\n\n` : '';
+      let emailBody = template.emailBodyPrefix ? `${template.emailBodyPrefix}\n\n<br><br>` : '';
 
       const sortedFields = fields.sort((a, b) => a.sortOrder - b.sortOrder);
       for (let i = 0; i < sortedFields.length; i++) {
@@ -3299,7 +3299,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const locations = await storage.getAllLocations();
       
       // Build email body
-      let emailBody = template.emailBodyPrefix ? `${template.emailBodyPrefix}\n\n` : '';
+      let emailBody = template.emailBodyPrefix ? `${template.emailBodyPrefix}\n\n<br><br>` : '';
       
       // Add field values to email body
       const sortedFields = fields.sort((a, b) => a.sortOrder - b.sortOrder);
