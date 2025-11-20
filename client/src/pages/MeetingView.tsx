@@ -33,29 +33,18 @@ const stripHtml = (html: string): string => {
 const plainTextToHtml = (text: string): string => {
   const lines = text.split('\n');
   const result: string[] = [];
-  let inList = false;
-  let listType = '';
   
-  lines.forEach((line, index) => {
+  lines.forEach((line) => {
     const trimmed = line.trim();
     
     if (!trimmed) {
-      if (result.length > 0 && !result[result.length - 1].includes('</ul>') && !result[result.length - 1].includes('</ol>')) {
-        if (inList) {
-          result.push(listType === 'ol' ? '</ol>' : '</ul>');
-          inList = false;
-        }
-      }
+      // Preserve some spacing for empty lines
       return;
     }
     
     const escaped = trimmed.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    result.push(`<p>${escaped}</p>`);
+    result.push(`<p style="margin: 8px 0;">${escaped}</p>`);
   });
-  
-  if (inList) {
-    result.push(listType === 'ol' ? '</ol>' : '</ul>');
-  }
   
   return result.join('\n');
 };
@@ -507,7 +496,19 @@ export default function MeetingView() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email-body">Email Body</Label>
+              <Label>Email Preview</Label>
+              <div 
+                className="border rounded-md p-4 bg-muted min-h-[200px] overflow-auto text-sm whitespace-pre-wrap font-mono"
+                style={{
+                  fontFamily: "system-ui, -apple-system, sans-serif",
+                  lineHeight: "1.5"
+                }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(plainTextToHtml(emailBody)) }}
+                data-testid="preview-email-body"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email-body">Edit Email Body</Label>
               <Textarea
                 id="email-body"
                 value={emailBody}
