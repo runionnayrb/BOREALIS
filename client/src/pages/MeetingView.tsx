@@ -221,18 +221,6 @@ export default function MeetingView() {
       <Card>
         <CardHeader>
           <div className="space-y-4">
-            <div>
-              <Label>Meeting Type</Label>
-              <div className="text-lg font-semibold mt-1" data-testid="display-meeting-type">
-                {template?.name || "Unknown Type"}
-              </div>
-            </div>
-            <div>
-              <Label>Meeting Date</Label>
-              <div className="text-lg font-semibold mt-1" data-testid="display-meeting-date">
-                {format(new Date(meeting.meetingDate), "EEEE, MMMM d, yyyy")}
-              </div>
-            </div>
             {meeting.title && (
               <div>
                 <Label>Title</Label>
@@ -241,18 +229,24 @@ export default function MeetingView() {
                 </div>
               </div>
             )}
+            <div>
+              <Label>Meeting Date</Label>
+              <div className="text-lg font-semibold mt-1" data-testid="display-meeting-date">
+                {format(new Date(meeting.meetingDate), "EEEE, MMMM d, yyyy")}
+              </div>
+            </div>
           </div>
         </CardHeader>
       </Card>
 
       {/* Meeting Fields */}
-      {templateFields.map((field) => (
-        <Card key={field.id}>
-          <CardContent className="pt-6">
+      <div className="space-y-6">
+        {templateFields.map((field) => (
+          <div key={field.id}>
             {renderFieldValue(field)}
-          </CardContent>
-        </Card>
-      ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

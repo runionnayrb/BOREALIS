@@ -443,19 +443,6 @@ export default function MeetingEditor() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="date" data-testid="label-meeting-date">
-                  Meeting Date <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={meetingDate}
-                  onChange={(e) => setMeetingDate(e.target.value)}
-                  data-testid="input-meeting-date"
-                />
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="title" data-testid="label-meeting-title">
                   Meeting
                 </Label>
@@ -469,6 +456,19 @@ export default function MeetingEditor() {
                       : "Enter meeting title"
                   }
                   data-testid="input-meeting-title"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="date" data-testid="label-meeting-date">
+                  Meeting Date <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={meetingDate}
+                  onChange={(e) => setMeetingDate(e.target.value)}
+                  data-testid="input-meeting-date"
                 />
               </div>
             </CardContent>
