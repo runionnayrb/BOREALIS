@@ -2513,6 +2513,251 @@ export default function Settings() {
     );
   };
 
+  const SortableMeetingTemplateCard = ({ template }: { template: MeetingTemplateWithFields }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: template.id });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+      <Collapsible
+        open={meetingTemplateOpenStates[template.id] || false}
+        onOpenChange={(open) =>
+          setMeetingTemplateOpenStates((prev) => ({
+            ...prev,
+            [template.id]: open,
+          }))
+        }
+      >
+        <Card ref={setNodeRef} style={style}>
+          <CollapsibleTrigger className="w-full">
+            <div className="flex items-center gap-3 p-4 hover-elevate">
+              <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing" onClick={(e) => e.stopPropagation()}>
+                <GripVertical className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <h2 className="text-lg font-semibold flex-1 text-left">{template.name}</h2>
+              {meetingTemplateOpenStates[template.id] ? (
+                <ChevronDown className="w-5 h-5" />
+              ) : (
+                <ChevronRight className="w-5 h-5" />
+              )}
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="px-6 pb-6 space-y-4 border-t">
+              <p className="text-sm text-muted-foreground mt-4">
+                This header design will be used for {template.name.toLowerCase()} PDFs
+              </p>
+              <ReportHeader
+                leftImageUrl={meetingTemplateEdits[template.id]?.pdfLeftImageUrl ?? template.pdfLeftImageUrl ?? ""}
+                middleTitle={meetingTemplateEdits[template.id]?.pdfTitle ?? template.pdfTitle ?? ""}
+                rightImageUrl={meetingTemplateEdits[template.id]?.pdfRightImageUrl ?? template.pdfRightImageUrl ?? ""}
+                dateString="Thursday, October 9, 2025"
+                onLeftImageChange={(url) => {
+                  setMeetingTemplateEdits((prev) => ({
+                    ...prev,
+                    [template.id]: { ...prev[template.id], pdfLeftImageUrl: url || null }
+                  }));
+                }}
+                onMiddleTitleChange={(title) => {
+                  setMeetingTemplateEdits((prev) => ({
+                    ...prev,
+                    [template.id]: { ...prev[template.id], pdfTitle: title || null }
+                  }));
+                }}
+                onRightImageChange={(url) => {
+                  setMeetingTemplateEdits((prev) => ({
+                    ...prev,
+                    [template.id]: { ...prev[template.id], pdfRightImageUrl: url || null }
+                  }));
+                }}
+              />
+              
+              <div className="mt-8 space-y-6 border-t pt-6">
+                <div>
+                  <h3 className="text-md font-semibold mb-4">Distro Settings</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Configure email distribution for {template.name.toLowerCase()}
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Subject Line Template
+                    </label>
+                    <Input
+                      value={meetingTemplateEdits[template.id]?.emailSubjectTemplate ?? template.emailSubjectTemplate ?? ""}
+                      onChange={(e) => {
+                        setMeetingTemplateEdits((prev) => ({
+                          ...prev,
+                          [template.id]: { ...prev[template.id], emailSubjectTemplate: e.target.value || null }
+                        }));
+                      }}
+                      placeholder={`e.g., ${template.name} - {{date}}`}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Use {'{{date}}'} to insert the meeting date
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Email Body Prefix
+                    </label>
+                    <Textarea
+                      value={meetingTemplateEdits[template.id]?.emailBodyPrefix ?? template.emailBodyPrefix ?? ""}
+                      onChange={(e) => {
+                        setMeetingTemplateEdits((prev) => ({
+                          ...prev,
+                          [template.id]: { ...prev[template.id], emailBodyPrefix: e.target.value || null }
+                        }));
+                      }}
+                      placeholder="Enter text that will appear before the meeting details..."
+                      rows={4}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      To Recipients
+                    </label>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      {template.emailTo || "No recipients configured"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      CC Recipients
+                    </label>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      {template.emailCc || "No CC recipients"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      BCC Recipients
+                    </label>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      {template.emailBcc || "No BCC recipients"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 space-y-6 border-t pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-md font-semibold">Custom Fields</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Define fields for this meeting type
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCurrentTemplateId(template.id);
+                      setFieldDialogOpen(true);
+                    }}
+                    data-testid={`button-add-field-${template.id}`}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Field
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  {allMeetingTemplateFields.filter(f => f.templateId === template.id).length > 0 ? (
+                    allMeetingTemplateFields
+                      .filter(f => f.templateId === template.id)
+                      .sort((a, b) => a.sortOrder - b.sortOrder)
+                      .map((field) => (
+                        <Card key={field.id} className="p-3 flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{field.fieldName}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Type: {field.fieldType}
+                              {field.required === 1 && " • Required"}
+                              {field.fieldType === 'dropdown' && field.dropdownOptions && 
+                                ` • Options: ${field.dropdownOptions.join(', ')}`
+                              }
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={!template.id || updateFieldMutation.isPending}
+                              onClick={() => {
+                                setEditingField(field);
+                                setCurrentTemplateId(template.id);
+                                setFieldDialogOpen(true);
+                              }}
+                              data-testid={`button-edit-field-${field.id}`}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={!template.id || deleteFieldMutation.isPending}
+                              onClick={() => {
+                                if (confirm(`Delete field "${field.fieldName}"?`)) {
+                                  deleteFieldMutation.mutate({ 
+                                    id: field.id, 
+                                    templateId: template.id 
+                                  });
+                                }
+                              }}
+                              data-testid={`button-delete-field-${field.id}`}
+                            >
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </Card>
+                      ))
+                  ) : (
+                    <Card className="p-6 text-center text-muted-foreground">
+                      <p>No fields yet. Click "Add Field" to create one.</p>
+                    </Card>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <Button
+                  onClick={() => {
+                    const edits = meetingTemplateEdits[template.id];
+                    if (edits && Object.keys(edits).length > 0) {
+                      saveMeetingTemplateMutation.mutate({ id: template.id, updates: edits });
+                    }
+                  }}
+                  disabled={saveMeetingTemplateMutation.isPending || !meetingTemplateEdits[template.id]}
+                  data-testid={`button-save-meeting-template-${template.id}`}
+                >
+                  {saveMeetingTemplateMutation.isPending ? "Saving..." : "Save Template"}
+                </Button>
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+    );
+  };
+
   const SortableArtistCard = ({ artist }: { artist: Artist }) => {
     const {
       attributes,
@@ -3268,239 +3513,13 @@ export default function Settings() {
             
             <DndContext sensors={meetingTemplateDragSensors} collisionDetection={closestCenter} onDragEnd={handleMeetingTemplateDragEnd}>
               <SortableContext items={orderedMeetingTemplates.filter(t => t.isActive === 1).map(t => t.id)} strategy={verticalListSortingStrategy}>
-                {orderedMeetingTemplates
-                  .filter((template) => template.isActive === 1)
-                  .map((template) => (
-                    <Collapsible
-                      key={template.id}
-                      open={meetingTemplateOpenStates[template.id] || false}
-                      onOpenChange={(open) =>
-                        setMeetingTemplateOpenStates((prev) => ({
-                          ...prev,
-                          [template.id]: open,
-                        }))
-                      }
-                    >
-                      <Card>
-                        <CollapsibleTrigger className="w-full">
-                          <div className="flex items-center gap-3 p-4 hover-elevate">
-                            <div 
-                              onClick={(e) => e.stopPropagation()} 
-                              className="cursor-grab active:cursor-grabbing"
-                            >
-                              <GripVertical className="w-4 h-4 text-muted-foreground" />
-                            </div>
-                            <h2 className="text-lg font-semibold flex-1 text-left">{template.name}</h2>
-                            {meetingTemplateOpenStates[template.id] ? (
-                              <ChevronDown className="w-5 h-5" />
-                            ) : (
-                              <ChevronRight className="w-5 h-5" />
-                            )}
-                          </div>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                          <div className="px-6 pb-6 space-y-4 border-t">
-                            <p className="text-sm text-muted-foreground mt-4">
-                              This header design will be used for {template.name.toLowerCase()} PDFs
-                            </p>
-                            <ReportHeader
-                          leftImageUrl={meetingTemplateEdits[template.id]?.pdfLeftImageUrl ?? template.pdfLeftImageUrl ?? ""}
-                          middleTitle={meetingTemplateEdits[template.id]?.pdfTitle ?? template.pdfTitle ?? ""}
-                          rightImageUrl={meetingTemplateEdits[template.id]?.pdfRightImageUrl ?? template.pdfRightImageUrl ?? ""}
-                          dateString="Thursday, October 9, 2025"
-                          onLeftImageChange={(url) => {
-                            setMeetingTemplateEdits((prev) => ({
-                              ...prev,
-                              [template.id]: { ...prev[template.id], pdfLeftImageUrl: url || null }
-                            }));
-                          }}
-                          onMiddleTitleChange={(title) => {
-                            setMeetingTemplateEdits((prev) => ({
-                              ...prev,
-                              [template.id]: { ...prev[template.id], pdfTitle: title || null }
-                            }));
-                          }}
-                          onRightImageChange={(url) => {
-                            setMeetingTemplateEdits((prev) => ({
-                              ...prev,
-                              [template.id]: { ...prev[template.id], pdfRightImageUrl: url || null }
-                            }));
-                          }}
-                        />
-                        
-                        <div className="mt-8 space-y-6 border-t pt-6">
-                          <div>
-                            <h3 className="text-md font-semibold mb-4">Distro Settings</h3>
-                            <p className="text-sm text-muted-foreground mb-4">
-                              Configure email distribution for {template.name.toLowerCase()}
-                            </p>
-                          </div>
-
-                          <div className="space-y-4">
-                            <div>
-                              <label className="text-sm font-medium mb-2 block">
-                                Subject Line Template
-                              </label>
-                              <Input
-                                value={meetingTemplateEdits[template.id]?.emailSubjectTemplate ?? template.emailSubjectTemplate ?? ""}
-                                onChange={(e) => {
-                                  setMeetingTemplateEdits((prev) => ({
-                                    ...prev,
-                                    [template.id]: { ...prev[template.id], emailSubjectTemplate: e.target.value || null }
-                                  }));
-                                }}
-                                placeholder={`e.g., ${template.name} - {{date}}`}
-                              />
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Use {'{{date}}'} to insert the meeting date
-                              </p>
-                            </div>
-
-                            <div>
-                              <label className="text-sm font-medium mb-2 block">
-                                Email Body Prefix
-                              </label>
-                              <Textarea
-                                value={meetingTemplateEdits[template.id]?.emailBodyPrefix ?? template.emailBodyPrefix ?? ""}
-                                onChange={(e) => {
-                                  setMeetingTemplateEdits((prev) => ({
-                                    ...prev,
-                                    [template.id]: { ...prev[template.id], emailBodyPrefix: e.target.value || null }
-                                  }));
-                                }}
-                                placeholder="Enter text that will appear before the meeting details..."
-                                rows={4}
-                              />
-                            </div>
-
-                            <div>
-                              <label className="text-sm font-medium mb-2 block">
-                                To Recipients
-                              </label>
-                              <p className="text-xs text-muted-foreground mb-2">
-                                {template.emailTo || "No recipients configured"}
-                              </p>
-                            </div>
-
-                            <div>
-                              <label className="text-sm font-medium mb-2 block">
-                                CC Recipients
-                              </label>
-                              <p className="text-xs text-muted-foreground mb-2">
-                                {template.emailCc || "No CC recipients"}
-                              </p>
-                            </div>
-
-                            <div>
-                              <label className="text-sm font-medium mb-2 block">
-                                BCC Recipients
-                              </label>
-                              <p className="text-xs text-muted-foreground mb-2">
-                                {template.emailBcc || "No BCC recipients"}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Field Management Section */}
-                        <div className="mt-8 space-y-6 border-t pt-6">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h3 className="text-md font-semibold mb-2">Meeting Fields</h3>
-                              <p className="text-sm text-muted-foreground">
-                                Add custom fields for this meeting type
-                              </p>
-                            </div>
-                            <Button
-                              size="sm"
-                              onClick={() => {
-                                setCurrentTemplateId(template.id);
-                                setEditingField(null);
-                                setFieldDialogOpen(true);
-                              }}
-                              data-testid={`button-add-field-${template.id}`}
-                            >
-                              <Plus className="w-4 h-4 mr-2" />
-                              Add Field
-                            </Button>
-                          </div>
-
-                          <div className="space-y-2">
-                            {allMeetingTemplateFields
-                              .filter(f => f.templateId === template.id)
-                              .sort((a, b) => a.sortOrder - b.sortOrder)
-                              .map((field) => (
-                                <Card key={field.id} className="p-3 flex items-center justify-between hover-elevate">
-                                  <div className="flex items-center gap-3">
-                                    <GripVertical className="w-4 h-4 text-muted-foreground" />
-                                    <div>
-                                      <p className="font-medium">{field.fieldName}</p>
-                                      <p className="text-sm text-muted-foreground">
-                                        {field.fieldType}
-                                        {field.required === 1 && " • Required"}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      disabled={!template.id}
-                                      onClick={() => {
-                                        setEditingField(field);
-                                        setCurrentTemplateId(template.id);
-                                        setFieldDialogOpen(true);
-                                      }}
-                                      data-testid={`button-edit-field-${field.id}`}
-                                    >
-                                      <Edit className="w-4 h-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      disabled={!template.id || deleteFieldMutation.isPending}
-                                      onClick={() => {
-                                        if (confirm(`Delete field "${field.fieldName}"?`)) {
-                                          deleteFieldMutation.mutate({ 
-                                            id: field.id, 
-                                            templateId: template.id 
-                                          });
-                                        }
-                                      }}
-                                      data-testid={`button-delete-field-${field.id}`}
-                                    >
-                                      <Trash2 className="w-4 h-4 text-destructive" />
-                                    </Button>
-                                  </div>
-                                </Card>
-                              ))}
-                            {allMeetingTemplateFields.filter(f => f.templateId === template.id).length === 0 && (
-                              <Card className="p-6 text-center text-muted-foreground">
-                                <p>No fields yet. Click "Add Field" to create one.</p>
-                              </Card>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="mt-6">
-                          <Button
-                            onClick={() => {
-                              const edits = meetingTemplateEdits[template.id];
-                              if (edits && Object.keys(edits).length > 0) {
-                                saveMeetingTemplateMutation.mutate({ id: template.id, updates: edits });
-                              }
-                            }}
-                            disabled={saveMeetingTemplateMutation.isPending || !meetingTemplateEdits[template.id]}
-                            data-testid={`button-save-meeting-template-${template.id}`}
-                          >
-                            {saveMeetingTemplateMutation.isPending ? "Saving..." : "Save Template"}
-                          </Button>
-                        </div>
-                      </div>
-                    </CollapsibleContent>
-                  </Card>
-                </Collapsible>
-              ))}
+                <div className="space-y-4">
+                  {orderedMeetingTemplates
+                    .filter((template) => template.isActive === 1)
+                    .map((template) => (
+                      <SortableMeetingTemplateCard key={template.id} template={template} />
+                    ))}
+                </div>
               </SortableContext>
             </DndContext>
           </TabsContent>
