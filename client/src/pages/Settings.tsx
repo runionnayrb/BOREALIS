@@ -2631,6 +2631,37 @@ export default function Settings() {
     );
   };
 
+  const MeetingTemplateHeaderForm = ({ template, formRef }: { template: MeetingTemplateWithFields; formRef: React.MutableRefObject<{ pdfLeftImageUrl: string; pdfTitle: string; pdfRightImageUrl: string }> }) => {
+    const [leftImage, setLeftImage] = useState(template.pdfLeftImageUrl || "");
+    const [title, setTitle] = useState(template.pdfTitle || "");
+    const [rightImage, setRightImage] = useState(template.pdfRightImageUrl || "");
+
+    useEffect(() => {
+      setLeftImage(template.pdfLeftImageUrl || "");
+      setTitle(template.pdfTitle || "");
+      setRightImage(template.pdfRightImageUrl || "");
+    }, [template.id]);
+
+    formRef.current = { pdfLeftImageUrl: leftImage, pdfTitle: title, pdfRightImageUrl: rightImage };
+
+    return (
+      <>
+        <p className="text-sm text-muted-foreground mt-4">
+          This header design will be used for {template.name.toLowerCase()} PDFs
+        </p>
+        <ReportHeader
+          leftImageUrl={leftImage}
+          middleTitle={title}
+          rightImageUrl={rightImage}
+          dateString="Thursday, October 9, 2025"
+          onLeftImageChange={setLeftImage}
+          onMiddleTitleChange={setTitle}
+          onRightImageChange={setRightImage}
+        />
+      </>
+    );
+  };
+
   // Sortable field component
   const MeetingTemplateDistroForm = ({ template, formRef }: { template: MeetingTemplateWithFields; formRef: React.MutableRefObject<{ emailSubject: string; emailBodyPrefix: string; emailTo: string; emailCc: string; emailBcc: string }> }) => {
     const [emailSubject, setEmailSubject] = useState(template.emailSubjectTemplate || "");
@@ -2820,7 +2851,17 @@ export default function Settings() {
     // Get ordered fields for this template
     const templateFields = orderedFieldsByTemplate.get(template.id) || [];
     
-    // Use ref to store distro form state to avoid parent re-renders
+    // Use refs to store form state to avoid parent re-renders
+    const headerFormRef = useRef<{
+      pdfLeftImageUrl: string;
+      pdfTitle: string;
+      pdfRightImageUrl: string;
+    }>({
+      pdfLeftImageUrl: template.pdfLeftImageUrl || "",
+      pdfTitle: template.pdfTitle || "",
+      pdfRightImageUrl: template.pdfRightImageUrl || "",
+    });
+
     const distroFormRef = useRef<{
       emailSubject: string;
       emailBodyPrefix: string;
@@ -2861,32 +2902,9 @@ export default function Settings() {
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="px-6 pb-6 space-y-4 border-t">
-              <p className="text-sm text-muted-foreground mt-4">
-                This header design will be used for {template.name.toLowerCase()} PDFs
-              </p>
-              <ReportHeader
-                leftImageUrl={meetingTemplateEdits[template.id]?.pdfLeftImageUrl ?? template.pdfLeftImageUrl ?? ""}
-                middleTitle={meetingTemplateEdits[template.id]?.pdfTitle ?? template.pdfTitle ?? ""}
-                rightImageUrl={meetingTemplateEdits[template.id]?.pdfRightImageUrl ?? template.pdfRightImageUrl ?? ""}
-                dateString="Thursday, October 9, 2025"
-                onLeftImageChange={(url) => {
-                  setMeetingTemplateEdits((prev) => ({
-                    ...prev,
-                    [template.id]: { ...prev[template.id], pdfLeftImageUrl: url || null }
-                  }));
-                }}
-                onMiddleTitleChange={(title) => {
-                  setMeetingTemplateEdits((prev) => ({
-                    ...prev,
-                    [template.id]: { ...prev[template.id], pdfTitle: title || null }
-                  }));
-                }}
-                onRightImageChange={(url) => {
-                  setMeetingTemplateEdits((prev) => ({
-                    ...prev,
-                    [template.id]: { ...prev[template.id], pdfRightImageUrl: url || null }
-                  }));
-                }}
+              <MeetingTemplateHeaderForm
+                template={template}
+                formRef={headerFormRef}
               />
               
               <MeetingTemplateDistroForm
@@ -2940,19 +2958,19 @@ export default function Settings() {
               <div className="mt-6">
                 <Button
                   onClick={() => {
-                    const formData = distroFormRef.current;
-                    const edits = meetingTemplateEdits[template.id] || {};
+                    const headerData = headerFormRef.current;
+                    const distroData = distroFormRef.current;
                     const updates: Partial<MeetingTemplate> = {
-                      ...edits,
-                      emailSubjectTemplate: formData.emailSubject || null,
-                      emailBodyPrefix: formData.emailBodyPrefix || null,
-                      emailTo: formData.emailTo || null,
-                      emailCc: formData.emailCc || null,
-                      emailBcc: formData.emailBcc || null,
+                      pdfLeftImageUrl: headerData.pdfLeftImageUrl || null,
+                      pdfTitle: headerData.pdfTitle || null,
+                      pdfRightImageUrl: headerData.pdfRightImageUrl || null,
+                      emailSubjectTemplate: distroData.emailSubject || null,
+                      emailBodyPrefix: distroData.emailBodyPrefix || null,
+                      emailTo: distroData.emailTo || null,
+                      emailCc: distroData.emailCc || null,
+                      emailBcc: distroData.emailBcc || null,
                     };
-                    if (Object.keys(updates).length > 0) {
-                      saveMeetingTemplateMutation.mutate({ id: template.id, updates });
-                    }
+                    saveMeetingTemplateMutation.mutate({ id: template.id, updates });
                   }}
                   disabled={saveMeetingTemplateMutation.isPending}
                   data-testid={`button-save-meeting-template-${template.id}`}
