@@ -78,10 +78,25 @@ export default function AppSidebar() {
     return permission?.canView === 1;
   };
 
-  // Fetch meeting templates for sidebar
+  // Fetch user's template permissions
+  const { data: templatePermissions = [] } = useQuery<Array<{userId: string; templateId: string; canView: number}>>({
+    queryKey: [`/api/admin/meeting-template-permissions/user/${user?.id}`],
+    enabled: !!user?.id,
+  });
+
+  // Helper function to check if user can see Meetings sidebar
+  const canViewAnyMeetingTemplate = (): boolean => {
+    // Admins can see everything
+    if (user?.role === 'admin') return true;
+    
+    // Check if user has view permission for at least one template
+    return templatePermissions.some(p => p.canView === 1);
+  };
+
+  // Fetch meeting templates for sidebar (only templates user has access to)
   const { data: meetingTemplates = [] } = useQuery<MeetingTemplate[]>({
-    queryKey: ['/api/meeting-templates'],
-    enabled: canView('meetings'),
+    queryKey: ['/api/meeting-templates/active'],
+    enabled: canViewAnyMeetingTemplate(),
   });
 
   // Render version footer (shared across all states)
@@ -426,8 +441,8 @@ export default function AppSidebar() {
                 </SidebarMenuItem>
               )}
 
-              {/* Meetings with sub-menu - only show if user has permission */}
-              {canView('meetings') && (
+              {/* Meetings with sub-menu - only show if user has permission for at least one template */}
+              {canViewAnyMeetingTemplate() && (
                 <Collapsible open={meetingsOpen} onOpenChange={setMeetingsOpen}>
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>

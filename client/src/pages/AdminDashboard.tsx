@@ -121,7 +121,6 @@ const ROLE_LABELS: Record<string, string> = {
 
 const FEATURES = [
   'reports',
-  'meetings',
   'schedules',
   'lineups',
   'lineups_training_programs',
@@ -140,7 +139,6 @@ const FEATURES = [
 
 const FEATURE_LABELS: Record<string, string> = {
   'reports': 'Reports',
-  'meetings': 'Meetings',
   'schedules': 'Schedules',
   'lineups': 'Lineups',
   'lineups_training_programs': 'Training Programs',
@@ -795,6 +793,55 @@ export default function AdminDashboard() {
     return 'none';
   };
 
+  const getTemplatePermissionLevel = (userId: string, templateId: string): 'none' | 'view' | 'edit' | 'create' => {
+    const perm = templatePermissions?.find(p => p.userId === userId && p.templateId === templateId);
+    if (!perm) return 'none';
+    
+    if (perm.canCreate === 1) return 'create';
+    if (perm.canEdit === 1) return 'edit';
+    if (perm.canView === 1) return 'view';
+    return 'none';
+  };
+
+  const handleTemplatePermissionLevelChange = (userId: string, templateId: string, level: string) => {
+    if (!meetingTemplates || !templatePermissions) return;
+
+    let canView = 0;
+    let canEdit = 0;
+    let canCreate = 0;
+
+    if (level === 'view') {
+      canView = 1;
+    } else if (level === 'edit') {
+      canView = 1;
+      canEdit = 1;
+    } else if (level === 'create') {
+      canView = 1;
+      canEdit = 1;
+      canCreate = 1;
+    }
+
+    const userTemplatePerms = meetingTemplates.map(template => {
+      const existing = templatePermissions.find(p => p.userId === userId && p.templateId === template.id);
+      if (template.id === templateId) {
+        return {
+          templateId: template.id,
+          canView,
+          canEdit,
+          canCreate,
+        };
+      }
+      return {
+        templateId: template.id,
+        canView: existing?.canView || 0,
+        canCreate: existing?.canCreate || 0,
+        canEdit: existing?.canEdit || 0,
+      };
+    });
+
+    updateTemplatePermissionsMutation.mutate({ userId, permissions: userTemplatePerms });
+  };
+
   const handlePermissionLevelChange = (userId: string, feature: string, level: string) => {
     if (!permissions) return;
 
@@ -962,9 +1009,9 @@ export default function AdminDashboard() {
           <TabsContent value="permissions" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Permission</CardTitle>
+                <CardTitle>Permissions</CardTitle>
                 <CardDescription>
-                  Select a permission level for each feature. Create = full access, Edit = can view and edit, View = read-only. Unchecked permissions hide features from the sidebar.
+                  Select a permission level for each feature and meeting template. Create = full access, Edit = can view and edit, View = read-only. Users with "None" for all meeting templates will not see the Meetings sidebar item.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -978,6 +1025,12 @@ export default function AdminDashboard() {
                             <div className="text-xs">{FEATURE_LABELS[feature]}</div>
                           </th>
                         ))}
+                        {meetingTemplates?.map(template => (
+                          <th key={`template-${template.id}`} className="text-center p-3 font-semibold min-w-[120px]">
+                            <div className="text-xs">{template.name}</div>
+                            <div className="text-[10px] text-muted-foreground font-normal mt-1">(Meeting)</div>
+                          </th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
@@ -986,10 +1039,12 @@ export default function AdminDashboard() {
                         const groupUsers = groupedUsers[groupId] || [];
                         const groupName = group?.name || 'No Group';
                         
+                        const totalColumns = FEATURES.length + (meetingTemplates?.length || 0) + 1;
+                        
                         return [
                           /* Group header row */
                           <tr key={`group-${groupId}`} className="bg-muted/50">
-                            <td colSpan={FEATURES.length + 1} className="p-2 px-3">
+                            <td colSpan={totalColumns} className="p-2 px-3">
                               <span className="font-semibold text-sm">{groupName}</span>
                             </td>
                           </tr>,
@@ -1027,6 +1082,31 @@ export default function AdminDashboard() {
                                   </td>
                                 );
                               })}
+                              {meetingTemplates?.map(template => {
+                                const level = getTemplatePermissionLevel(u.id, template.id);
+                                
+                                return (
+                                  <td key={`template-${template.id}`} className="p-3 text-center">
+                                    <Select
+                                      value={level}
+                                      onValueChange={(value) => handleTemplatePermissionLevelChange(u.id, template.id, value)}
+                                    >
+                                      <SelectTrigger 
+                                        className="w-full text-xs h-8"
+                                        data-testid={`select-template-permission-${u.id}-${template.id}`}
+                                      >
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="none">None</SelectItem>
+                                        <SelectItem value="view">View</SelectItem>
+                                        <SelectItem value="edit">Edit</SelectItem>
+                                        <SelectItem value="create">Create</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </td>
+                                );
+                              })}
                             </tr>
                           ))
                         ];
@@ -1034,93 +1114,6 @@ export default function AdminDashboard() {
                     </tbody>
                   </table>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Meeting Template Access</CardTitle>
-                <CardDescription>
-                  Control which meeting templates each user can view, create, and edit. Users without any permissions will not see that template.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {meetingTemplates && meetingTemplates.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    No meeting templates found. Create templates in Settings first.
-                  </p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left p-3 font-semibold sticky left-0 bg-card z-10">User</th>
-                          {meetingTemplates?.map(template => (
-                            <th key={template.id} className="text-center p-3 font-semibold min-w-[120px]">
-                              <div className="text-xs">{template.name}</div>
-                              <div className="text-[10px] text-muted-foreground font-normal mt-1">V / C / E</div>
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sortedGroupIds.flatMap(groupId => {
-                          const group = userGroups?.find(g => g.id === groupId);
-                          const groupUsers = groupedUsers[groupId] || [];
-                          const groupName = group?.name || 'No Group';
-                          
-                          return [
-                            <tr key={`group-${groupId}`} className="bg-muted/50">
-                              <td colSpan={Number(meetingTemplates?.length || 0) + 1} className="p-2 px-3">
-                                <span className="font-semibold text-sm">{groupName}</span>
-                              </td>
-                            </tr>,
-                            ...groupUsers.map(u => (
-                              <tr key={u.id} className="border-b hover-elevate" data-testid={`template-perm-row-${u.id}`}>
-                                <td className="p-3 sticky left-0 bg-card z-10">
-                                  <div>
-                                    <div className="font-medium text-sm">{u.name}</div>
-                                    <div className="text-xs text-muted-foreground">{u.email}</div>
-                                  </div>
-                                </td>
-                                {meetingTemplates?.map(template => {
-                                  const perm = templatePermissions?.find(p => p.userId === u.id && p.templateId === template.id);
-                                  return (
-                                    <td key={template.id} className="p-3">
-                                      <div className="flex justify-center gap-2">
-                                        <Checkbox
-                                          checked={perm?.canView === 1}
-                                          onCheckedChange={(checked) =>
-                                            handleTemplatePermissionChange(u.id, template.id, 'canView', checked === true)
-                                          }
-                                          data-testid={`checkbox-view-${u.id}-${template.id}`}
-                                        />
-                                        <Checkbox
-                                          checked={perm?.canCreate === 1}
-                                          onCheckedChange={(checked) =>
-                                            handleTemplatePermissionChange(u.id, template.id, 'canCreate', checked === true)
-                                          }
-                                          data-testid={`checkbox-create-${u.id}-${template.id}`}
-                                        />
-                                        <Checkbox
-                                          checked={perm?.canEdit === 1}
-                                          onCheckedChange={(checked) =>
-                                            handleTemplatePermissionChange(u.id, template.id, 'canEdit', checked === true)
-                                          }
-                                          data-testid={`checkbox-edit-${u.id}-${template.id}`}
-                                        />
-                                      </div>
-                                    </td>
-                                  );
-                                })}
-                              </tr>
-                            ))
-                          ];
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </TabsContent>
