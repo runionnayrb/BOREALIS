@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, memo } from "react";
+import { useState, useEffect, useMemo, useRef, memo, useCallback } from "react";
 import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit, Settings as SettingsIcon, Shield, UserCircle2, GripVertical, KeyRound, Copy, Check, Archive, Info, ChevronDown, ChevronRight } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -2632,31 +2632,24 @@ export default function Settings() {
   };
 
   // Sortable field component
-  const MeetingTemplateDistroForm = memo(({ template, onUpdate }: { template: MeetingTemplateWithFields; onUpdate: (updates: Partial<MeetingTemplate>) => void }) => {
+  const MeetingTemplateDistroForm = ({ template, formRef }: { template: MeetingTemplateWithFields; formRef: React.MutableRefObject<{ emailSubject: string; emailBodyPrefix: string; emailTo: string; emailCc: string; emailBcc: string }> }) => {
     const [emailSubject, setEmailSubject] = useState(template.emailSubjectTemplate || "");
     const [emailBodyPrefix, setEmailBodyPrefix] = useState(template.emailBodyPrefix || "");
     const [emailTo, setEmailTo] = useState(template.emailTo || "");
     const [emailCc, setEmailCc] = useState(template.emailCc || "");
     const [emailBcc, setEmailBcc] = useState(template.emailBcc || "");
-    const [lastSyncedData, setLastSyncedData] = useState<string>("");
 
+    // Only sync on template ID change, not on template object changes
     useEffect(() => {
-      const templateData = JSON.stringify({
-        emailSubjectTemplate: template.emailSubjectTemplate,
-        emailBodyPrefix: template.emailBodyPrefix,
-        emailTo: template.emailTo,
-        emailCc: template.emailCc,
-        emailBcc: template.emailBcc,
-      });
-      if (templateData !== lastSyncedData) {
-        setEmailSubject(template.emailSubjectTemplate || "");
-        setEmailBodyPrefix(template.emailBodyPrefix || "");
-        setEmailTo(template.emailTo || "");
-        setEmailCc(template.emailCc || "");
-        setEmailBcc(template.emailBcc || "");
-        setLastSyncedData(templateData);
-      }
-    }, [template, lastSyncedData]);
+      setEmailSubject(template.emailSubjectTemplate || "");
+      setEmailBodyPrefix(template.emailBodyPrefix || "");
+      setEmailTo(template.emailTo || "");
+      setEmailCc(template.emailCc || "");
+      setEmailBcc(template.emailBcc || "");
+    }, [template.id]);
+
+    // Update ref whenever state changes (for capture on save)
+    formRef.current = { emailSubject, emailBodyPrefix, emailTo, emailCc, emailBcc };
 
     return (
       <div className="mt-8 space-y-6 border-t pt-6">
@@ -2674,10 +2667,7 @@ export default function Settings() {
             </label>
             <Input
               value={emailSubject}
-              onChange={(e) => {
-                setEmailSubject(e.target.value);
-                onUpdate({ emailSubjectTemplate: e.target.value || null });
-              }}
+              onChange={(e) => setEmailSubject(e.target.value)}
               placeholder={`e.g., ${template.name} - {{date}}`}
             />
             <p className="text-xs text-muted-foreground mt-1">
@@ -2691,10 +2681,7 @@ export default function Settings() {
             </label>
             <Textarea
               value={emailBodyPrefix}
-              onChange={(e) => {
-                setEmailBodyPrefix(e.target.value);
-                onUpdate({ emailBodyPrefix: e.target.value || null });
-              }}
+              onChange={(e) => setEmailBodyPrefix(e.target.value)}
               placeholder="Enter text that will appear before the meeting details..."
               rows={4}
             />
@@ -2706,10 +2693,7 @@ export default function Settings() {
             </label>
             <Input
               value={emailTo}
-              onChange={(e) => {
-                setEmailTo(e.target.value);
-                onUpdate({ emailTo: e.target.value || null });
-              }}
+              onChange={(e) => setEmailTo(e.target.value)}
               placeholder="email1@example.com, email2@example.com"
               data-testid={`input-email-to-${template.id}`}
             />
@@ -2724,10 +2708,7 @@ export default function Settings() {
             </label>
             <Input
               value={emailCc}
-              onChange={(e) => {
-                setEmailCc(e.target.value);
-                onUpdate({ emailCc: e.target.value || null });
-              }}
+              onChange={(e) => setEmailCc(e.target.value)}
               placeholder="email1@example.com, email2@example.com"
               data-testid={`input-email-cc-${template.id}`}
             />
@@ -2742,10 +2723,7 @@ export default function Settings() {
             </label>
             <Input
               value={emailBcc}
-              onChange={(e) => {
-                setEmailBcc(e.target.value);
-                onUpdate({ emailBcc: e.target.value || null });
-              }}
+              onChange={(e) => setEmailBcc(e.target.value)}
               placeholder="email1@example.com, email2@example.com"
               data-testid={`input-email-bcc-${template.id}`}
             />
@@ -2756,7 +2734,7 @@ export default function Settings() {
         </div>
       </div>
     );
-  });
+  };
 
   const SortableField = ({ field, template }: { field: MeetingTemplateField; template: MeetingTemplateWithFields }) => {
     const {
@@ -2841,6 +2819,21 @@ export default function Settings() {
     
     // Get ordered fields for this template
     const templateFields = orderedFieldsByTemplate.get(template.id) || [];
+    
+    // Use ref to store distro form state to avoid parent re-renders
+    const distroFormRef = useRef<{
+      emailSubject: string;
+      emailBodyPrefix: string;
+      emailTo: string;
+      emailCc: string;
+      emailBcc: string;
+    }>({
+      emailSubject: template.emailSubjectTemplate || "",
+      emailBodyPrefix: template.emailBodyPrefix || "",
+      emailTo: template.emailTo || "",
+      emailCc: template.emailCc || "",
+      emailBcc: template.emailBcc || "",
+    });
 
     return (
       <Collapsible
@@ -2898,12 +2891,7 @@ export default function Settings() {
               
               <MeetingTemplateDistroForm
                 template={template}
-                onUpdate={(updates) => {
-                  setMeetingTemplateEdits((prev) => ({
-                    ...prev,
-                    [template.id]: { ...prev[template.id], ...updates }
-                  }));
-                }}
+                formRef={distroFormRef}
               />
 
               <div className="mt-8 space-y-6 border-t pt-6">
@@ -2952,12 +2940,21 @@ export default function Settings() {
               <div className="mt-6">
                 <Button
                   onClick={() => {
-                    const edits = meetingTemplateEdits[template.id];
-                    if (edits && Object.keys(edits).length > 0) {
-                      saveMeetingTemplateMutation.mutate({ id: template.id, updates: edits });
+                    const formData = distroFormRef.current;
+                    const edits = meetingTemplateEdits[template.id] || {};
+                    const updates: Partial<MeetingTemplate> = {
+                      ...edits,
+                      emailSubjectTemplate: formData.emailSubject || null,
+                      emailBodyPrefix: formData.emailBodyPrefix || null,
+                      emailTo: formData.emailTo || null,
+                      emailCc: formData.emailCc || null,
+                      emailBcc: formData.emailBcc || null,
+                    };
+                    if (Object.keys(updates).length > 0) {
+                      saveMeetingTemplateMutation.mutate({ id: template.id, updates });
                     }
                   }}
-                  disabled={saveMeetingTemplateMutation.isPending || !meetingTemplateEdits[template.id]}
+                  disabled={saveMeetingTemplateMutation.isPending}
                   data-testid={`button-save-meeting-template-${template.id}`}
                 >
                   {saveMeetingTemplateMutation.isPending ? "Saving..." : "Save Template"}
