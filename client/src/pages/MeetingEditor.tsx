@@ -149,6 +149,12 @@ export default function MeetingEditor() {
       return;
     }
 
+    // Generate default title if not provided
+    const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
+    const defaultTitle = selectedTemplate 
+      ? `${selectedTemplate.name} - ${format(new Date(meetingDate), "d MMMM yyyy")}`
+      : null;
+
     // Prepare field values - include existing IDs when editing to avoid duplicates
     const fieldValuesArray = templateFields.map((field) => {
       const value = fieldValues[field.id];
@@ -176,7 +182,7 @@ export default function MeetingEditor() {
     saveMeetingMutation.mutate({
       templateId: selectedTemplateId,
       meetingDate,
-      title: title || null,
+      title: title || defaultTitle,
       fieldValues: fieldValuesArray,
     });
   };
@@ -397,28 +403,30 @@ export default function MeetingEditor() {
               <CardTitle>Meeting Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="template" data-testid="label-meeting-type">
-                  Meeting Type <span className="text-destructive">*</span>
-                </Label>
-                <Select 
-                  value={selectedTemplateId} 
-                  onValueChange={setSelectedTemplateId}
-                  disabled={!isNewMeeting}
-                  data-testid="select-meeting-type"
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select meeting type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activeTemplates.map((template) => (
-                      <SelectItem key={template.id} value={template.id}>
-                        {template.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {!isNewMeeting && (
+                <div className="space-y-2">
+                  <Label htmlFor="template" data-testid="label-meeting-type">
+                    Meeting Type <span className="text-destructive">*</span>
+                  </Label>
+                  <Select 
+                    value={selectedTemplateId} 
+                    onValueChange={setSelectedTemplateId}
+                    disabled={!isNewMeeting}
+                    data-testid="select-meeting-type"
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select meeting type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeTemplates.map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                          {template.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="date" data-testid="label-meeting-date">
@@ -434,15 +442,19 @@ export default function MeetingEditor() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="title" data-testid="label-custom-title">
-                  Custom Title (Optional)
+                <Label htmlFor="title" data-testid="label-meeting-title">
+                  Meeting
                 </Label>
                 <Input
                   id="title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Leave blank to use meeting type name"
-                  data-testid="input-custom-title"
+                  placeholder={
+                    selectedTemplateId 
+                      ? `${templates.find(t => t.id === selectedTemplateId)?.name || ""} - ${format(new Date(meetingDate), "d MMMM yyyy")}`
+                      : "Enter meeting title"
+                  }
+                  data-testid="input-meeting-title"
                 />
               </div>
             </CardContent>
