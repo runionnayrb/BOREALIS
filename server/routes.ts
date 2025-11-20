@@ -3193,6 +3193,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Meeting email preview endpoint
+  app.get("/api/meetings/:id/email-preview", canViewMeetings, async (req, res) => {
+    try {
+      const meeting = await storage.getMeeting(req.params.id);
+      if (!meeting) {
+        return res.status(404).send("Meeting not found");
+      }
+
+      if (!meeting.templateId) {
+        return res.status(400).send("Meeting has no template assigned");
+      }
+
+      const template = await storage.getMeetingTemplate(meeting.templateId);
+      if (!template) {
+        return res.status(404).send("Meeting template not found");
+      }
+
+      if (!template.emailSubjectTemplate) {
+        return res.status(400).send("Email template not configured");
+      }
+
+      const dateFormatted = format(new Date(meeting.meetingDate), "MMMM d, yyyy");
+      const subject = template.emailSubjectTemplate.replace(/\{\{date\}\}/g, dateFormatted);
+
+      const fieldValues = await storage.getMeetingFieldValues(meeting.id);
+      const fields = await storage.getTemplateFields(meeting.templateId);
+      const users = await storage.getAllUsers();
+      const locations = await storage.getAllLocations();
+
+      let emailBody = template.emailBodyPrefix ? `${template.emailBodyPrefix}\n\n` : '';
+      emailBody += `<h2>${meeting.title || template.name}</h2>`;
+      emailBody += `<p><strong>Date:</strong> ${dateFormatted}</p>\n\n`;
+
+      for (const field of fields.sort((a, b) => a.sortOrder - b.sortOrder)) {
+        const fieldValue = fieldValues.find(fv => fv.fieldId === field.id);
+        emailBody += `<p><strong>${field.fieldName}:</strong><br>`;
+
+        if (field.fieldType === 'attendees' && fieldValue?.attendeeIds) {
+          const attendeeIds = Array.isArray(fieldValue.attendeeIds) ? fieldValue.attendeeIds : [];
+          const attendeeNames = attendeeIds.map((id: string) => {
+            const user = users.find((u: any) => u.id === id);
+            return user ? `${user.preferredName || user.firstName} ${user.lastName}` : '';
+          }).filter(Boolean);
+          emailBody += attendeeNames.join(', ') || 'None';
+        } else if (field.fieldType === 'location' && fieldValue?.locationId) {
+          const location = locations.find((l: any) => l.id === fieldValue.locationId);
+          emailBody += location?.name || 'Unknown';
+        } else if (fieldValue?.textValue) {
+          emailBody += fieldValue.textValue.replace(/\n/g, '<br>');
+        } else {
+          emailBody += 'N/A';
+        }
+
+        emailBody += '</p>\n';
+      }
+
+      res.json({ subject, body: emailBody });
+    } catch (error: any) {
+      console.error("Failed to preview email:", error);
+      res.status(500).send(error.message || "Failed to preview email");
+    }
+  });
+
   // Meeting email sending endpoint
   app.post("/api/meetings/:id/send-email", canEditMeetings, async (req, res) => {
     try {

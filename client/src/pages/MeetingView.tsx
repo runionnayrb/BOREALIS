@@ -92,9 +92,13 @@ export default function MeetingView() {
     try {
       const previewData = await fetch(`/api/meetings/${id}/email-preview`, { credentials: 'include' }).then(res => res.json());
       
-      setEmailTo((template?.emailTo || []).join(', '));
-      const ccValue = (template?.emailCc || []).join(', ');
-      const bccValue = (template?.emailBcc || []).join(', ');
+      const toEmails = Array.isArray(template?.emailTo) ? template.emailTo : (template?.emailTo ? [template.emailTo] : []);
+      const ccEmails = Array.isArray(template?.emailCc) ? template.emailCc : (template?.emailCc ? [template.emailCc] : []);
+      const bccEmails = Array.isArray(template?.emailBcc) ? template.emailBcc : (template?.emailBcc ? [template.emailBcc] : []);
+      
+      setEmailTo(toEmails.join(', '));
+      const ccValue = ccEmails.join(', ');
+      const bccValue = bccEmails.join(', ');
       setEmailCc(ccValue);
       setEmailBcc(bccValue);
       setEmailSubject(previewData.subject || '');
@@ -322,6 +326,168 @@ export default function MeetingView() {
           </div>
         ))}
       </div>
+
+      {/* Email Preview Dialog */}
+      <Dialog open={emailPreviewOpen} onOpenChange={setEmailPreviewOpen}>
+        <DialogContent className="w-[calc(100%-2rem)] max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Review Email Before Sending</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="email-to">To</Label>
+              <Input
+                id="email-to"
+                value={emailTo}
+                onChange={(e) => setEmailTo(e.target.value)}
+                placeholder="recipient@example.com, another@example.com"
+                data-testid="input-email-to"
+              />
+            </div>
+            
+            {!showCc && !showBcc && (
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowCc(true)}
+                  data-testid="button-show-cc"
+                >
+                  Add CC
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowBcc(true)}
+                  data-testid="button-show-bcc"
+                >
+                  Add BCC
+                </Button>
+              </div>
+            )}
+
+            {showCc && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="email-cc">CC</Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowCc(false);
+                      setEmailCc("");
+                    }}
+                    className="h-6 text-xs text-muted-foreground"
+                    data-testid="button-hide-cc"
+                  >
+                    Remove
+                  </Button>
+                </div>
+                <Input
+                  id="email-cc"
+                  value={emailCc}
+                  onChange={(e) => setEmailCc(e.target.value)}
+                  placeholder="cc@example.com"
+                  data-testid="input-email-cc"
+                />
+              </div>
+            )}
+
+            {showBcc && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="email-bcc">BCC</Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowBcc(false);
+                      setEmailBcc("");
+                    }}
+                    className="h-6 text-xs text-muted-foreground"
+                    data-testid="button-hide-bcc"
+                  >
+                    Remove
+                  </Button>
+                </div>
+                <Input
+                  id="email-bcc"
+                  value={emailBcc}
+                  onChange={(e) => setEmailBcc(e.target.value)}
+                  placeholder="bcc@example.com"
+                  data-testid="input-email-bcc"
+                />
+              </div>
+            )}
+
+            {!showCc && showBcc && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowCc(true)}
+                data-testid="button-show-cc-alt"
+              >
+                Add CC
+              </Button>
+            )}
+
+            {showCc && !showBcc && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowBcc(true)}
+                data-testid="button-show-bcc-alt"
+              >
+                Add BCC
+              </Button>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="email-subject">Subject</Label>
+              <Input
+                id="email-subject"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                placeholder="Email subject"
+                data-testid="input-email-subject"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email-body">Email Body</Label>
+              <div
+                className="min-h-[300px] border rounded-md p-4 bg-background overflow-auto prose prose-sm max-w-none [&_ul]:list-disc [&_ul]:ml-6 [&_ol]:list-decimal [&_ol]:ml-6 [&_li]:my-1 [&_*]:!text-foreground [&_strong]:!text-foreground [&_p]:!text-foreground"
+                dangerouslySetInnerHTML={{ __html: emailBody }}
+                data-testid="preview-email-body"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setEmailPreviewOpen(false)}
+              data-testid="button-cancel-email"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => sendEmailMutation.mutate({
+                to: emailTo,
+                cc: emailCc,
+                bcc: emailBcc,
+                subject: emailSubject,
+                body: emailBody,
+              })}
+              disabled={sendEmailMutation.isPending}
+              data-testid="button-confirm-send-email"
+            >
+              {sendEmailMutation.isPending && (
+                <Loader2 className="h-4 w-4 animate-spin mr-2 text-primary-foreground" />
+              )}
+              Send Email
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
