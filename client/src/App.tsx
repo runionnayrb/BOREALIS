@@ -28,6 +28,7 @@ import WeeklySchedule from "@/pages/WeeklySchedule";
 import FullSchedule from "@/pages/FullSchedule";
 import ChangePassword from "@/pages/ChangePassword";
 import AdminDashboard from "@/pages/AdminDashboard";
+import Meetings from "@/pages/Meetings";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
@@ -76,6 +77,8 @@ function AuthenticatedApp() {
       "/lineups/restrictions": "Restrictions",
       "/schedule/full": "Full Schedule",
       "/schedule/artists": "Weekly Schedule",
+      "/meetings": "Meetings",
+      "/meetings/new": "New Meeting",
       "/settings": "Settings",
       "/profile": "Profile",
       "/change-password": "Change Password",
@@ -86,6 +89,8 @@ function AuthenticatedApp() {
     if (!title) {
       if (location.startsWith("/report/")) {
         title = "Edit Report";
+      } else if (location.startsWith("/meetings/") && location !== "/meetings" && location !== "/meetings/new") {
+        title = "Edit Meeting";
       } else if (location.startsWith("/lineups/") && location !== "/lineups" && location !== "/lineups/new" && !location.includes("/training-programs") && !location.includes("/competencies") && !location.includes("/positions") && !location.includes("/rules") && !location.includes("/restrictions")) {
         title = "Edit Lineup";
       } else if (location.startsWith("/lineups/training-programs/") && location !== "/lineups/training-programs/templates") {
@@ -145,6 +150,7 @@ function AuthenticatedApp() {
               <Route path="/lineups/:id" component={LineupBuilder} />
               <Route path="/schedule/full" component={FullSchedule} />
               <Route path="/schedule/artists" component={WeeklySchedule} />
+              <Route path="/meetings" component={Meetings} />
               <Route path="/settings" component={Settings} />
               <Route path="/profile" component={Profile} />
             </Switch>
