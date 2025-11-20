@@ -14,7 +14,7 @@ export default function Meetings() {
   const selectedTemplateId = queryParams.get('template') || "all";
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery<MeetingTemplate[]>({
-    queryKey: ['/api/meeting-templates'],
+    queryKey: ['/api/meeting-templates/active'],
   });
 
   const { data: meetings = [], isLoading: meetingsLoading } = useQuery<Meeting[]>({

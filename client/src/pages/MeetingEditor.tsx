@@ -48,9 +48,9 @@ export default function MeetingEditor() {
   const [fieldValues, setFieldValues] = useState<Record<string, any>>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // Fetch meeting templates
+  // Fetch meeting templates (filtered by user permissions)
   const { data: templates = [] } = useQuery<MeetingTemplate[]>({
-    queryKey: ['/api/meeting-templates'],
+    queryKey: ['/api/meeting-templates/active'],
   });
 
   // Fetch template fields

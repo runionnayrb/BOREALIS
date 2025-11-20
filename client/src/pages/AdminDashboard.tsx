@@ -70,6 +70,23 @@ type RolePageAccess = {
   canAccess: number;
 };
 
+type MeetingTemplate = {
+  id: string;
+  name: string;
+  description: string | null;
+  isActive: number;
+  sortOrder: number;
+};
+
+type UserMeetingTemplatePermission = {
+  id: string;
+  userId: string;
+  templateId: string;
+  canView: number;
+  canCreate: number;
+  canEdit: number;
+};
+
 const PAGES = [...pageNames];
 
 const PAGE_LABELS: Record<string, string> = {
@@ -575,6 +592,14 @@ export default function AdminDashboard() {
     queryKey: ['/api/role-page-access'],
   });
 
+  const { data: meetingTemplates, isLoading: meetingTemplatesLoading } = useQuery<MeetingTemplate[]>({
+    queryKey: ['/api/meeting-templates'],
+  });
+
+  const { data: templatePermissions, isLoading: templatePermissionsLoading } = useQuery<UserMeetingTemplatePermission[]>({
+    queryKey: ['/api/admin/meeting-template-permissions'],
+  });
+
   useEffect(() => {
     if (user && user.role !== 'admin') {
       setLocation('/');
@@ -669,6 +694,52 @@ export default function AdminDashboard() {
         variant: "destructive",
       });
       setUpdatingRoleUserId(null);
+    },
+  });
+
+  const updateTemplatePermissionsMutation = useMutation({
+    mutationFn: async ({ userId, permissions: perms }: { userId: string; permissions: Array<{ templateId: string; canView: number; canCreate: number; canEdit: number }> }) => {
+      return await apiRequest('POST', `/api/admin/meeting-template-permissions`, { userId, permissions: perms });
+    },
+    onMutate: async ({ userId, permissions: perms }) => {
+      await queryClient.cancelQueries({ queryKey: ['/api/admin/meeting-template-permissions'] });
+      
+      const previousData = queryClient.getQueryData<UserMeetingTemplatePermission[]>(['/api/admin/meeting-template-permissions']);
+      
+      queryClient.setQueryData<UserMeetingTemplatePermission[]>(['/api/admin/meeting-template-permissions'], (old) => {
+        if (!old) return old;
+        
+        const otherPermissions = old.filter(p => p.userId !== userId);
+        const newPermissions = perms.map(p => ({
+          id: old.find(op => op.userId === userId && op.templateId === p.templateId)?.id || `temp-${userId}-${p.templateId}`,
+          userId,
+          templateId: p.templateId,
+          canView: p.canView,
+          canCreate: p.canCreate,
+          canEdit: p.canEdit,
+        }));
+        
+        return [...otherPermissions, ...newPermissions];
+      });
+      
+      return { previousData };
+    },
+    onError: (error: Error, variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['/api/admin/meeting-template-permissions'], context.previousData);
+      }
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update template permissions",
+        variant: "destructive",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/meeting-template-permissions'] });
+      toast({
+        title: "Success",
+        description: "Template permissions updated successfully",
+      });
     },
   });
 
@@ -794,6 +865,31 @@ export default function AdminDashboard() {
     updateRolePageAccessMutation.mutate({ role, pages: rolePages });
   };
 
+  const handleTemplatePermissionChange = (userId: string, templateId: string, permissionType: 'canView' | 'canCreate' | 'canEdit', value: boolean) => {
+    if (!meetingTemplates || !templatePermissions) return;
+
+    const userTemplatePerms = meetingTemplates.map(template => {
+      if (template.id === templateId) {
+        const existing = templatePermissions.find(p => p.userId === userId && p.templateId === templateId);
+        return {
+          templateId: template.id,
+          canView: permissionType === 'canView' ? (value ? 1 : 0) : (existing?.canView || 0),
+          canCreate: permissionType === 'canCreate' ? (value ? 1 : 0) : (existing?.canCreate || 0),
+          canEdit: permissionType === 'canEdit' ? (value ? 1 : 0) : (existing?.canEdit || 0),
+        };
+      }
+      const existing = templatePermissions.find(p => p.userId === userId && p.templateId === template.id);
+      return {
+        templateId: template.id,
+        canView: existing?.canView || 0,
+        canCreate: existing?.canCreate || 0,
+        canEdit: existing?.canEdit || 0,
+      };
+    });
+
+    updateTemplatePermissionsMutation.mutate({ userId, permissions: userTemplatePerms });
+  };
+
   // Group users by user group
   const groupedUsers = users?.reduce((acc, user) => {
     const groupId = user.userGroupId || 'ungrouped';
@@ -813,7 +909,7 @@ export default function AdminDashboard() {
     return (groupA?.sortOrder || 0) - (groupB?.sortOrder || 0);
   });
 
-  if (usersLoading || permissionsLoading || settingsLoading || userGroupsLoading) {
+  if (usersLoading || permissionsLoading || settingsLoading || userGroupsLoading || meetingTemplatesLoading || templatePermissionsLoading) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -938,6 +1034,93 @@ export default function AdminDashboard() {
                     </tbody>
                   </table>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Meeting Template Access</CardTitle>
+                <CardDescription>
+                  Control which meeting templates each user can view, create, and edit. Users without any permissions will not see that template.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {meetingTemplates && meetingTemplates.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No meeting templates found. Create templates in Settings first.
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-3 font-semibold sticky left-0 bg-card z-10">User</th>
+                          {meetingTemplates?.map(template => (
+                            <th key={template.id} className="text-center p-3 font-semibold min-w-[120px]">
+                              <div className="text-xs">{template.name}</div>
+                              <div className="text-[10px] text-muted-foreground font-normal mt-1">V / C / E</div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sortedGroupIds.flatMap(groupId => {
+                          const group = userGroups?.find(g => g.id === groupId);
+                          const groupUsers = groupedUsers[groupId] || [];
+                          const groupName = group?.name || 'No Group';
+                          
+                          return [
+                            <tr key={`group-${groupId}`} className="bg-muted/50">
+                              <td colSpan={Number(meetingTemplates?.length || 0) + 1} className="p-2 px-3">
+                                <span className="font-semibold text-sm">{groupName}</span>
+                              </td>
+                            </tr>,
+                            ...groupUsers.map(u => (
+                              <tr key={u.id} className="border-b hover-elevate" data-testid={`template-perm-row-${u.id}`}>
+                                <td className="p-3 sticky left-0 bg-card z-10">
+                                  <div>
+                                    <div className="font-medium text-sm">{u.name}</div>
+                                    <div className="text-xs text-muted-foreground">{u.email}</div>
+                                  </div>
+                                </td>
+                                {meetingTemplates?.map(template => {
+                                  const perm = templatePermissions?.find(p => p.userId === u.id && p.templateId === template.id);
+                                  return (
+                                    <td key={template.id} className="p-3">
+                                      <div className="flex justify-center gap-2">
+                                        <Checkbox
+                                          checked={perm?.canView === 1}
+                                          onCheckedChange={(checked) =>
+                                            handleTemplatePermissionChange(u.id, template.id, 'canView', checked === true)
+                                          }
+                                          data-testid={`checkbox-view-${u.id}-${template.id}`}
+                                        />
+                                        <Checkbox
+                                          checked={perm?.canCreate === 1}
+                                          onCheckedChange={(checked) =>
+                                            handleTemplatePermissionChange(u.id, template.id, 'canCreate', checked === true)
+                                          }
+                                          data-testid={`checkbox-create-${u.id}-${template.id}`}
+                                        />
+                                        <Checkbox
+                                          checked={perm?.canEdit === 1}
+                                          onCheckedChange={(checked) =>
+                                            handleTemplatePermissionChange(u.id, template.id, 'canEdit', checked === true)
+                                          }
+                                          data-testid={`checkbox-edit-${u.id}-${template.id}`}
+                                        />
+                                      </div>
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))
+                          ];
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
