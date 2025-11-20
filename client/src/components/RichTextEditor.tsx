@@ -70,7 +70,7 @@ export default function RichTextEditor({ content = '', onChange, minHeight = 'mi
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none p-4 flex-1 h-full min-h-full overflow-auto focus:outline-none [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0 [&_li]:mb-1 text-foreground [&_p]:text-foreground [&_li]:text-foreground [&_ul]:text-foreground [&_ol]:text-foreground [&_strong]:text-foreground [&_em]:text-foreground [&_u]:text-foreground [&_s]:text-foreground [&_li::marker]:text-foreground [&_ul_li::marker]:text-foreground [&_ol_li::marker]:text-foreground [&_mark]:px-1 [&_mark]:rounded-sm',
+        class: 'prose prose-sm max-w-none p-4 flex-1 h-full min-h-full overflow-auto focus:outline-none [&_ul]:my-0 [&_ol]:my-0 [&_li]:my-0 [&_li]:mb-1 text-foreground [&_p]:text-foreground [&_li]:text-foreground [&_ul]:text-foreground [&_ol]:text-foreground [&_strong]:text-foreground [&_em]:text-foreground [&_u]:text-foreground [&_s]:text-foreground [&_li::marker]:text-foreground [&_ul_li::marker]:text-foreground [&_ol_li::marker]:text-foreground [&_mark]:px-1 [&_mark]:rounded-sm',
       },
     },
   });
