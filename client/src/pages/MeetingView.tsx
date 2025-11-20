@@ -7,6 +7,23 @@ import { Edit, Mail, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import DOMPurify from "dompurify";
 import type { MeetingTemplate, MeetingTemplateField, Meeting, MeetingFieldValue, Location, SafeUser } from "@shared/schema";
+
+// Strip HTML tags to show clean text for editing
+const stripHtml = (html: string): string => {
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+  return temp.textContent || temp.innerText || '';
+};
+
+// Convert plain text back to HTML with proper formatting
+const plainTextToHtml = (text: string): string => {
+  return text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .map(line => `<p>${line.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`)
+    .join('\n');
+};
 import { format } from "date-fns";
 import { useState } from "react";
 import {
@@ -33,6 +50,7 @@ export default function MeetingView() {
   const [emailBcc, setEmailBcc] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
+  const [originalHtmlBody, setOriginalHtmlBody] = useState("");
   const [showCc, setShowCc] = useState(false);
   const [showBcc, setShowBcc] = useState(false);
   const [isLoadingEmailPreview, setIsLoadingEmailPreview] = useState(false);
@@ -102,7 +120,8 @@ export default function MeetingView() {
       setEmailCc(ccValue);
       setEmailBcc(bccValue);
       setEmailSubject(previewData.subject || '');
-      setEmailBody(previewData.body || '');
+      setOriginalHtmlBody(previewData.body || '');
+      setEmailBody(stripHtml(previewData.body || ''));
       setShowCc(ccValue.length > 0);
       setShowBcc(bccValue.length > 0);
 
@@ -478,7 +497,7 @@ export default function MeetingView() {
                 cc: emailCc,
                 bcc: emailBcc,
                 subject: emailSubject,
-                body: emailBody,
+                body: plainTextToHtml(emailBody),
               })}
               disabled={sendEmailMutation.isPending}
               data-testid="button-confirm-send-email"
