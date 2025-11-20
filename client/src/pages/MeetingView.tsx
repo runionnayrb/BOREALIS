@@ -198,14 +198,23 @@ export default function MeetingView() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      {/* Header with Back and Edit buttons */}
+      {/* Header with Meeting Title and Edit button */}
       <div className="flex items-center justify-between">
-        <Link href="/meetings">
-          <Button variant="ghost" size="sm" data-testid="button-back">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Meetings
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/meetings">
+            <Button variant="ghost" size="icon" data-testid="button-back">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-semibold" data-testid="display-meeting-title">
+              {meeting.title || 'Untitled Meeting'}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1" data-testid="display-meeting-date">
+              {format(new Date(meeting.meetingDate), "EEEE, MMMM d, yyyy")}
+            </p>
+          </div>
+        </div>
         {canEdit && (
           <Button 
             onClick={() => setLocation(`/meetings/${id}/edit`)}
@@ -216,28 +225,6 @@ export default function MeetingView() {
           </Button>
         )}
       </div>
-
-      {/* Meeting Header */}
-      <Card>
-        <CardHeader>
-          <div className="space-y-4">
-            {meeting.title && (
-              <div>
-                <Label>Title</Label>
-                <div className="text-lg font-semibold mt-1" data-testid="display-meeting-title">
-                  {meeting.title}
-                </div>
-              </div>
-            )}
-            <div>
-              <Label>Meeting Date</Label>
-              <div className="text-lg font-semibold mt-1" data-testid="display-meeting-date">
-                {format(new Date(meeting.meetingDate), "EEEE, MMMM d, yyyy")}
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
 
       {/* Meeting Fields */}
       <div className="space-y-6">
