@@ -136,6 +136,9 @@ export default function Settings() {
   // Local state for meeting template ordering
   const [orderedMeetingTemplates, setOrderedMeetingTemplates] = useState<MeetingTemplateWithFields[]>([]);
   
+  // Local state for field ordering (per template)
+  const [orderedFieldsByTemplate, setOrderedFieldsByTemplate] = useState<Map<string, MeetingTemplateField[]>>(new Map());
+  
   // Meeting template field management state
   const [fieldDialogOpen, setFieldDialogOpen] = useState(false);
   const [currentTemplateId, setCurrentTemplateId] = useState<string | null>(null);
@@ -745,6 +748,16 @@ export default function Settings() {
   useEffect(() => {
     if (meetingTemplates && meetingTemplates.length > 0) {
       setOrderedMeetingTemplates([...meetingTemplates].sort((a, b) => a.sortOrder - b.sortOrder));
+      
+      // Initialize ordered fields for each template
+      const newOrderedFields = new Map<string, MeetingTemplateField[]>();
+      meetingTemplates.forEach(template => {
+        if (template.fields && template.fields.length > 0) {
+          const sortedFields = [...template.fields].sort((a, b) => a.sortOrder - b.sortOrder);
+          newOrderedFields.set(template.id, sortedFields);
+        }
+      });
+      setOrderedFieldsByTemplate(newOrderedFields);
     }
   }, [meetingTemplates]);
 
@@ -818,6 +831,14 @@ export default function Settings() {
     })
   );
 
+  // Drag-and-drop sensors for field reordering
+  const fieldDragSensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   const handleMeetingTemplateDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     
@@ -828,6 +849,29 @@ export default function Settings() {
       const newTemplates = arrayMove(orderedMeetingTemplates, oldIndex, newIndex);
       setOrderedMeetingTemplates(newTemplates);
       reorderMeetingTemplatesMutation.mutate(newTemplates.map((t, index) => ({ id: t.id, sortOrder: index })));
+    }
+  };
+
+  // Handle drag end for template fields
+  const handleFieldDragEnd = (event: DragEndEvent, templateId: string) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      const currentFields = orderedFieldsByTemplate.get(templateId) || [];
+      const oldIndex = currentFields.findIndex((f) => f.id === active.id);
+      const newIndex = currentFields.findIndex((f) => f.id === over.id);
+      
+      const newFields = arrayMove(currentFields, oldIndex, newIndex);
+      
+      // Update local state
+      setOrderedFieldsByTemplate(prev => {
+        const updated = new Map(prev);
+        updated.set(templateId, newFields);
+        return updated;
+      });
+      
+      // Trigger mutation
+      reorderFieldsMutation.mutate(newFields.map((f, index) => ({ id: f.id, sortOrder: index })));
     }
   };
 
@@ -2109,6 +2153,52 @@ export default function Settings() {
     },
   });
 
+  // Reorder template fields mutation
+  const reorderFieldsMutation = useMutation({
+    mutationFn: async (fields: Array<{ id: string; sortOrder: number }>) => {
+      return await apiRequest("POST", "/api/meeting-template-fields/reorder", { fields });
+    },
+    onMutate: async (fieldsWithOrder) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/meeting-templates"] });
+      
+      // Snapshot the previous value
+      const previousTemplates = queryClient.getQueryData(["/api/meeting-templates"]);
+      
+      // Optimistically update field sortOrders in the meeting templates
+      queryClient.setQueryData(["/api/meeting-templates"], (old: MeetingTemplateWithFields[] | undefined) => {
+        if (!old) return old;
+        return old.map(template => {
+          if (!template.fields) return template;
+          return {
+            ...template,
+            fields: template.fields.map(field => {
+              const update = fieldsWithOrder.find(f => f.id === field.id);
+              return update ? { ...field, sortOrder: update.sortOrder } : field;
+            }).sort((a, b) => a.sortOrder - b.sortOrder)
+          };
+        });
+      });
+      
+      return { previousTemplates };
+    },
+    onError: (_err, _variables, context) => {
+      // Roll back on error
+      if (context?.previousTemplates) {
+        queryClient.setQueryData(["/api/meeting-templates"], context.previousTemplates);
+      }
+      toast({
+        title: "Error",
+        description: "Failed to reorder fields. Please try again.",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      // Refetch to ensure sync
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
+    },
+  });
+
   // Meeting template field mutations
   const createFieldMutation = useMutation({
     mutationFn: async (data: { templateId: string; fieldName: string; fieldType: string; required: number; sortOrder: number; dropdownOptions?: string[] }) => {
@@ -2161,19 +2251,6 @@ export default function Settings() {
     },
     onError: (error: any) => {
       toast({ title: "Failed to delete field", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const reorderFieldsMutation = useMutation({
-    mutationFn: async (data: { templateId: string; fields: { id: string; sortOrder: number }[] }) => {
-      return await apiRequest("POST", "/api/meeting-template-fields/reorder", { fields: data.fields });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
-      toast({ title: "Fields reordered successfully" });
-    },
-    onError: (error: any) => {
-      toast({ title: "Failed to reorder fields", description: error.message, variant: "destructive" });
     },
   });
 
@@ -2539,6 +2616,72 @@ export default function Settings() {
     );
   };
 
+  // Sortable field component
+  const SortableField = ({ field, template }: { field: MeetingTemplateField; template: MeetingTemplateWithFields }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: field.id });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+      <Card ref={setNodeRef} style={style} className="p-3 flex items-center justify-between">
+        <div className="flex items-center gap-3 flex-1">
+          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing" onClick={(e) => e.stopPropagation()}>
+            <GripVertical className="w-4 h-4 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="font-medium">{field.fieldName}</p>
+            <p className="text-sm text-muted-foreground">
+              Type: {field.fieldType}
+              {field.required === 1 && " • Required"}
+              {field.fieldType === 'dropdown' && field.dropdownOptions && 
+                ` • Options: ${field.dropdownOptions.join(', ')}`
+              }
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            disabled={!template.id || updateFieldMutation.isPending}
+            onClick={() => {
+              setEditingField(field);
+              setCurrentTemplateId(template.id);
+              setFieldDialogOpen(true);
+            }}
+            data-testid={`button-edit-field-${field.id}`}
+          >
+            <Edit className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            disabled={!template.id || deleteFieldMutation.isPending}
+            onClick={() => {
+              if (confirm(`Delete field "${field.fieldName}"?`)) {
+                deleteFieldMutation.mutate({ id: field.id, templateId: template.id });
+              }
+            }}
+            data-testid={`button-delete-field-${field.id}`}
+          >
+            <Trash2 className="w-4 h-4 text-destructive" />
+          </Button>
+        </div>
+      </Card>
+    );
+  };
+
   const SortableMeetingTemplateCard = ({ template }: { template: MeetingTemplateWithFields }) => {
     const {
       attributes,
@@ -2554,6 +2697,9 @@ export default function Settings() {
       transition,
       opacity: isDragging ? 0.5 : 1,
     };
+    
+    // Get ordered fields for this template
+    const templateFields = orderedFieldsByTemplate.get(template.id) || [];
 
     return (
       <Collapsible
@@ -2705,62 +2851,25 @@ export default function Settings() {
                   </Button>
                 </div>
 
-                <div className="space-y-2">
-                  {allMeetingTemplateFields.filter(f => f.templateId === template.id).length > 0 ? (
-                    allMeetingTemplateFields
-                      .filter(f => f.templateId === template.id)
-                      .sort((a, b) => a.sortOrder - b.sortOrder)
-                      .map((field) => (
-                        <Card key={field.id} className="p-3 flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">{field.fieldName}</p>
-                            <p className="text-sm text-muted-foreground">
-                              Type: {field.fieldType}
-                              {field.required === 1 && " • Required"}
-                              {field.fieldType === 'dropdown' && field.dropdownOptions && 
-                                ` • Options: ${field.dropdownOptions.join(', ')}`
-                              }
-                            </p>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              disabled={!template.id || updateFieldMutation.isPending}
-                              onClick={() => {
-                                setEditingField(field);
-                                setCurrentTemplateId(template.id);
-                                setFieldDialogOpen(true);
-                              }}
-                              data-testid={`button-edit-field-${field.id}`}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              disabled={!template.id || deleteFieldMutation.isPending}
-                              onClick={() => {
-                                if (confirm(`Delete field "${field.fieldName}"?`)) {
-                                  deleteFieldMutation.mutate({ 
-                                    id: field.id, 
-                                    templateId: template.id 
-                                  });
-                                }
-                              }}
-                              data-testid={`button-delete-field-${field.id}`}
-                            >
-                              <Trash2 className="w-4 h-4 text-destructive" />
-                            </Button>
-                          </div>
+                <DndContext 
+                  sensors={fieldDragSensors} 
+                  collisionDetection={closestCenter} 
+                  onDragEnd={(e) => handleFieldDragEnd(e, template.id)}
+                >
+                  <SortableContext items={templateFields.map(f => f.id)} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-2">
+                      {templateFields.length > 0 ? (
+                        templateFields.map((field) => (
+                          <SortableField key={field.id} field={field} template={template} />
+                        ))
+                      ) : (
+                        <Card className="p-6 text-center text-muted-foreground">
+                          <p>No fields yet. Click "Add Field" to create one.</p>
                         </Card>
-                      ))
-                  ) : (
-                    <Card className="p-6 text-center text-muted-foreground">
-                      <p>No fields yet. Click "Add Field" to create one.</p>
-                    </Card>
-                  )}
-                </div>
+                      )}
+                    </div>
+                  </SortableContext>
+                </DndContext>
               </div>
 
               <div className="mt-6">
