@@ -97,7 +97,7 @@ export default function MeetingView() {
           <div className="space-y-2">
             <Label>{field.fieldName}</Label>
             <div 
-              className="prose prose-sm max-w-none dark:prose-invert border border-border rounded-md p-3 bg-muted/30"
+              className="prose prose-sm max-w-none dark:prose-invert"
               dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
               data-testid={`display-field-${field.id}`}
             />
@@ -109,7 +109,7 @@ export default function MeetingView() {
         return (
           <div className="space-y-2">
             <Label>{field.fieldName}</Label>
-            <div className="text-sm p-2 border border-border rounded-md bg-muted/30" data-testid={`display-field-${field.id}`}>
+            <div className="text-sm" data-testid={`display-field-${field.id}`}>
               {dateValue ? format(new Date(dateValue), "MMMM d, yyyy") : "No date set"}
             </div>
           </div>
@@ -120,7 +120,7 @@ export default function MeetingView() {
         return (
           <div className="space-y-2">
             <Label>{field.fieldName}</Label>
-            <div className="text-sm p-2 border border-border rounded-md bg-muted/30" data-testid={`display-field-${field.id}`}>
+            <div className="text-sm" data-testid={`display-field-${field.id}`}>
               {timeValue || "No time set"}
             </div>
           </div>
@@ -152,7 +152,7 @@ export default function MeetingView() {
         return (
           <div className="space-y-2">
             <Label>{field.fieldName}</Label>
-            <div className="text-sm p-2 border border-border rounded-md bg-muted/30" data-testid={`display-field-${field.id}`}>
+            <div className="text-sm" data-testid={`display-field-${field.id}`}>
               {location?.name || "No location selected"}
             </div>
           </div>
@@ -164,7 +164,7 @@ export default function MeetingView() {
         return (
           <div className="space-y-2">
             <Label>{field.fieldName}</Label>
-            <div className="text-sm p-2 border border-border rounded-md bg-muted/30 min-h-[40px]" data-testid={`display-field-${field.id}`}>
+            <div className="text-sm" data-testid={`display-field-${field.id}`}>
               {selectedUsers.length > 0 ? (
                 <div className="flex flex-wrap gap-1">
                   {selectedUsers.map(user => (
@@ -185,7 +185,7 @@ export default function MeetingView() {
         return (
           <div className="space-y-2">
             <Label>{field.fieldName}</Label>
-            <div className="text-sm p-2 border border-border rounded-md bg-muted/30" data-testid={`display-field-${field.id}`}>
+            <div className="text-sm" data-testid={`display-field-${field.id}`}>
               {dropdownValue || "No selection"}
             </div>
           </div>
