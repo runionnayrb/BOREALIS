@@ -748,73 +748,61 @@ export default function Settings() {
     }
   }, [technicians]);
 
+  // Track server state to avoid unnecessary updates
+  const lastTemplateStateRef = useRef<string>("");
+  const lastFieldStateRef = useRef<string>("");
+  
   // Compute ordered templates from server data
   const serverOrderedTemplates = useMemo(() => {
     return [...meetingTemplates].sort((a, b) => a.sortOrder - b.sortOrder);
-  }, [meetingTemplates]);
-  
-  // Compute ordered fields for each template from server data
-  const serverOrderedFieldsByTemplate = useMemo(() => {
-    const fieldsMap = new Map<string, MeetingTemplateField[]>();
-    meetingTemplates.forEach(template => {
-      // Include all templates, even those with no fields (empty array)
-      const sortedFields = template.fields ? [...template.fields].sort((a, b) => a.sortOrder - b.sortOrder) : [];
-      fieldsMap.set(template.id, sortedFields);
-    });
-    return fieldsMap;
   }, [meetingTemplates]);
   
   // Sync local state with server state only when not using optimistic updates
   useEffect(() => {
     if (serverOrderedTemplates.length === 0) return;
     
+    // Create hash of template state
+    const templateState = serverOrderedTemplates.map(t => `${t.id}:${t.sortOrder}`).join(';');
+    if (templateState === lastTemplateStateRef.current) {
+      return; // No change, skip
+    }
+    lastTemplateStateRef.current = templateState;
+    
     // Only sync when not in optimistic mode
     if (!useOptimisticTemplateOrdering.current) {
-      setOrderedMeetingTemplates(prev => {
-        // Check if actual data changed by comparing IDs/sortOrders
-        if (prev.length === serverOrderedTemplates.length && 
-            prev.every((t, i) => t.id === serverOrderedTemplates[i].id && t.sortOrder === serverOrderedTemplates[i].sortOrder)) {
-          return prev; // No change, don't trigger re-render
-        }
-        return serverOrderedTemplates;
-      });
+      setOrderedMeetingTemplates(serverOrderedTemplates);
     }
   }, [serverOrderedTemplates]);
   
   // Sync field ordering with server when not using optimistic updates  
   useEffect(() => {
+    // Create a hash of current field state (ids and sortOrders only)
+    const fieldState = meetingTemplates.map(t =>
+      `${t.id}:${t.fields ? t.fields.map(f => `${f.id}:${f.sortOrder}`).join('|') : ''}`
+    ).join(';');
+    
+    // Only update if server state actually changed
+    if (fieldState === lastFieldStateRef.current) {
+      return;
+    }
+    lastFieldStateRef.current = fieldState;
+    
     setOrderedFieldsByTemplate(prev => {
-      let needsUpdate = false;
       const newMap = new Map<string, MeetingTemplateField[]>();
       
-      // Check if anything changed
       for (const template of meetingTemplates) {
         const templateId = template.id;
         const isOptimistic = useOptimisticFieldOrdering.current.has(templateId);
         
         if (isOptimistic) {
-          // Keep optimistic value while drag is in progress
           const existing = prev.get(templateId);
           if (existing) {
             newMap.set(templateId, existing);
           }
         } else {
-          // Check if server data changed
           const sortedFields = template.fields ? [...template.fields].sort((a, b) => a.sortOrder - b.sortOrder) : [];
-          const prevFields = prev.get(templateId);
-          
-          if (!prevFields || prevFields.length !== sortedFields.length ||
-              !prevFields.every((f, i) => f.id === sortedFields[i].id && f.sortOrder === sortedFields[i].sortOrder)) {
-            needsUpdate = true;
-          }
-          
           newMap.set(templateId, sortedFields);
         }
-      }
-      
-      // Only return new map if something actually changed
-      if (!needsUpdate && prev.size === newMap.size) {
-        return prev;
       }
       
       return newMap;
