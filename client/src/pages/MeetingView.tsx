@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import DOMPurify from "dompurify";
 import type { MeetingTemplate, MeetingTemplateField, Meeting, MeetingFieldValue, Location, SafeUser } from "@shared/schema";
 
-// Strip HTML tags to show clean text for editing, preserving numbered lists
+// Strip HTML tags to show clean text for editing, preserving numbered lists and spacing
 const stripHtml = (html: string): string => {
   let text = html;
   
@@ -41,7 +41,6 @@ const stripHtml = (html: string): string => {
   return text
     .split('\n')
     .map(line => line.trim())
-    .filter(line => line.length > 0)
     .join('\n')
     .replace(/\n\n+/g, '\n\n')
     .trim();
@@ -56,7 +55,8 @@ const plainTextToHtml = (text: string): string => {
     const trimmed = line.trim();
     
     if (!trimmed) {
-      // Preserve some spacing for empty lines
+      // Preserve empty lines as <br> for spacing
+      result.push('<br>');
       return;
     }
     
