@@ -4759,20 +4759,7 @@ export default function Settings() {
                               </div>
                             )}
                           </div>
-                          <DialogFooter className="flex justify-between items-center gap-2">
-                            <Button 
-                              type="button"
-                              variant="destructive"
-                              onClick={() => {
-                                setArtistToArchive(editTarget.id);
-                                setArchiveDialogOpen(true);
-                              }}
-                              disabled={archiveArtistMutation.isPending}
-                              data-testid="button-archive-artist"
-                            >
-                              Archive Artist
-                            </Button>
-                            <div className="flex-1"></div>
+                          <DialogFooter className="flex justify-end items-center gap-2">
                             <Button 
                               type="button"
                               onClick={() => setArtistEditMode(true)}
