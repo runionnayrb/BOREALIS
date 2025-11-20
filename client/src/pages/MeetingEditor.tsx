@@ -14,11 +14,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryParams } from "@/hooks/use-query-params";
-import { ArrowLeft, Save, ChevronDown } from "lucide-react";
+import { ArrowLeft, Save, ChevronDown, Trash2 } from "lucide-react";
 import { Link } from "wouter";
 import type { MeetingTemplate, MeetingTemplateField, Meeting, MeetingFieldValue, Location, SafeUser } from "@shared/schema";
 import { format } from "date-fns";
@@ -35,6 +45,7 @@ export default function MeetingEditor() {
   const [meetingDate, setMeetingDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [title, setTitle] = useState<string>("");
   const [fieldValues, setFieldValues] = useState<Record<string, any>>({});
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Fetch meeting templates
   const { data: templates = [] } = useQuery<MeetingTemplate[]>({
@@ -118,6 +129,25 @@ export default function MeetingEditor() {
       toast({
         title: "Success",
         description: isNewMeeting ? "Meeting created successfully" : "Meeting updated successfully",
+      });
+      setLocation('/meetings');
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMeetingMutation = useMutation({
+    mutationFn: () => apiRequest('DELETE', `/api/meetings/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/meetings'] });
+      toast({
+        title: "Meeting deleted",
+        description: "The meeting has been deleted successfully",
       });
       setLocation('/meetings');
     },
@@ -471,21 +501,50 @@ export default function MeetingEditor() {
             </Card>
           )}
 
-          <div className="flex gap-4">
-            <Button
-              onClick={handleSave}
-              disabled={saveMeetingMutation.isPending}
-              data-testid="button-save"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              {saveMeetingMutation.isPending ? "Saving..." : "Save Meeting"}
-            </Button>
-            <Link href="/meetings">
-              <Button variant="outline" data-testid="button-cancel">Cancel</Button>
-            </Link>
+          <div className="flex items-center justify-between gap-4">
+            {!isNewMeeting && (
+              <Button
+                variant="destructive"
+                onClick={() => setDeleteDialogOpen(true)}
+                data-testid="button-delete"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Meeting
+              </Button>
+            )}
+            <div className="flex gap-4 ml-auto">
+              <Button
+                onClick={handleSave}
+                disabled={saveMeetingMutation.isPending}
+                data-testid="button-save"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {saveMeetingMutation.isPending ? "Saving..." : "Save Meeting"}
+              </Button>
+              <Link href="/meetings">
+                <Button variant="outline" data-testid="button-cancel">Cancel</Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Meeting</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this meeting? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteMeetingMutation.mutate()} data-testid="button-confirm-delete">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
