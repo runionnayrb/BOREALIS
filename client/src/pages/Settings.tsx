@@ -2078,7 +2078,33 @@ export default function Settings() {
     mutationFn: async (templates: Array<{ id: string; sortOrder: number }>) => {
       return await apiRequest("POST", "/api/meeting-templates/reorder", { templates });
     },
-    onSuccess: () => {
+    onMutate: async (templatesWithOrder) => {
+      // Cancel any outgoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: ["/api/meeting-templates"] });
+      
+      // Snapshot the previous value
+      const previousTemplates = queryClient.getQueryData(["/api/meeting-templates"]);
+      
+      // Optimistically update to the new value
+      queryClient.setQueryData(["/api/meeting-templates"], (old: MeetingTemplateWithFields[] | undefined) => {
+        if (!old) return old;
+        return old.map(template => {
+          const update = templatesWithOrder.find(t => t.id === template.id);
+          return update ? { ...template, sortOrder: update.sortOrder } : template;
+        }).sort((a, b) => a.sortOrder - b.sortOrder);
+      });
+      
+      // Return context with the previous value
+      return { previousTemplates };
+    },
+    onError: (_err, _variables, context) => {
+      // If mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousTemplates) {
+        queryClient.setQueryData(["/api/meeting-templates"], context.previousTemplates);
+      }
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure we're in sync with the server
       queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
     },
   });
