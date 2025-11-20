@@ -3,6 +3,7 @@ import { FileText, Plus, Settings, ChevronRight, ChevronDown, ClipboardCheck, Ch
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
+import { useQueryParams } from "@/hooks/use-query-params";
 import type { UserGroup, MeetingTemplate } from "@shared/schema";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -38,6 +39,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 export default function AppSidebar() {
   const [location] = useLocation();
   const { user } = useAuth();
+  const queryParams = useQueryParams();
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [lineupsOpen, setLineupsOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
@@ -68,15 +70,6 @@ export default function AppSidebar() {
     queryKey: ['/api/meeting-templates'],
     enabled: canView('meetings'),
   });
-
-  // Get current template from URL query params
-  const getCurrentTemplate = () => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get('template');
-    }
-    return null;
-  };
 
   // Check if user is an artist (case-insensitive)
   const isArtist = userGroup?.name?.toLowerCase() === "artist";
@@ -419,12 +412,12 @@ export default function AppSidebar() {
                           .filter((template) => template.isActive === 1)
                           .sort((a, b) => a.sortOrder - b.sortOrder)
                           .map((template) => {
-                            const currentTemplate = getCurrentTemplate();
+                            const currentTemplate = queryParams.get('template');
                             return (
                               <SidebarMenuSubItem key={template.id}>
                                 <SidebarMenuSubButton 
                                   asChild 
-                                  isActive={currentTemplate === template.id} 
+                                  isActive={currentTemplate === template.id && location.startsWith('/meetings')} 
                                   data-testid={`nav-meeting-${template.name.toLowerCase().replace(/\s+/g, '-')}`}
                                 >
                                   <Link href={`/meetings?template=${template.id}`} className="flex items-center gap-3">

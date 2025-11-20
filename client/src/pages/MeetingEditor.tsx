@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -16,7 +18,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import ReportHeader from "@/components/ReportHeader";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, ChevronDown } from "lucide-react";
 import { Link } from "wouter";
 import type { MeetingTemplate, MeetingTemplateField, Meeting, MeetingFieldValue, Location, SafeUser } from "@shared/schema";
 import { format } from "date-fns";
@@ -43,7 +45,7 @@ export default function MeetingEditor() {
     enabled: !!selectedTemplateId,
   });
 
-  // Fetch meeting if editing
+  // Fetch meeting if editing (must complete before template fields load)
   const { data: meeting, isLoading: meetingLoading } = useQuery<Meeting>({
     queryKey: ['/api/meetings', id],
     enabled: !!id && !isNewMeeting,
@@ -52,7 +54,7 @@ export default function MeetingEditor() {
   // Fetch field values if editing
   const { data: existingFieldValues = [] } = useQuery<MeetingFieldValue[]>({
     queryKey: ['/api/meetings', id, 'field-values'],
-    enabled: !!id && !isNewMeeting,
+    enabled: !!id && !isNewMeeting && !!meeting,
   });
 
   // Fetch locations for location dropdown
@@ -135,12 +137,18 @@ export default function MeetingEditor() {
       return;
     }
 
-    // Prepare field values
+    // Prepare field values - include existing IDs when editing to avoid duplicates
     const fieldValuesArray = templateFields.map((field) => {
       const value = fieldValues[field.id];
+      const existingValue = existingFieldValues.find(fv => fv.fieldId === field.id);
       const fieldValue: any = {
         fieldId: field.id,
       };
+
+      // Include existing ID if editing to enable updates instead of inserts
+      if (existingValue) {
+        fieldValue.id = existingValue.id;
+      }
 
       if (field.fieldType === 'attendees' && Array.isArray(value)) {
         fieldValue.attendeeIds = value;
@@ -278,24 +286,59 @@ export default function MeetingEditor() {
         );
 
       case 'attendees':
-        // Simplified attendees - showing as comma-separated for now
-        // TODO: Implement proper multi-select component
+        const selectedAttendees = Array.isArray(value) ? value : [];
+        const selectedUsers = users.filter(u => selectedAttendees.includes(u.id));
         return (
           <div key={field.id} className="space-y-2">
             <Label htmlFor={field.id} data-testid={`label-${field.fieldName.toLowerCase().replace(/\s+/g, '-')}`}>
               {field.fieldName}
               {field.required === 1 && <span className="text-destructive ml-1">*</span>}
             </Label>
-            <Input
-              id={field.id}
-              value={Array.isArray(value) ? value.join(', ') : value}
-              onChange={(e) => {
-                const ids = e.target.value.split(',').map((id) => id.trim()).filter(Boolean);
-                handleFieldChange(field.id, ids);
-              }}
-              placeholder="Enter user IDs separated by commas (temporary)"
-              data-testid={`input-${field.fieldName.toLowerCase().replace(/\s+/g, '-')}`}
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-between" 
+                  data-testid={`button-${field.fieldName.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  <span className="truncate">
+                    {selectedUsers.length > 0 
+                      ? selectedUsers.map(u => u.preferredName || u.firstName).join(', ')
+                      : 'Select attendees'
+                    }
+                  </span>
+                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-4">
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {users.map((user) => {
+                    const isSelected = selectedAttendees.includes(user.id);
+                    return (
+                      <div key={user.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`user-${user.id}`}
+                          checked={isSelected}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              handleFieldChange(field.id, [...selectedAttendees, user.id]);
+                            } else {
+                              handleFieldChange(field.id, selectedAttendees.filter(id => id !== user.id));
+                            }
+                          }}
+                        />
+                        <label
+                          htmlFor={`user-${user.id}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          {user.preferredName || user.firstName} {user.lastName}
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         );
 

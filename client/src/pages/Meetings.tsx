@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Plus, Calendar, FileText, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,38 +23,19 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useQueryParams } from "@/hooks/use-query-params";
 import ReportHeader from "@/components/ReportHeader";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import type { MeetingTemplate, Meeting } from "@shared/schema";
 import { format } from "date-fns";
 
 export default function Meetings() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [location] = useLocation();
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('template') || "";
-  });
+  const queryParams = useQueryParams();
+  const selectedTemplateId = queryParams.get('template') || "";
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [meetingToDelete, setMeetingToDelete] = useState<string | null>(null);
-
-  // Update selected template when URL changes (including query params)
-  useEffect(() => {
-    const handleLocationChange = () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const templateParam = urlParams.get('template');
-      setSelectedTemplateId(templateParam || "");
-    };
-
-    // Listen for navigation events
-    window.addEventListener('popstate', handleLocationChange);
-    
-    // Also check on mount and when location changes
-    handleLocationChange();
-    
-    return () => window.removeEventListener('popstate', handleLocationChange);
-  }, [location]);
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery<MeetingTemplate[]>({
     queryKey: ['/api/meeting-templates'],
@@ -134,7 +115,17 @@ export default function Meetings() {
             <CardContent>
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId} data-testid="select-template-filter">
+                  <Select 
+                    value={selectedTemplateId} 
+                    onValueChange={(value) => {
+                      if (value) {
+                        queryParams.set('template', value);
+                      } else {
+                        queryParams.remove('template');
+                      }
+                    }} 
+                    data-testid="select-template-filter"
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="All meeting types" />
                     </SelectTrigger>
