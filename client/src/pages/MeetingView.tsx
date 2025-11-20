@@ -8,13 +8,30 @@ import { useAuth } from "@/hooks/use-auth";
 import DOMPurify from "dompurify";
 import type { MeetingTemplate, MeetingTemplateField, Meeting, MeetingFieldValue, Location, SafeUser } from "@shared/schema";
 
-// Strip HTML tags to show clean text for editing, preserving line breaks
+// Strip HTML tags to show clean text for editing, preserving numbered lists
 const stripHtml = (html: string): string => {
-  let text = html
+  let text = html;
+  
+  // Replace opening tags for lists and list items with numbered markers
+  let listCounter = 0;
+  text = text.replace(/<ol[^>]*>/gi, () => {
+    listCounter = 0;
+    return '';
+  });
+  text = text.replace(/<li[^>]*>/gi, () => {
+    listCounter++;
+    return `${listCounter}. `;
+  });
+  
+  // Handle other HTML tags
+  text = text
+    .replace(/<ul[^>]*>/gi, '')
+    .replace(/<\/[ou]l>/gi, '\n')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p>/gi, '\n')
     .replace(/<\/li>/gi, '\n')
     .replace(/<\/h[1-6]>/gi, '\n')
+    .replace(/<hr[^>]*>/gi, '\n---\n')
     .replace(/<[^>]*>/g, '')
     .replace(/&nbsp;/g, ' ')
     .replace(/&lt;/g, '<')
@@ -24,6 +41,7 @@ const stripHtml = (html: string): string => {
   return text
     .split('\n')
     .map(line => line.trim())
+    .filter(line => line.length > 0)
     .join('\n')
     .replace(/\n\n+/g, '\n\n')
     .trim();
