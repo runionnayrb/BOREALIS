@@ -743,7 +743,7 @@ export default function Settings() {
 
   // Sync local meeting template order with query data
   useEffect(() => {
-    if (meetingTemplates) {
+    if (meetingTemplates && meetingTemplates.length > 0) {
       setOrderedMeetingTemplates([...meetingTemplates].sort((a, b) => a.sortOrder - b.sortOrder));
     }
   }, [meetingTemplates]);

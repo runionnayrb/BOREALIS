@@ -2743,7 +2743,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/meeting-templates/active", canViewMeetings, async (req, res) => {
     if (!req.user) return res.sendStatus(401);
-    const templates = await storage.getActiveMeetingTemplatesForUser(req.user.id);
+    
+    // Admin users see all active templates, regular users only see templates they have permission for
+    const templates = req.user.role === 'admin' 
+      ? await storage.getActiveMeetingTemplates()
+      : await storage.getActiveMeetingTemplatesForUser(req.user.id);
+    
     res.json(templates);
   });
 
