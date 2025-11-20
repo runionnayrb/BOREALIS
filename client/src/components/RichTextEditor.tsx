@@ -68,6 +68,11 @@ export default function RichTextEditor({ content = '', onChange, minHeight = 'mi
     onUpdate: ({ editor }) => {
       onChange?.(editor.getHTML());
     },
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm max-w-none p-4 flex-1 h-full min-h-full overflow-auto focus:outline-none [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0 [&_li]:mb-1 text-foreground [&_p]:text-foreground [&_li]:text-foreground [&_ul]:text-foreground [&_ol]:text-foreground [&_strong]:text-foreground [&_em]:text-foreground [&_u]:text-foreground [&_s]:text-foreground [&_li::marker]:text-foreground [&_ul_li::marker]:text-foreground [&_ol_li::marker]:text-foreground [&_mark]:px-1 [&_mark]:rounded-sm',
+      },
+    },
   });
 
   // Sync content prop changes to editor
@@ -347,11 +352,11 @@ export default function RichTextEditor({ content = '', onChange, minHeight = 'mi
       </div>
       <div 
         onClick={() => editor.commands.focus()}
-        className="cursor-text flex-1 overflow-auto flex flex-col"
+        className="cursor-text flex-1 flex flex-col min-h-0"
       >
         <EditorContent
           editor={editor}
-          className="prose prose-sm max-w-none p-4 flex-1 focus:outline-none [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0 [&_li]:mb-1 text-foreground [&_p]:text-foreground [&_li]:text-foreground [&_ul]:text-foreground [&_ol]:text-foreground [&_strong]:text-foreground [&_em]:text-foreground [&_u]:text-foreground [&_s]:text-foreground [&_li::marker]:text-foreground [&_ul_li::marker]:text-foreground [&_ol_li::marker]:text-foreground [&_mark]:px-1 [&_mark]:rounded-sm"
+          className="flex-1 flex flex-col h-full"
           data-testid="editor-content"
         />
       </div>
