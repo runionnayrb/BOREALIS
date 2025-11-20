@@ -433,31 +433,6 @@ export default function MeetingEditor() {
               <CardTitle>Meeting Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {!isNewMeeting && (
-                <div className="space-y-2">
-                  <Label htmlFor="template" data-testid="label-meeting-type">
-                    Meeting Type <span className="text-destructive">*</span>
-                  </Label>
-                  <Select 
-                    value={selectedTemplateId} 
-                    onValueChange={setSelectedTemplateId}
-                    disabled={!isNewMeeting}
-                    data-testid="select-meeting-type"
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select meeting type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activeTemplates.map((template) => (
-                        <SelectItem key={template.id} value={template.id}>
-                          {template.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
               <div className="space-y-2">
                 <Label htmlFor="date" data-testid="label-meeting-date">
                   Meeting Date <span className="text-destructive">*</span>
