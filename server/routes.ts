@@ -3489,8 +3489,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Validate each permission in the array
+      // Note: We accept both static feature names and dynamic meeting template permissions (meeting_template_*)
       const permissionSchema = z.object({
-        feature: z.enum(featureNames),
+        feature: z.string().refine((val) => {
+          // Accept static feature names or dynamic meeting template permissions
+          return featureNames.includes(val as any) || val.startsWith('meeting_template_');
+        }, {
+          message: "Invalid feature name"
+        }),
         canView: z.number().min(0).max(1),
         canCreate: z.number().min(0).max(1),
         canEdit: z.number().min(0).max(1),
