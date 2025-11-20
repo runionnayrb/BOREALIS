@@ -770,13 +770,38 @@ export default function Settings() {
     
     // Only sync when not in optimistic mode
     if (!useOptimisticTemplateOrdering.current) {
-      setOrderedMeetingTemplates(serverOrderedTemplates);
+      setOrderedMeetingTemplates(prev => {
+        // Check if actual data changed by comparing IDs/sortOrders
+        if (prev.length === serverOrderedTemplates.length && 
+            prev.every((t, i) => t.id === serverOrderedTemplates[i].id && t.sortOrder === serverOrderedTemplates[i].sortOrder)) {
+          return prev; // No change, don't trigger re-render
+        }
+        return serverOrderedTemplates;
+      });
     }
   }, [serverOrderedTemplates]);
   
   // Sync field ordering with server when not using optimistic updates  
   useEffect(() => {
     setOrderedFieldsByTemplate(prev => {
+      let needsUpdate = false;
+      
+      // Check if any data actually changed
+      for (const [templateId, fields] of serverOrderedFieldsByTemplate.entries()) {
+        const isOptimistic = useOptimisticFieldOrdering.current.has(templateId);
+        if (!isOptimistic) {
+          const existing = prev.get(templateId);
+          if (!existing || existing.length !== fields.length ||
+              !existing.every((f, i) => f.id === fields[i].id && f.sortOrder === fields[i].sortOrder)) {
+            needsUpdate = true;
+            break;
+          }
+        }
+      }
+      
+      if (!needsUpdate) return prev; // No changes, don't trigger re-render
+      
+      // Build new map with updates
       const newMap = new Map<string, MeetingTemplateField[]>();
       
       serverOrderedFieldsByTemplate.forEach((fields, templateId) => {
@@ -794,7 +819,6 @@ export default function Settings() {
         }
       });
       
-      // Always return new Map
       return newMap;
     });
   }, [serverOrderedFieldsByTemplate]);
