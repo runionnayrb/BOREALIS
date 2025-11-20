@@ -2855,7 +2855,7 @@ export default function Settings() {
             >
               <Card>
                 <CollapsibleTrigger className="w-full">
-                  <div className="flex items-center justify-between p-6 hover-elevate">
+                  <div className="flex items-center justify-between p-4 hover-elevate">
                     <h2 className="text-lg font-semibold">Training Report Template</h2>
                     {trainingReportTemplateOpen ? (
                       <ChevronDown className="w-5 h-5" />
@@ -3072,7 +3072,7 @@ export default function Settings() {
                 >
                   <Card>
                     <CollapsibleTrigger className="w-full">
-                      <div className="flex items-center justify-between p-6 hover-elevate">
+                      <div className="flex items-center justify-between p-4 hover-elevate">
                         <h2 className="text-lg font-semibold">{template.name}</h2>
                         {meetingTemplateOpenStates[template.id] ? (
                           <ChevronDown className="w-5 h-5" />
