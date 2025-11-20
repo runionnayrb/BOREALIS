@@ -33,7 +33,7 @@ export default function Meetings() {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryParams = useQueryParams();
-  const selectedTemplateId = queryParams.get('template') || "";
+  const selectedTemplateId = queryParams.get('template') || "all";
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [meetingToDelete, setMeetingToDelete] = useState<string | null>(null);
 
@@ -78,7 +78,7 @@ export default function Meetings() {
 
   const activeTemplates = templates.filter((t) => t.isActive === 1);
 
-  const filteredMeetings = selectedTemplateId
+  const filteredMeetings = selectedTemplateId && selectedTemplateId !== "all"
     ? meetings.filter((m) => m.templateId === selectedTemplateId)
     : meetings;
 
@@ -118,10 +118,10 @@ export default function Meetings() {
                   <Select 
                     value={selectedTemplateId} 
                     onValueChange={(value) => {
-                      if (value) {
-                        queryParams.set('template', value);
-                      } else {
+                      if (value === "all") {
                         queryParams.remove('template');
+                      } else {
+                        queryParams.set('template', value);
                       }
                     }} 
                     data-testid="select-template-filter"
@@ -130,7 +130,7 @@ export default function Meetings() {
                       <SelectValue placeholder="All meeting types" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All meeting types</SelectItem>
+                      <SelectItem value="all">All meeting types</SelectItem>
                       {activeTemplates.map((template) => (
                         <SelectItem key={template.id} value={template.id}>
                           {template.name}

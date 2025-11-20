@@ -412,7 +412,7 @@ export default function AppSidebar() {
                           .filter((template) => template.isActive === 1)
                           .sort((a, b) => a.sortOrder - b.sortOrder)
                           .map((template) => {
-                            const currentTemplate = queryParams.get('template');
+                            const currentTemplate = queryParams.get('template') || 'all';
                             return (
                               <SidebarMenuSubItem key={template.id}>
                                 <SidebarMenuSubButton 
