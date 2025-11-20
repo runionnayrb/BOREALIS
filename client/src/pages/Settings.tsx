@@ -2804,8 +2804,19 @@ export default function Settings() {
                     <label className="text-sm font-medium mb-2 block">
                       To Recipients
                     </label>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      {template.emailTo || "No recipients configured"}
+                    <Input
+                      value={meetingTemplateEdits[template.id]?.emailTo ?? template.emailTo ?? ""}
+                      onChange={(e) => {
+                        setMeetingTemplateEdits((prev) => ({
+                          ...prev,
+                          [template.id]: { ...prev[template.id], emailTo: e.target.value || null }
+                        }));
+                      }}
+                      placeholder="email1@example.com, email2@example.com"
+                      data-testid={`input-email-to-${template.id}`}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Enter email addresses separated by commas
                     </p>
                   </div>
 
@@ -2813,8 +2824,19 @@ export default function Settings() {
                     <label className="text-sm font-medium mb-2 block">
                       CC Recipients
                     </label>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      {template.emailCc || "No CC recipients"}
+                    <Input
+                      value={meetingTemplateEdits[template.id]?.emailCc ?? template.emailCc ?? ""}
+                      onChange={(e) => {
+                        setMeetingTemplateEdits((prev) => ({
+                          ...prev,
+                          [template.id]: { ...prev[template.id], emailCc: e.target.value || null }
+                        }));
+                      }}
+                      placeholder="email1@example.com, email2@example.com"
+                      data-testid={`input-email-cc-${template.id}`}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Enter email addresses separated by commas
                     </p>
                   </div>
 
@@ -2822,8 +2844,19 @@ export default function Settings() {
                     <label className="text-sm font-medium mb-2 block">
                       BCC Recipients
                     </label>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      {template.emailBcc || "No BCC recipients"}
+                    <Input
+                      value={meetingTemplateEdits[template.id]?.emailBcc ?? template.emailBcc ?? ""}
+                      onChange={(e) => {
+                        setMeetingTemplateEdits((prev) => ({
+                          ...prev,
+                          [template.id]: { ...prev[template.id], emailBcc: e.target.value || null }
+                        }));
+                      }}
+                      placeholder="email1@example.com, email2@example.com"
+                      data-testid={`input-email-bcc-${template.id}`}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Enter email addresses separated by commas
                     </p>
                   </div>
                 </div>
