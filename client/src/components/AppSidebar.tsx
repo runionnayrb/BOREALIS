@@ -386,6 +386,19 @@ export default function AppSidebar() {
                 </SidebarMenuItem>
               )}
 
+              {/* Meetings - only show if user has permission */}
+              {canView('meetings') && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={location === "/meetings"} data-testid="nav-meetings">
+                    <Link href="/meetings" className="flex items-center gap-3">
+                      <FileText className="w-4 h-4" />
+                      <span>Meetings</span>
+                      {location === "/meetings" && <ChevronRight className="w-4 h-4 ml-auto" />}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+
               {/* Lineup with sub-menu - only show if user has permission */}
               {canView('lineups') && (
                 <Collapsible open={lineupsOpen} onOpenChange={setLineupsOpen}>

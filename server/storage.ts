@@ -51,6 +51,10 @@ import {
   type AuditTrail, type InsertAuditTrail, auditTrail,
   type ArtistCompetency, type InsertArtistCompetency, artistCompetencies,
   type TrustedIp, type InsertTrustedIp, trustedIps,
+  type MeetingTemplate, type InsertMeetingTemplate, meetingTemplates,
+  type MeetingTemplateField, type InsertMeetingTemplateField, meetingTemplateFields,
+  type Meeting, type InsertMeeting, meetings,
+  type MeetingFieldValue, type InsertMeetingFieldValue, meetingFieldValues,
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq, asc, desc, inArray, and, or, gte, lte, isNull, isNotNull, sql } from "drizzle-orm";
@@ -417,6 +421,37 @@ export interface IStorage {
   updateArtistCompetency(id: string, updates: Partial<InsertArtistCompetency>): Promise<ArtistCompetency | undefined>;
   deleteArtistCompetency(id: string): Promise<void>;
   checkExpiredCompetencies(): Promise<void>;
+  
+  // Meeting Templates
+  getAllMeetingTemplates(): Promise<MeetingTemplate[]>;
+  getActiveMeetingTemplates(): Promise<MeetingTemplate[]>;
+  getMeetingTemplate(id: string): Promise<MeetingTemplate | undefined>;
+  createMeetingTemplate(template: InsertMeetingTemplate): Promise<MeetingTemplate>;
+  updateMeetingTemplate(id: string, updates: Partial<InsertMeetingTemplate>): Promise<MeetingTemplate | undefined>;
+  deleteMeetingTemplate(id: string): Promise<void>;
+  reorderMeetingTemplates(templatesWithOrder: Array<{id: string; sortOrder: number}>): Promise<void>;
+  
+  // Meeting Template Fields
+  getTemplateFields(templateId: string): Promise<MeetingTemplateField[]>;
+  getMeetingTemplateField(id: string): Promise<MeetingTemplateField | undefined>;
+  createMeetingTemplateField(field: InsertMeetingTemplateField): Promise<MeetingTemplateField>;
+  updateMeetingTemplateField(id: string, updates: Partial<InsertMeetingTemplateField>): Promise<MeetingTemplateField | undefined>;
+  deleteMeetingTemplateField(id: string): Promise<void>;
+  reorderTemplateFields(fieldsWithOrder: Array<{id: string; sortOrder: number}>): Promise<void>;
+  
+  // Meetings
+  getAllMeetings(): Promise<Meeting[]>;
+  getMeeting(id: string): Promise<Meeting | undefined>;
+  getMeetingsByTemplate(templateId: string): Promise<Meeting[]>;
+  createMeeting(meeting: InsertMeeting): Promise<Meeting>;
+  updateMeeting(id: string, updates: Partial<InsertMeeting>): Promise<Meeting | undefined>;
+  deleteMeeting(id: string): Promise<void>;
+  
+  // Meeting Field Values
+  getMeetingFieldValues(meetingId: string): Promise<MeetingFieldValue[]>;
+  getMeetingFieldValue(meetingId: string, fieldId: string): Promise<MeetingFieldValue | undefined>;
+  upsertMeetingFieldValue(value: InsertMeetingFieldValue): Promise<MeetingFieldValue>;
+  deleteMeetingFieldValue(id: string): Promise<void>;
   
   sessionStore: Store;
 }
@@ -2349,6 +2384,157 @@ export class DatabaseStorage implements IStorage {
           eq(artistCompetencies.expired, 0)
         )
       );
+  }
+
+  // Meeting Templates
+  async getAllMeetingTemplates(): Promise<MeetingTemplate[]> {
+    return await db.select().from(meetingTemplates).orderBy(asc(meetingTemplates.sortOrder));
+  }
+
+  async getActiveMeetingTemplates(): Promise<MeetingTemplate[]> {
+    return await db.select().from(meetingTemplates)
+      .where(eq(meetingTemplates.isActive, 1))
+      .orderBy(asc(meetingTemplates.sortOrder));
+  }
+
+  async getMeetingTemplate(id: string): Promise<MeetingTemplate | undefined> {
+    const result = await db.select().from(meetingTemplates).where(eq(meetingTemplates.id, id));
+    return result[0];
+  }
+
+  async createMeetingTemplate(template: InsertMeetingTemplate): Promise<MeetingTemplate> {
+    const result = await db.insert(meetingTemplates).values(template).returning();
+    return result[0];
+  }
+
+  async updateMeetingTemplate(id: string, updates: Partial<InsertMeetingTemplate>): Promise<MeetingTemplate | undefined> {
+    const result = await db.update(meetingTemplates)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(meetingTemplates.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteMeetingTemplate(id: string): Promise<void> {
+    await db.delete(meetingTemplates).where(eq(meetingTemplates.id, id));
+  }
+
+  async reorderMeetingTemplates(templatesWithOrder: Array<{id: string; sortOrder: number}>): Promise<void> {
+    await Promise.all(
+      templatesWithOrder.map(({ id, sortOrder }) =>
+        db.update(meetingTemplates)
+          .set({ sortOrder, updatedAt: new Date() })
+          .where(eq(meetingTemplates.id, id))
+      )
+    );
+  }
+
+  // Meeting Template Fields
+  async getTemplateFields(templateId: string): Promise<MeetingTemplateField[]> {
+    return await db.select().from(meetingTemplateFields)
+      .where(eq(meetingTemplateFields.templateId, templateId))
+      .orderBy(asc(meetingTemplateFields.sortOrder));
+  }
+
+  async getMeetingTemplateField(id: string): Promise<MeetingTemplateField | undefined> {
+    const result = await db.select().from(meetingTemplateFields).where(eq(meetingTemplateFields.id, id));
+    return result[0];
+  }
+
+  async createMeetingTemplateField(field: InsertMeetingTemplateField): Promise<MeetingTemplateField> {
+    const result = await db.insert(meetingTemplateFields).values(field).returning();
+    return result[0];
+  }
+
+  async updateMeetingTemplateField(id: string, updates: Partial<InsertMeetingTemplateField>): Promise<MeetingTemplateField | undefined> {
+    const result = await db.update(meetingTemplateFields)
+      .set(updates)
+      .where(eq(meetingTemplateFields.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteMeetingTemplateField(id: string): Promise<void> {
+    await db.delete(meetingTemplateFields).where(eq(meetingTemplateFields.id, id));
+  }
+
+  async reorderTemplateFields(fieldsWithOrder: Array<{id: string; sortOrder: number}>): Promise<void> {
+    await Promise.all(
+      fieldsWithOrder.map(({ id, sortOrder }) =>
+        db.update(meetingTemplateFields)
+          .set({ sortOrder })
+          .where(eq(meetingTemplateFields.id, id))
+      )
+    );
+  }
+
+  // Meetings
+  async getAllMeetings(): Promise<Meeting[]> {
+    return await db.select().from(meetings).orderBy(desc(meetings.meetingDate));
+  }
+
+  async getMeeting(id: string): Promise<Meeting | undefined> {
+    const result = await db.select().from(meetings).where(eq(meetings.id, id));
+    return result[0];
+  }
+
+  async getMeetingsByTemplate(templateId: string): Promise<Meeting[]> {
+    return await db.select().from(meetings)
+      .where(eq(meetings.templateId, templateId))
+      .orderBy(desc(meetings.meetingDate));
+  }
+
+  async createMeeting(meeting: InsertMeeting): Promise<Meeting> {
+    const result = await db.insert(meetings).values(meeting).returning();
+    return result[0];
+  }
+
+  async updateMeeting(id: string, updates: Partial<InsertMeeting>): Promise<Meeting | undefined> {
+    const result = await db.update(meetings)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(meetings.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteMeeting(id: string): Promise<void> {
+    await db.delete(meetings).where(eq(meetings.id, id));
+  }
+
+  // Meeting Field Values
+  async getMeetingFieldValues(meetingId: string): Promise<MeetingFieldValue[]> {
+    return await db.select().from(meetingFieldValues)
+      .where(eq(meetingFieldValues.meetingId, meetingId));
+  }
+
+  async getMeetingFieldValue(meetingId: string, fieldId: string): Promise<MeetingFieldValue | undefined> {
+    const result = await db.select().from(meetingFieldValues)
+      .where(
+        and(
+          eq(meetingFieldValues.meetingId, meetingId),
+          eq(meetingFieldValues.fieldId, fieldId)
+        )
+      );
+    return result[0];
+  }
+
+  async upsertMeetingFieldValue(value: InsertMeetingFieldValue): Promise<MeetingFieldValue> {
+    const existing = await this.getMeetingFieldValue(value.meetingId, value.fieldId);
+    
+    if (existing) {
+      const result = await db.update(meetingFieldValues)
+        .set({ ...value, updatedAt: new Date() })
+        .where(eq(meetingFieldValues.id, existing.id))
+        .returning();
+      return result[0];
+    } else {
+      const result = await db.insert(meetingFieldValues).values(value).returning();
+      return result[0];
+    }
+  }
+
+  async deleteMeetingFieldValue(id: string): Promise<void> {
+    await db.delete(meetingFieldValues).where(eq(meetingFieldValues.id, id));
   }
 }
 

@@ -826,6 +826,7 @@ export type ScheduleCall = typeof scheduleCalls.$inferSelect;
 // Feature names for permission system
 export const featureNames = [
   'reports',
+  'meetings',
   'schedules', 
   'lineups',
   'lineups_positions',
@@ -843,6 +844,7 @@ export const featureNames = [
   'settings_acts',
   'settings_users',
   'settings_report_template',
+  'settings_meeting_templates',
 ] as const;
 export type FeatureName = typeof featureNames[number];
 
@@ -1418,6 +1420,105 @@ export const insertArtistCompetencySchema = createInsertSchema(artistCompetencie
 
 export type InsertArtistCompetency = z.infer<typeof insertArtistCompetencySchema>;
 export type ArtistCompetency = typeof artistCompetencies.$inferSelect;
+
+// Meeting Templates - Define reusable meeting types with custom fields
+export const meetingTemplates = pgTable("meeting_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(), // e.g., "Magic Carpet Notes", "Artistic Show Notes"
+  isActive: integer("is_active").notNull().default(1), // 1 = active, 0 = archived
+  sortOrder: integer("sort_order").notNull().default(0),
+  emailSubjectTemplate: text("email_subject_template"),
+  emailBodyPrefix: text("email_body_prefix"),
+  emailTo: text("email_to"),
+  emailCc: text("email_cc"),
+  emailBcc: text("email_bcc"),
+  pdfTitle: text("pdf_title"),
+  pdfLeftImageUrl: text("pdf_left_image_url"),
+  pdfRightImageUrl: text("pdf_right_image_url"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdBy: varchar("created_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  updatedBy: varchar("updated_by").references(() => users.id),
+});
+
+export const insertMeetingTemplateSchema = createInsertSchema(meetingTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertMeetingTemplate = z.infer<typeof insertMeetingTemplateSchema>;
+export type MeetingTemplate = typeof meetingTemplates.$inferSelect;
+
+// Field types for meeting template fields
+export const fieldTypes = ['richtext', 'text', 'date', 'time', 'attendees', 'location', 'dropdown'] as const;
+export type FieldType = typeof fieldTypes[number];
+
+// Meeting Template Fields - Custom fields for each meeting template
+export const meetingTemplateFields = pgTable("meeting_template_fields", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  templateId: varchar("template_id").notNull().references(() => meetingTemplates.id, { onDelete: "cascade" }),
+  fieldName: text("field_name").notNull(), // e.g., "Agenda", "Action Items", "Attendees"
+  fieldType: text("field_type").notNull(), // 'richtext', 'text', 'date', 'time', 'attendees', 'location', 'dropdown'
+  sortOrder: integer("sort_order").notNull().default(0),
+  required: integer("required").notNull().default(0), // 1 = required, 0 = optional
+  dropdownOptions: text("dropdown_options").array(), // For dropdown type
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertMeetingTemplateFieldSchema = createInsertSchema(meetingTemplateFields).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  fieldType: z.enum(fieldTypes),
+});
+
+export type InsertMeetingTemplateField = z.infer<typeof insertMeetingTemplateFieldSchema>;
+export type MeetingTemplateField = typeof meetingTemplateFields.$inferSelect;
+
+// Meetings - Individual meeting note instances
+export const meetings = pgTable("meetings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  templateId: varchar("template_id").notNull().references(() => meetingTemplates.id),
+  meetingDate: text("meeting_date").notNull(), // YYYY-MM-DD format
+  title: text("title"), // Optional custom title override
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdBy: varchar("created_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  updatedBy: varchar("updated_by").references(() => users.id),
+});
+
+export const insertMeetingSchema = createInsertSchema(meetings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertMeeting = z.infer<typeof insertMeetingSchema>;
+export type Meeting = typeof meetings.$inferSelect;
+
+// Meeting Field Values - Actual field values for each meeting
+export const meetingFieldValues = pgTable("meeting_field_values", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  meetingId: varchar("meeting_id").notNull().references(() => meetings.id, { onDelete: "cascade" }),
+  fieldId: varchar("field_id").notNull().references(() => meetingTemplateFields.id),
+  textValue: text("text_value"), // For text, richtext, date, time fields
+  attendeeIds: text("attendee_ids").array(), // For attendees field (user IDs)
+  locationId: varchar("location_id").references(() => locations.id), // For location field
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  meetingFieldUnique: sql`UNIQUE (meeting_id, field_id)`,
+}));
+
+export const insertMeetingFieldValueSchema = createInsertSchema(meetingFieldValues).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertMeetingFieldValue = z.infer<typeof insertMeetingFieldValueSchema>;
+export type MeetingFieldValue = typeof meetingFieldValues.$inferSelect;
 
 // Migrations - Track completed database migrations
 export const migrations = pgTable("migrations", {

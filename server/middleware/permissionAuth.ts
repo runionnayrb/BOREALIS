@@ -180,3 +180,11 @@ export const canCreateLineupsRules = requirePermission('lineups_rules', 'canCrea
 export const canEditLineupsRules = requirePermission('lineups_rules', 'canEdit');
 
 export const canViewLineupsRestrictions = requirePermission('lineups_restrictions', 'canView');
+
+export const canViewMeetings = requirePermission('meetings', 'canView');
+export const canCreateMeetings = requirePermission('meetings', 'canCreate');
+export const canEditMeetings = requirePermission('meetings', 'canEdit');
+
+export const canViewSettingsMeetingTemplates = requirePermission('settings_meeting_templates', 'canView');
+export const canCreateSettingsMeetingTemplates = requirePermission('settings_meeting_templates', 'canCreate');
+export const canEditSettingsMeetingTemplates = requirePermission('settings_meeting_templates', 'canEdit');

@@ -32,6 +32,11 @@ import {
   canViewLineupsRestrictions,
   canViewSettingsDepartments,
   canEditSettingsDepartments,
+  canViewMeetings,
+  canCreateMeetings,
+  canEditMeetings,
+  canViewSettingsMeetingTemplates,
+  canEditSettingsMeetingTemplates,
 } from "./middleware/permissionAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import {
@@ -57,6 +62,10 @@ import {
   insertTrustedIpSchema,
   updateTrustedIpSchema,
   insertTrainingProgramSchema,
+  insertMeetingTemplateSchema,
+  insertMeetingTemplateFieldSchema,
+  insertMeetingSchema,
+  insertMeetingFieldValueSchema,
   featureNames,
   userRoles,
   bulkRolePageAccessSchema,
@@ -2701,6 +2710,178 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: error.message || "Unknown error" 
       });
     }
+  });
+
+  // ========== MEETING TEMPLATES & MEETINGS ROUTES ==========
+  
+  // Meeting Templates routes
+  app.get("/api/meeting-templates", canViewSettingsMeetingTemplates, async (req, res) => {
+    const templates = await storage.getAllMeetingTemplates();
+    res.json(templates);
+  });
+
+  app.get("/api/meeting-templates/active", canViewMeetings, async (req, res) => {
+    const templates = await storage.getActiveMeetingTemplates();
+    res.json(templates);
+  });
+
+  app.get("/api/meeting-templates/:id", canViewSettingsMeetingTemplates, async (req, res) => {
+    const template = await storage.getMeetingTemplate(req.params.id);
+    if (!template) return res.sendStatus(404);
+    res.json(template);
+  });
+
+  app.post("/api/meeting-templates", canEditSettingsMeetingTemplates, async (req, res) => {
+    const validation = insertMeetingTemplateSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const template = await storage.createMeetingTemplate({
+      ...validation.data,
+      createdBy: req.user?.id,
+      updatedBy: req.user?.id,
+    });
+    res.json(template);
+  });
+
+  app.patch("/api/meeting-templates/:id", canEditSettingsMeetingTemplates, async (req, res) => {
+    const validation = insertMeetingTemplateSchema.partial().safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const template = await storage.updateMeetingTemplate(req.params.id, {
+      ...validation.data,
+      updatedBy: req.user?.id,
+    });
+    if (!template) return res.sendStatus(404);
+    res.json(template);
+  });
+
+  app.delete("/api/meeting-templates/:id", canEditSettingsMeetingTemplates, async (req, res) => {
+    await storage.deleteMeetingTemplate(req.params.id);
+    res.sendStatus(204);
+  });
+
+  app.post("/api/meeting-templates/reorder", canEditSettingsMeetingTemplates, async (req, res) => {
+    const { templates } = req.body;
+    if (!Array.isArray(templates)) {
+      return res.status(400).json({ error: "Templates must be an array" });
+    }
+    await storage.reorderMeetingTemplates(templates);
+    res.sendStatus(204);
+  });
+
+  // Meeting Template Fields routes
+  app.get("/api/meeting-templates/:templateId/fields", canViewSettingsMeetingTemplates, async (req, res) => {
+    const fields = await storage.getTemplateFields(req.params.templateId);
+    res.json(fields);
+  });
+
+  app.get("/api/meeting-template-fields/:id", canViewSettingsMeetingTemplates, async (req, res) => {
+    const field = await storage.getMeetingTemplateField(req.params.id);
+    if (!field) return res.sendStatus(404);
+    res.json(field);
+  });
+
+  app.post("/api/meeting-template-fields", canEditSettingsMeetingTemplates, async (req, res) => {
+    const validation = insertMeetingTemplateFieldSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const field = await storage.createMeetingTemplateField(validation.data);
+    res.json(field);
+  });
+
+  app.patch("/api/meeting-template-fields/:id", canEditSettingsMeetingTemplates, async (req, res) => {
+    const validation = insertMeetingTemplateFieldSchema.partial().safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const field = await storage.updateMeetingTemplateField(req.params.id, validation.data);
+    if (!field) return res.sendStatus(404);
+    res.json(field);
+  });
+
+  app.delete("/api/meeting-template-fields/:id", canEditSettingsMeetingTemplates, async (req, res) => {
+    await storage.deleteMeetingTemplateField(req.params.id);
+    res.sendStatus(204);
+  });
+
+  app.post("/api/meeting-template-fields/reorder", canEditSettingsMeetingTemplates, async (req, res) => {
+    const { fields } = req.body;
+    if (!Array.isArray(fields)) {
+      return res.status(400).json({ error: "Fields must be an array" });
+    }
+    await storage.reorderTemplateFields(fields);
+    res.sendStatus(204);
+  });
+
+  // Meetings routes
+  app.get("/api/meetings", canViewMeetings, async (req, res) => {
+    const meetings = await storage.getAllMeetings();
+    res.json(meetings);
+  });
+
+  app.get("/api/meetings/:id", canViewMeetings, async (req, res) => {
+    const meeting = await storage.getMeeting(req.params.id);
+    if (!meeting) return res.sendStatus(404);
+    res.json(meeting);
+  });
+
+  app.get("/api/meetings/template/:templateId", canViewMeetings, async (req, res) => {
+    const meetings = await storage.getMeetingsByTemplate(req.params.templateId);
+    res.json(meetings);
+  });
+
+  app.post("/api/meetings", canCreateMeetings, async (req, res) => {
+    const validation = insertMeetingSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const meeting = await storage.createMeeting({
+      ...validation.data,
+      createdBy: req.user?.id,
+      updatedBy: req.user?.id,
+    });
+    res.json(meeting);
+  });
+
+  app.patch("/api/meetings/:id", canEditMeetings, async (req, res) => {
+    const validation = insertMeetingSchema.partial().safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const meeting = await storage.updateMeeting(req.params.id, {
+      ...validation.data,
+      updatedBy: req.user?.id,
+    });
+    if (!meeting) return res.sendStatus(404);
+    res.json(meeting);
+  });
+
+  app.delete("/api/meetings/:id", canEditMeetings, async (req, res) => {
+    await storage.deleteMeeting(req.params.id);
+    res.sendStatus(204);
+  });
+
+  // Meeting Field Values routes
+  app.get("/api/meetings/:meetingId/field-values", canViewMeetings, async (req, res) => {
+    const values = await storage.getMeetingFieldValues(req.params.meetingId);
+    res.json(values);
+  });
+
+  app.post("/api/meeting-field-values", canEditMeetings, async (req, res) => {
+    const validation = insertMeetingFieldValueSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const value = await storage.upsertMeetingFieldValue(validation.data);
+    res.json(value);
+  });
+
+  app.delete("/api/meeting-field-values/:id", canEditMeetings, async (req, res) => {
+    await storage.deleteMeetingFieldValue(req.params.id);
+    res.sendStatus(204);
   });
 
   // User Permissions Routes (Admin only)
