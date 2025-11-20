@@ -54,7 +54,7 @@ export default function MeetingEditor() {
 
   // Fetch template fields
   const { data: templateFields = [] } = useQuery<MeetingTemplateField[]>({
-    queryKey: ['/api/meeting-template-fields', selectedTemplateId],
+    queryKey: ['/api/meeting-templates', selectedTemplateId, 'fields'],
     enabled: !!selectedTemplateId,
   });
 
