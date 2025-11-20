@@ -16,6 +16,7 @@ Borealis is a production-ready, full-stack web application designed to streamlin
 - I prefer that all queries use TanStack Query for data fetching with automatic caching and all mutations invalidate relevant query caches for real-time updates.
 - I want artist order to be manually controllable and not change when artists are updated.
 - I prefer professional date formatting: Report dates display as "Wednesday, October 25, 2025" instead of raw YYYY-MM-DD format.
+- I expect input fields to maintain focus during typing without interruptions from re-render cycles.
 
 ## System Architecture
 
@@ -35,6 +36,7 @@ Borealis is a production-ready, full-stack web application designed to streamlin
 - **Real-time**: WebSocket server for live updates.
 - **Data Handling**: TanStack Query for caching, automatic department assignment, timezone-safe date parsing.
 - **Email**: Microsoft Graph API integration.
+- **Performance Optimization**: Optimistic updates with useRef for flags (avoid re-render triggers), useMemo for server data derivation, setState callbacks (prev pattern) to isolate local state from effect dependencies, and convergence detection in sync effects.
 
 ### Feature Specifications
 - **Authentication & User Management**: Secure login/signup, profile management, CRUD for users/groups, password reset, role-based access, artist account linking. Profile dropdowns are alphabetically sorted.

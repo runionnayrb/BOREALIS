@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit, Settings as SettingsIcon, Shield, UserCircle2, GripVertical, KeyRound, Copy, Check, Archive, Info, ChevronDown, ChevronRight } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -133,11 +133,15 @@ export default function Settings() {
   const [meetingTemplateEdits, setMeetingTemplateEdits] = useState<Record<string, Partial<MeetingTemplate>>>({});
   const [orderedTechnicians, setOrderedTechnicians] = useState<Technician[]>([]);
   
-  // Local state for meeting template ordering
+  // Local state for meeting template ordering (with optimistic updates)
   const [orderedMeetingTemplates, setOrderedMeetingTemplates] = useState<MeetingTemplateWithFields[]>([]);
   
-  // Local state for field ordering (per template)
+  // Local state for field ordering (per template) - for optimistic updates during drag
   const [orderedFieldsByTemplate, setOrderedFieldsByTemplate] = useState<Map<string, MeetingTemplateField[]>>(new Map());
+  
+  // Refs to track optimistic updates (don't trigger re-renders)
+  const useOptimisticFieldOrdering = useRef<Set<string>>(new Set());
+  const useOptimisticTemplateOrdering = useRef(false);
   
   // Meeting template field management state
   const [fieldDialogOpen, setFieldDialogOpen] = useState(false);
@@ -744,22 +748,56 @@ export default function Settings() {
     }
   }, [technicians]);
 
-  // Sync local meeting template order with query data
+  // Compute ordered templates from server data
+  const serverOrderedTemplates = useMemo(() => {
+    return [...meetingTemplates].sort((a, b) => a.sortOrder - b.sortOrder);
+  }, [meetingTemplates]);
+  
+  // Compute ordered fields for each template from server data
+  const serverOrderedFieldsByTemplate = useMemo(() => {
+    const fieldsMap = new Map<string, MeetingTemplateField[]>();
+    meetingTemplates.forEach(template => {
+      // Include all templates, even those with no fields (empty array)
+      const sortedFields = template.fields ? [...template.fields].sort((a, b) => a.sortOrder - b.sortOrder) : [];
+      fieldsMap.set(template.id, sortedFields);
+    });
+    return fieldsMap;
+  }, [meetingTemplates]);
+  
+  // Sync local state with server state only when not using optimistic updates
   useEffect(() => {
-    if (meetingTemplates && meetingTemplates.length > 0) {
-      setOrderedMeetingTemplates([...meetingTemplates].sort((a, b) => a.sortOrder - b.sortOrder));
+    if (serverOrderedTemplates.length === 0) return;
+    
+    // Only sync when not in optimistic mode
+    if (!useOptimisticTemplateOrdering.current) {
+      setOrderedMeetingTemplates(serverOrderedTemplates);
+    }
+  }, [serverOrderedTemplates]);
+  
+  // Sync field ordering with server when not using optimistic updates  
+  useEffect(() => {
+    setOrderedFieldsByTemplate(prev => {
+      const newMap = new Map<string, MeetingTemplateField[]>();
       
-      // Initialize ordered fields for each template
-      const newOrderedFields = new Map<string, MeetingTemplateField[]>();
-      meetingTemplates.forEach(template => {
-        if (template.fields && template.fields.length > 0) {
-          const sortedFields = [...template.fields].sort((a, b) => a.sortOrder - b.sortOrder);
-          newOrderedFields.set(template.id, sortedFields);
+      serverOrderedFieldsByTemplate.forEach((fields, templateId) => {
+        const isOptimistic = useOptimisticFieldOrdering.current.has(templateId);
+        
+        if (isOptimistic) {
+          // Keep optimistic value while drag is in progress
+          const existing = prev.get(templateId);
+          if (existing) {
+            newMap.set(templateId, existing);
+          }
+        } else {
+          // Always sync with server when not optimistic
+          newMap.set(templateId, fields);
         }
       });
-      setOrderedFieldsByTemplate(newOrderedFields);
-    }
-  }, [meetingTemplates]);
+      
+      // Always return new Map
+      return newMap;
+    });
+  }, [serverOrderedFieldsByTemplate]);
 
   // Clear optimistic state once server data is synced
   useEffect(() => {
@@ -846,6 +884,9 @@ export default function Settings() {
       const oldIndex = orderedMeetingTemplates.findIndex((t) => t.id === active.id);
       const newIndex = orderedMeetingTemplates.findIndex((t) => t.id === over.id);
       
+      // Mark as using optimistic ordering
+      useOptimisticTemplateOrdering.current = true;
+      
       const newTemplates = arrayMove(orderedMeetingTemplates, oldIndex, newIndex);
       setOrderedMeetingTemplates(newTemplates);
       reorderMeetingTemplatesMutation.mutate(newTemplates.map((t, index) => ({ id: t.id, sortOrder: index })));
@@ -863,6 +904,9 @@ export default function Settings() {
       
       const newFields = arrayMove(currentFields, oldIndex, newIndex);
       
+      // Mark this template as using optimistic ordering (using ref, doesn't trigger re-render)
+      useOptimisticFieldOrdering.current.add(templateId);
+      
       // Update local state
       setOrderedFieldsByTemplate(prev => {
         const updated = new Map(prev);
@@ -870,8 +914,11 @@ export default function Settings() {
         return updated;
       });
       
-      // Trigger mutation
-      reorderFieldsMutation.mutate(newFields.map((f, index) => ({ id: f.id, sortOrder: index })));
+      // Trigger mutation with templateId
+      reorderFieldsMutation.mutate({ 
+        templateId, 
+        fields: newFields.map((f, index) => ({ id: f.id, sortOrder: index })) 
+      });
     }
   };
 
@@ -2148,17 +2195,19 @@ export default function Settings() {
       }
     },
     onSettled: () => {
-      // Always refetch after error or success to ensure we're in sync with the server
+      // Clear optimistic flag so next sync will update from server
+      useOptimisticTemplateOrdering.current = false;
+      // Refetch to ensure sync with server
       queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
     },
   });
 
   // Reorder template fields mutation
   const reorderFieldsMutation = useMutation({
-    mutationFn: async (fields: Array<{ id: string; sortOrder: number }>) => {
-      return await apiRequest("POST", "/api/meeting-template-fields/reorder", { fields });
+    mutationFn: async (data: { templateId: string; fields: Array<{ id: string; sortOrder: number }> }) => {
+      return await apiRequest("POST", "/api/meeting-template-fields/reorder", { fields: data.fields });
     },
-    onMutate: async (fieldsWithOrder) => {
+    onMutate: async ({ templateId, fields: fieldsWithOrder }) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["/api/meeting-templates"] });
       
@@ -2180,7 +2229,7 @@ export default function Settings() {
         });
       });
       
-      return { previousTemplates };
+      return { previousTemplates, templateId };
     },
     onError: (_err, _variables, context) => {
       // Roll back on error
@@ -2193,8 +2242,10 @@ export default function Settings() {
         variant: "destructive",
       });
     },
-    onSettled: () => {
-      // Refetch to ensure sync
+    onSettled: (_data, _error, variables) => {
+      // Clear optimistic flag so next sync will update from server
+      useOptimisticFieldOrdering.current.delete(variables.templateId);
+      // Refetch to ensure sync with server
       queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
     },
   });
