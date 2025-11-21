@@ -2086,6 +2086,7 @@ export default function Settings() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates/active"] });
       // Clear edits for this template
       setMeetingTemplateEdits((prev) => {
         const updated = { ...prev };
@@ -2115,6 +2116,7 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates/active"] });
       setNewTemplateDialogOpen(false);
       setNewTemplateName("");
       toast({ title: "Meeting template created successfully" });
@@ -2163,6 +2165,7 @@ export default function Settings() {
       useOptimisticTemplateOrdering.current = false;
       // Refetch to ensure sync with server
       queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates/active"] });
     },
   });
 
@@ -2211,6 +2214,7 @@ export default function Settings() {
       useOptimisticFieldOrdering.current.delete(variables.templateId);
       // Refetch to ensure sync with server
       queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates/active"] });
     },
   });
 
@@ -2224,6 +2228,7 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates/active"] });
       setFieldDialogOpen(false);
       setEditingField(null);
       setCurrentTemplateId(null);
@@ -2243,6 +2248,7 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates/active"] });
       setFieldDialogOpen(false);
       setEditingField(null);
       setCurrentTemplateId(null);
@@ -2262,6 +2268,7 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates/active"] });
       toast({ title: "Field deleted successfully" });
     },
     onError: (error: any) => {
