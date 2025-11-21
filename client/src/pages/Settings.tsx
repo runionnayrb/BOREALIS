@@ -2114,12 +2114,18 @@ export default function Settings() {
         sortOrder: maxSortOrder + 1,
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates/active"] });
+    onSuccess: (newTemplate) => {
+      // Optimistically add the new template to the cache immediately
+      queryClient.setQueryData(["/api/meeting-templates"], (old: MeetingTemplateWithFields[] | undefined) => {
+        if (!old) return [newTemplate];
+        return [...old, newTemplate];
+      });
       setNewTemplateDialogOpen(false);
       setNewTemplateName("");
       toast({ title: "Meeting template created successfully" });
+      // Refetch to sync with server after UI update
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates/active"] });
     },
     onError: (error: any) => {
       toast({ 
