@@ -144,11 +144,13 @@ export default function MeetingEditor() {
         return apiRequest('PATCH', `/api/meetings/${id}`, data);
       }
     },
-    onSuccess: (response: any) => {
+    onSuccess: async (response: any) => {
       const meetingId = isNewMeeting ? response.id : id;
-      // Refetch the specific meeting and field values immediately to show updates
-      queryClient.refetchQueries({ queryKey: ['/api/meetings', meetingId] });
-      queryClient.refetchQueries({ queryKey: ['/api/meetings', meetingId, 'field-values'] });
+      // Refetch the specific meeting and field values and wait for completion
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['/api/meetings', meetingId] }),
+        queryClient.refetchQueries({ queryKey: ['/api/meetings', meetingId, 'field-values'] }),
+      ]);
       queryClient.invalidateQueries({ queryKey: ['/api/meetings'] });
       toast({
         title: "Success",
