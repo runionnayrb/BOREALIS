@@ -3853,6 +3853,77 @@ export default function Settings() {
                 </div>
               </SortableContext>
             </DndContext>
+
+            {/* Rename Template Dialog - Outside of card to prevent re-renders */}
+            <Dialog open={renamingTemplateId !== null} onOpenChange={(open) => {
+              if (!open) setRenamingTemplateId(null);
+            }}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Rename Template</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="rename-input">Template Name</Label>
+                    <Input
+                      id="rename-input"
+                      value={renamingTemplateName}
+                      onChange={(e) => setRenamingTemplateName(e.target.value)}
+                      placeholder="Enter template name"
+                      data-testid="input-rename-template"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setRenamingTemplateId(null)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (renamingTemplateName.trim() && renamingTemplateId) {
+                        renameTemplateMutation.mutate({ id: renamingTemplateId, name: renamingTemplateName });
+                      }
+                    }}
+                    disabled={renameTemplateMutation.isPending || !renamingTemplateName.trim()}
+                    data-testid="button-confirm-rename"
+                  >
+                    {renameTemplateMutation.isPending ? "Renaming..." : "Rename"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Delete Template Dialog - Outside of card to prevent re-renders */}
+            <AlertDialog open={deleteTemplateConfirmId !== null} onOpenChange={(open) => {
+              if (!open) setDeleteTemplateConfirmId(null);
+            }}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Template</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {deleteTemplateConfirmId ? `Are you sure you want to delete "${orderedMeetingTemplates.find(t => t.id === deleteTemplateConfirmId)?.name}"? This action cannot be undone.` : ""}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      if (deleteTemplateConfirmId) {
+                        deleteTemplateMutation.mutate(deleteTemplateConfirmId);
+                      }
+                    }}
+                    disabled={deleteTemplateMutation.isPending}
+                    className="bg-destructive text-destructive-foreground"
+                  >
+                    {deleteTemplateMutation.isPending ? "Deleting..." : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </TabsContent>
 
           <TabsContent value="acts" className="space-y-4">
