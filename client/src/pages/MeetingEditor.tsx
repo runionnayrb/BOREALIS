@@ -144,13 +144,14 @@ export default function MeetingEditor() {
         return apiRequest('PATCH', `/api/meetings/${id}`, data);
       }
     },
-    onSuccess: () => {
+    onSuccess: (response: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/meetings'] });
       toast({
         title: "Success",
         description: isNewMeeting ? "Meeting created successfully" : "Meeting updated successfully",
       });
-      setLocation(`/meetings/template/${selectedTemplateId}`);
+      const meetingId = isNewMeeting ? response.id : id;
+      setLocation(`/meetings/${meetingId}/view`);
     },
     onError: (error: Error) => {
       toast({
