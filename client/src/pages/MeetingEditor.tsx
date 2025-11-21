@@ -435,7 +435,7 @@ export default function MeetingEditor() {
                   </Button>
                 </a>
               )}
-              <Link href="/meetings">
+              <Link href={`/meetings/${id}/view`}>
                 <Button variant="outline" data-testid="button-cancel">Cancel</Button>
               </Link>
               <Button
