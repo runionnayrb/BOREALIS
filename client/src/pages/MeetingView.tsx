@@ -518,7 +518,7 @@ export default function MeetingView() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="email-body">Email Body</Label>
-              <div className="border rounded-md bg-background min-h-[300px] overflow-hidden">
+              <div className="border rounded-md bg-background min-h-[300px] overflow-hidden [&_.tiptap_p]:m-0 [&_.tiptap_hr]:my-4">
                 <RichTextEditor
                   content={originalHtmlBody}
                   onChange={(html) => {
