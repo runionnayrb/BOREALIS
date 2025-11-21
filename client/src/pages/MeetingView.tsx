@@ -519,11 +519,8 @@ export default function MeetingView() {
             <div className="space-y-2">
               <Label htmlFor="email-body">Email Body</Label>
               <style>{`
-                .email-preview-editor .prose {
-                  padding: 0 !important;
-                }
                 .email-preview-editor p {
-                  margin: 0 !important;
+                  margin-bottom: 0.5rem !important;
                 }
                 .email-preview-editor h1,
                 .email-preview-editor h2,
@@ -531,18 +528,17 @@ export default function MeetingView() {
                 .email-preview-editor h4,
                 .email-preview-editor h5,
                 .email-preview-editor h6 {
-                  margin: 0 !important;
+                  margin-bottom: 0.5rem !important;
                 }
                 .email-preview-editor ol,
                 .email-preview-editor ul {
-                  margin: 0 !important;
+                  margin-bottom: 0.5rem !important;
                 }
                 .email-preview-editor li {
-                  margin: 0 !important;
-                  margin-bottom: 0 !important;
+                  margin-bottom: 0.25rem !important;
                 }
                 .email-preview-editor hr {
-                  margin: 16px 0 !important;
+                  margin: 0.5rem 0 !important;
                 }
               `}</style>
               <div className="email-preview-editor border rounded-md bg-background min-h-[300px] overflow-hidden">
