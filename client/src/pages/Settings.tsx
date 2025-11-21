@@ -3080,7 +3080,7 @@ export default function Settings() {
     );
   };
 
-  const SortableArtisticStaffCard = ({ artisticStaff, deptId }: { staffMembers: ArtisticStaff; deptId: string }) => {
+  const SortableArtisticStaffCard = ({ artisticStaff, deptId }: { artisticStaff: StaffMember; deptId: string }) => {
     const {
       attributes,
       listeners,
@@ -3214,7 +3214,7 @@ export default function Settings() {
         grouped.set(departmentId, { staffMembers: [], sortOrders: new Map() });
       }
       const group = grouped.get(departmentId)!;
-      group.artisticStaff.push(staff);
+      group.staffMembers.push(staff);
       group.sortOrders.set(artisticStaffId, sortOrder);
     });
     
@@ -3225,7 +3225,7 @@ export default function Settings() {
       
       if (optimisticOrder) {
         // Use optimistic order
-        group.artisticStaff.sort((a, b) => {
+        group.staffMembers.sort((a: StaffMember, b: StaffMember) => {
           const indexA = optimisticOrder.indexOf(a.id);
           const indexB = optimisticOrder.indexOf(b.id);
           // If not found in optimistic order, put at end
@@ -3236,7 +3236,7 @@ export default function Settings() {
         });
       } else {
         // Use server-side sortOrder
-        group.artisticStaff.sort((a, b) => {
+        group.staffMembers.sort((a: StaffMember, b: StaffMember) => {
           const orderA = group.sortOrders.get(a.id) ?? 0;
           const orderB = group.sortOrders.get(b.id) ?? 0;
           return orderA - orderB;
@@ -3259,7 +3259,7 @@ export default function Settings() {
           const group = grouped.get(deptId);
           if (!group) return null;
           
-          const staffInDept = group.artisticStaff;
+          const staffInDept = group.staffMembers;
           const dept = departments.find(d => d.id === deptId);
           const isNoDept = deptId === 'no-department';
           
@@ -6119,7 +6119,7 @@ export default function Settings() {
                                       onClick={() => {
                                         if (editTarget?.type === "artistic-staff") {
                                           linkUserToArtistMutation.mutate({ 
-                                            artisticStaffId: editTarget.id, 
+                                            artistId: editTarget.id, 
                                             userId: selectedLinkedArtisticStaffUserId 
                                           });
                                         }
@@ -6799,7 +6799,7 @@ export default function Settings() {
                                       </SelectItem>
                                     );
                                   })}
-                                {selectedProfileType === "artisticStaff" && [...(unlinkedProfiles?.artisticStaff || [])]
+                                {selectedProfileType === "artisticStaff" && [...(unlinkedProfiles?.staffMembers || [])]
                                   .sort((a, b) => {
                                     const keyA = a.preferredName?.trim() || `${a.firstName} ${a.lastName}`;
                                     const keyB = b.preferredName?.trim() || `${b.firstName} ${b.lastName}`;
@@ -7618,7 +7618,7 @@ export default function Settings() {
                               {currentLinkedProfile.name} (Current)
                             </SelectItem>
                           )}
-                          {[...(unlinkedProfiles?.artisticStaff || [])]
+                          {[...(unlinkedProfiles?.staffMembers || [])]
                             .sort((a, b) => {
                               const keyA = a.preferredName?.trim() || `${a.firstName} ${a.lastName}`;
                               const keyB = b.preferredName?.trim() || `${b.firstName} ${b.lastName}`;
@@ -7894,7 +7894,7 @@ export default function Settings() {
         <DialogContent>
           <form onSubmit={(e) => {
             e.preventDefault();
-            const trimmedName = newTemplateName?.trim?.() || ""();
+            const trimmedName = newTemplateName?.trim?.() || "";
             if (!trimmedName) {
               toast({ 
                 title: "Validation Error", 
