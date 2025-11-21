@@ -354,6 +354,7 @@ export default function MeetingView() {
         <div className="flex items-center gap-2">
           {canEdit && (
             <Button 
+              variant="default"
               onClick={() => setLocation(`/meetings/${id}/edit`)}
               data-testid="button-edit-meeting"
             >
