@@ -7,25 +7,52 @@ import { useQueryParams } from "@/hooks/use-query-params";
 import { Link } from "wouter";
 import type { MeetingTemplate, Meeting } from "@shared/schema";
 import { format } from "date-fns";
+import React from "react";
 
 export default function Meetings() {
   const { user } = useAuth();
   const queryParams = useQueryParams();
   const selectedTemplateId = queryParams.get('template') || "all";
+  const [allLoadedMeetings, setAllLoadedMeetings] = React.useState<Meeting[]>([]);
+  const [offset, setOffset] = React.useState(0);
+  const [hasMore, setHasMore] = React.useState(true);
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery<MeetingTemplate[]>({
     queryKey: ['/api/meeting-templates/active'],
   });
 
   const { data: meetings = [], isLoading: meetingsLoading } = useQuery<Meeting[]>({
-    queryKey: ['/api/meetings'],
+    queryKey: selectedTemplateId && selectedTemplateId !== "all" 
+      ? ['/api/meetings/template', selectedTemplateId, 'page', offset]
+      : ['/api/meetings', 'page', offset],
+    queryFn: async () => {
+      const params = new URLSearchParams({ limit: '10', offset: offset.toString() });
+      const endpoint = selectedTemplateId && selectedTemplateId !== "all"
+        ? `/api/meetings/template/${selectedTemplateId}?${params}`
+        : `/api/meetings?${params}`;
+      const response = await fetch(endpoint, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch meetings');
+      return response.json();
+    },
+    enabled: true,
   });
+
+  // Update all loaded meetings when new page loads
+  React.useEffect(() => {
+    if (meetings.length > 0) {
+      setAllLoadedMeetings(prev => {
+        if (offset === 0) return meetings;
+        return [...prev, ...meetings];
+      });
+      setHasMore(meetings.length === 10);
+    } else if (offset > 0) {
+      setHasMore(false);
+    }
+  }, [meetings, offset]);
 
   const activeTemplates = templates.filter((t) => t.isActive === 1);
 
-  const filteredMeetings = selectedTemplateId && selectedTemplateId !== "all"
-    ? meetings.filter((m) => m.templateId === selectedTemplateId)
-    : meetings;
+  const filteredMeetings = allLoadedMeetings;
 
   const getMeetingTemplate = (templateId: string) => {
     return templates.find((t) => t.id === templateId);
@@ -92,6 +119,18 @@ export default function Meetings() {
                   </Link>
                 );
               })}
+              {hasMore && (
+                <div className="flex justify-start pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setOffset(offset + 10)}
+                    disabled={meetingsLoading}
+                    data-testid="button-load-more"
+                  >
+                    {meetingsLoading ? "Loading..." : "Load More"}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>

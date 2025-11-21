@@ -2844,7 +2844,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Meetings routes
   app.get("/api/meetings", canViewMeetings, async (req, res) => {
     if (!req.user) return res.sendStatus(401);
-    const meetings = await storage.getMeetingsForUser(req.user.id);
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+    const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+    const meetings = await storage.getMeetingsForUser(req.user.id, { limit, offset });
     res.json(meetings);
   });
 
@@ -2867,7 +2869,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const hasAccess = await storage.canUserAccessTemplate(req.user.id, req.params.templateId, 'view');
     if (!hasAccess) return res.sendStatus(403);
     
-    const meetings = await storage.getMeetingsByTemplate(req.params.templateId);
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+    const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+    const meetings = await storage.getMeetingsByTemplate(req.params.templateId, { limit, offset });
     res.json(meetings);
   });
 
