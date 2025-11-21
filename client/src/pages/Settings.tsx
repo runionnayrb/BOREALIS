@@ -6033,9 +6033,9 @@ export default function Settings() {
                           const formData = new FormData(e.currentTarget);
                           const firstName = formData.get("firstName") as string;
                           const lastName = formData.get("lastName") as string;
-                          const preferredName = (formData.get("preferredName") as string) || undefined;
-                          const role = (formData.get("role") as string) || undefined;
-                          const photoUrl = (formData.get("photoUrl") as string) || undefined;
+                          const preferredName = (formData.get("preferredName") as string | null) || undefined;
+                          const role = (formData.get("role") as string | null) || undefined;
+                          const photoUrl = (formData.get("photoUrl") as string | null) || undefined;
                           const status = selectedArtisticStaffStatus as "active" | "out" | "archived";
 
                           if (editTarget?.type === "artistic-staff") {
@@ -6043,9 +6043,9 @@ export default function Settings() {
                               id: editTarget.id,
                               firstName,
                               lastName,
-                              preferredName,
-                              role,
-                              photoUrl,
+                              preferredName: preferredName || null,
+                              role: role || null,
+                              photoUrl: photoUrl || null,
                               status,
                               departmentIds: selectedArtisticStaffDepartmentIds,
                               userId: editTarget?.data?.userId ?? null,
@@ -6054,9 +6054,9 @@ export default function Settings() {
                             createArtisticStaffMutation.mutate({
                               firstName,
                               lastName,
-                              preferredName,
-                              role,
-                              photoUrl,
+                              preferredName: preferredName || null,
+                              role: role || null,
+                              photoUrl: photoUrl || null,
                               status,
                               departmentIds: selectedArtisticStaffDepartmentIds,
                             });
@@ -7916,7 +7916,7 @@ export default function Settings() {
         }
       }}>
         <DialogContent>
-          <form onSubmit={(e) => {
+          <form key={editingField?.id || "new"} onSubmit={(e) => {
             e.preventDefault();
             
             if (!currentTemplateId && !editingField) {
@@ -7983,12 +7983,14 @@ export default function Settings() {
               <div className="space-y-2">
                 <Label htmlFor="fieldName">Field Name</Label>
                 <Input
+                  key={`fieldName-${editingField?.id || "new"}`}
                   id="fieldName"
                   name="fieldName"
                   placeholder="e.g., Agenda, Notes, Action Items"
                   required
                   defaultValue={editingField?.fieldName || ""}
                   data-testid="input-field-name"
+                  autoFocus
                 />
               </div>
               <div className="space-y-2">
@@ -8024,6 +8026,7 @@ export default function Settings() {
               <div className="space-y-2">
                 <Label htmlFor="dropdownOptions">Dropdown Options (comma-separated)</Label>
                 <Input
+                  key={`dropdownOptions-${editingField?.id || "new"}`}
                   id="dropdownOptions"
                   name="dropdownOptions"
                   placeholder="Option 1, Option 2, Option 3"
