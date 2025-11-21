@@ -146,10 +146,10 @@ export default function MeetingEditor() {
     },
     onSuccess: (response: any) => {
       const meetingId = isNewMeeting ? response.id : id;
-      // Invalidate all meeting-related queries to ensure fresh data
+      // Refetch the specific meeting and field values immediately to show updates
+      queryClient.refetchQueries({ queryKey: ['/api/meetings', meetingId] });
+      queryClient.refetchQueries({ queryKey: ['/api/meetings', meetingId, 'field-values'] });
       queryClient.invalidateQueries({ queryKey: ['/api/meetings'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/meetings', meetingId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/meetings', meetingId, 'field-values'] });
       toast({
         title: "Success",
         description: isNewMeeting ? "Meeting created successfully" : "Meeting updated successfully",
