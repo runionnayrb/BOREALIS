@@ -3300,7 +3300,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const locations = await storage.getAllLocations();
       
       // Build email body
-      let emailBody = template.emailBodyPrefix ? `${template.emailBodyPrefix}\n\n<br><br>` : '';
+      let emailBody = template.emailBodyPrefix ? `${template.emailBodyPrefix.replace(/\n/g, '<br>')}<br><br>` : '';
       
       // Add field values to email body
       const sortedFields = fields.sort((a, b) => a.sortOrder - b.sortOrder);
