@@ -3299,14 +3299,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const users = await storage.getAllUsers();
       const locations = await storage.getAllLocations();
       
-      // Build email body
-      let emailBody = template.emailBodyPrefix ? `${template.emailBodyPrefix.replace(/\n/g, '<br>')}<br><br>` : '';
+      // Build email body with CSS to reset list counters for each section
+      let emailBody = `<style>div[data-field] { counter-reset: item; }</style>`;
+      emailBody += template.emailBodyPrefix ? `${template.emailBodyPrefix.replace(/\n/g, '<br>')}<br><br>` : '';
       
       // Add field values to email body
       const sortedFields = fields.sort((a, b) => a.sortOrder - b.sortOrder);
       for (let i = 0; i < sortedFields.length; i++) {
         const field = sortedFields[i];
         const fieldValue = fieldValues.find(fv => fv.fieldId === field.id);
+        emailBody += `<div data-field="${field.id}">`;
         emailBody += `<p><strong>${field.fieldName}:</strong></p>`;
         
         if (field.fieldType === 'attendees' && fieldValue?.attendeeIds) {
@@ -3325,6 +3327,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           emailBody += '<p>N/A</p>\n';
         }
+        
+        emailBody += `</div>`;
         
         // Add horizontal line between fields (but not after the last one)
         if (i < sortedFields.length - 1) {
