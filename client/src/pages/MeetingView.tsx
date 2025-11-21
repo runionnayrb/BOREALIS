@@ -114,12 +114,14 @@ export default function MeetingView() {
   const { data: template, isLoading: templateLoading } = useQuery<MeetingTemplate>({
     queryKey: ['/api/meeting-templates', meeting?.templateId],
     enabled: !!meeting?.templateId,
+    staleTime: 60000, // Cache for 1 minute
   });
 
   // Fetch template fields
   const { data: templateFields = [] } = useQuery<MeetingTemplateField[]>({
     queryKey: ['/api/meeting-templates', meeting?.templateId, 'fields'],
     enabled: !!meeting?.templateId,
+    staleTime: 60000, // Cache for 1 minute
   });
 
   // Fetch field values
@@ -131,6 +133,7 @@ export default function MeetingView() {
       return response.json();
     },
     enabled: !!meeting,
+    staleTime: 5000, // Cache for 5 seconds - short because content changes frequently
   });
 
   // Fetch locations for display
