@@ -2167,16 +2167,38 @@ export default function Settings() {
     mutationFn: async (id: string) => {
       return await apiRequest("DELETE", `/api/meeting-templates/${id}`);
     },
+    onMutate: async (id: string) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/meeting-templates"] });
+      
+      // Snapshot the previous value
+      const previousTemplates = queryClient.getQueryData(["/api/meeting-templates"]);
+      
+      // Optimistically remove the template from the cache
+      queryClient.setQueryData(["/api/meeting-templates"], (old: MeetingTemplateWithFields[] | undefined) => {
+        if (!old) return old;
+        return old.filter(template => template.id !== id);
+      });
+      
+      return { previousTemplates };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates/active"] });
       setDeleteTemplateConfirmId(null);
+      setMeetingTemplateOpenStates((prev) => {
+        const updated = { ...prev };
+        // Clear the state for all templates (the deleted one is already removed from cache)
+        return updated;
+      });
       toast({ title: "Template deleted successfully" });
     },
-    onError: (error: any) => {
+    onError: (_err, _variables, context) => {
+      // Restore on error
+      if (context?.previousTemplates) {
+        queryClient.setQueryData(["/api/meeting-templates"], context.previousTemplates);
+      }
       toast({ 
         title: "Failed to delete template", 
-        description: error.message || "An error occurred",
+        description: _err.message || "An error occurred",
         variant: "destructive"
       });
     },
@@ -2946,31 +2968,31 @@ export default function Settings() {
         }
       >
         <Card ref={setNodeRef} style={style}>
-          <CollapsibleTrigger className="w-full">
-            <div className="flex items-center gap-3 p-4 hover-elevate">
-              <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing" onClick={(e) => e.stopPropagation()}>
-                <GripVertical className="w-4 h-4 text-muted-foreground" />
-              </div>
-              <h2 className="text-lg font-semibold flex-1 text-left">{template.name}</h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setRenamingTemplateId(template.id);
-                  setRenamingTemplateName(template.name);
-                }}
-                data-testid={`button-rename-template-${template.id}`}
-              >
-                <Edit className="w-4 h-4" />
-              </Button>
-              {meetingTemplateOpenStates[template.id] ? (
-                <ChevronDown className="w-5 h-5" />
-              ) : (
-                <ChevronRight className="w-5 h-5" />
-              )}
+          <div className="flex items-center gap-3 p-4 hover-elevate">
+            <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing" onClick={(e) => e.stopPropagation()}>
+              <GripVertical className="w-4 h-4 text-muted-foreground" />
             </div>
-          </CollapsibleTrigger>
+            <CollapsibleTrigger className="flex-1">
+              <h2 className="text-lg font-semibold text-left">{template.name}</h2>
+            </CollapsibleTrigger>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setRenamingTemplateId(template.id);
+                setRenamingTemplateName(template.name);
+              }}
+              className="p-2 hover:bg-accent rounded-md"
+              data-testid={`button-rename-template-${template.id}`}
+            >
+              <Edit className="w-4 h-4" />
+            </button>
+            {meetingTemplateOpenStates[template.id] ? (
+              <ChevronDown className="w-5 h-5" />
+            ) : (
+              <ChevronRight className="w-5 h-5" />
+            )}
+          </div>
           <CollapsibleContent>
             <div className="px-6 pb-6 space-y-4 border-t">
               <MeetingTemplateHeaderForm
