@@ -518,7 +518,34 @@ export default function MeetingView() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="email-body">Email Body</Label>
-              <div className="border rounded-md bg-background min-h-[300px] overflow-hidden [&_.tiptap_p]:m-0 [&_.tiptap_hr]:my-4">
+              <style>{`
+                .email-preview-editor .prose {
+                  padding: 0 !important;
+                }
+                .email-preview-editor p {
+                  margin: 0 !important;
+                }
+                .email-preview-editor h1,
+                .email-preview-editor h2,
+                .email-preview-editor h3,
+                .email-preview-editor h4,
+                .email-preview-editor h5,
+                .email-preview-editor h6 {
+                  margin: 0 !important;
+                }
+                .email-preview-editor ol,
+                .email-preview-editor ul {
+                  margin: 0 !important;
+                }
+                .email-preview-editor li {
+                  margin: 0 !important;
+                  margin-bottom: 0 !important;
+                }
+                .email-preview-editor hr {
+                  margin: 16px 0 !important;
+                }
+              `}</style>
+              <div className="email-preview-editor border rounded-md bg-background min-h-[300px] overflow-hidden">
                 <RichTextEditor
                   content={originalHtmlBody}
                   onChange={(html) => {
