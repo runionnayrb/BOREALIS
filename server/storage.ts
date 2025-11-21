@@ -443,9 +443,9 @@ export interface IStorage {
   
   // Meetings
   getAllMeetings(): Promise<Meeting[]>;
-  getMeetingsForUser(userId: string): Promise<Meeting[]>;
+  getMeetingsForUser(userId: string, options?: { limit?: number; offset?: number }): Promise<Meeting[]>;
   getMeeting(id: string): Promise<Meeting | undefined>;
-  getMeetingsByTemplate(templateId: string): Promise<Meeting[]>;
+  getMeetingsByTemplate(templateId: string, options?: { limit?: number; offset?: number }): Promise<Meeting[]>;
   createMeeting(meeting: InsertMeeting): Promise<Meeting>;
   updateMeeting(id: string, updates: Partial<InsertMeeting>): Promise<Meeting | undefined>;
   deleteMeeting(id: string): Promise<void>;
@@ -2542,7 +2542,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(meetings).orderBy(desc(meetings.meetingDate));
   }
 
-  async getMeetingsForUser(userId: string): Promise<Meeting[]> {
+  async getMeetingsForUser(userId: string, options?: { limit?: number; offset?: number }): Promise<Meeting[]> {
     // Get user's template permissions
     const permissions = await db.select().from(userMeetingTemplatePermissions)
       .where(
@@ -2566,9 +2566,20 @@ export class DatabaseStorage implements IStorage {
     }
     
     // Get meetings for templates the user has access to
-    return await db.select().from(meetings)
+    const baseQuery = db.select().from(meetings)
       .where(inArray(meetings.templateId, templateIds))
       .orderBy(desc(meetings.meetingDate));
+    
+    // Apply pagination if requested
+    if (options?.limit !== undefined && options?.offset !== undefined) {
+      return await baseQuery.limit(options.limit).offset(options.offset);
+    } else if (options?.limit !== undefined) {
+      return await baseQuery.limit(options.limit);
+    } else if (options?.offset !== undefined) {
+      return await baseQuery.offset(options.offset);
+    }
+    
+    return await baseQuery;
   }
 
   async getMeeting(id: string): Promise<Meeting | undefined> {
@@ -2576,10 +2587,21 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getMeetingsByTemplate(templateId: string): Promise<Meeting[]> {
-    return await db.select().from(meetings)
+  async getMeetingsByTemplate(templateId: string, options?: { limit?: number; offset?: number }): Promise<Meeting[]> {
+    const baseQuery = db.select().from(meetings)
       .where(eq(meetings.templateId, templateId))
       .orderBy(desc(meetings.meetingDate));
+    
+    // Apply pagination if requested
+    if (options?.limit !== undefined && options?.offset !== undefined) {
+      return await baseQuery.limit(options.limit).offset(options.offset);
+    } else if (options?.limit !== undefined) {
+      return await baseQuery.limit(options.limit);
+    } else if (options?.offset !== undefined) {
+      return await baseQuery.offset(options.offset);
+    }
+    
+    return await baseQuery;
   }
 
   async canUserAccessTemplate(userId: string, templateId: string, permission: 'view' | 'create' | 'edit'): Promise<boolean> {
