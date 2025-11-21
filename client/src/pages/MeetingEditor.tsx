@@ -145,12 +145,15 @@ export default function MeetingEditor() {
       }
     },
     onSuccess: (response: any) => {
+      const meetingId = isNewMeeting ? response.id : id;
+      // Invalidate all meeting-related queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['/api/meetings'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/meetings', meetingId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/meetings', meetingId, 'field-values'] });
       toast({
         title: "Success",
         description: isNewMeeting ? "Meeting created successfully" : "Meeting updated successfully",
       });
-      const meetingId = isNewMeeting ? response.id : id;
       setLocation(`/meetings/${meetingId}/view`);
     },
     onError: (error: Error) => {
