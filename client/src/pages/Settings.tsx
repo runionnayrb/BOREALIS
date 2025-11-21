@@ -2146,14 +2146,35 @@ export default function Settings() {
     mutationFn: async (data: { id: string; name: string }) => {
       return await apiRequest("PATCH", `/api/meeting-templates/${data.id}`, { name: data.name.trim() });
     },
+    onMutate: async (data: { id: string; name: string }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/meeting-templates"] });
+      
+      // Snapshot the previous value
+      const previousTemplates = queryClient.getQueryData(["/api/meeting-templates"]);
+      
+      // Optimistically update the template name in the cache
+      queryClient.setQueryData(["/api/meeting-templates"], (old: MeetingTemplateWithFields[] | undefined) => {
+        if (!old) return old;
+        return old.map(template => 
+          template.id === data.id 
+            ? { ...template, name: data.name.trim() }
+            : template
+        );
+      });
+      
+      return { previousTemplates };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates/active"] });
       setRenamingTemplateId(null);
       setRenamingTemplateName("");
       toast({ title: "Template renamed successfully" });
     },
-    onError: (error: any) => {
+    onError: (error: any, _variables, context) => {
+      // Restore on error
+      if (context?.previousTemplates) {
+        queryClient.setQueryData(["/api/meeting-templates"], context.previousTemplates);
+      }
       toast({ 
         title: "Failed to rename template", 
         description: error.message || "An error occurred",
