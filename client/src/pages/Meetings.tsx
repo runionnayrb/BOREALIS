@@ -76,13 +76,13 @@ export default function Meetings() {
                             <FileText className="w-4 h-4 text-primary" />
                           </div>
                           <div>
-                            <h3 className="font-semibold text-sm" data-testid={`text-meeting-title-${meeting.id}`}>
+                            <h3 className="font-semibold" data-testid={`text-meeting-title-${meeting.id}`}>
                               {template?.name || "Meeting"}
                             </h3>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Calendar className="w-3 h-3" />
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Calendar className="w-4 h-4" />
                               <span data-testid={`text-meeting-date-${meeting.id}`}>
-                                {format(new Date(meeting.meetingDate), "MMM d, yyyy")}
+                                {format(new Date(meeting.meetingDate), "MMMM d, yyyy")}
                               </span>
                             </div>
                           </div>
