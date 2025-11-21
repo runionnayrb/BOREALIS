@@ -3226,8 +3226,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const users = await storage.getAllUsers();
       const locations = await storage.getAllLocations();
 
-      let emailBody = `<style>div[data-field] { counter-reset: item; }</style>`;
-      emailBody += template.emailBodyPrefix ? `${template.emailBodyPrefix.replace(/\n/g, '<br>')}<br><br>` : '';
+      let emailBody = `<style>div[data-field] { counter-reset: item; } div[data-field] p { margin: 0; padding: 0; }</style>`;
+      emailBody += template.emailBodyPrefix ? `${template.emailBodyPrefix.replace(/\n/g, '<br>')}` : '';
 
       const sortedFields = fields.sort((a, b) => a.sortOrder - b.sortOrder);
       for (let i = 0; i < sortedFields.length; i++) {
@@ -3256,7 +3256,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Add horizontal line between fields (but not after the last one)
         if (i < sortedFields.length - 1) {
-          emailBody += '<hr style="border: none; border-top: 1px solid #ccc; margin: 16px 0;">\n';
+          emailBody += '<hr style="border: none; border-top: 1px solid #ccc; margin: 8px 0;">\n';
         }
       }
 
@@ -3304,8 +3304,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const locations = await storage.getAllLocations();
       
       // Build email body with CSS to reset list counters for each section
-      let emailBody = `<style>div[data-field] { counter-reset: item; }</style>`;
-      emailBody += template.emailBodyPrefix ? `${template.emailBodyPrefix.replace(/\n/g, '<br>')}<br><br>` : '';
+      let emailBody = `<style>div[data-field] { counter-reset: item; } div[data-field] p { margin: 0; padding: 0; }</style>`;
+      emailBody += template.emailBodyPrefix ? `${template.emailBodyPrefix.replace(/\n/g, '<br>')}` : '';
       
       // Add field values to email body
       const sortedFields = fields.sort((a, b) => a.sortOrder - b.sortOrder);
@@ -3336,7 +3336,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Add horizontal line between fields (but not after the last one)
         if (i < sortedFields.length - 1) {
-          emailBody += '<hr style="border: none; border-top: 1px solid #ccc; margin: 16px 0;">\n';
+          emailBody += '<hr style="border: none; border-top: 1px solid #ccc; margin: 8px 0;">\n';
         }
       }
       
