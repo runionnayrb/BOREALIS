@@ -2165,9 +2165,12 @@ export default function Settings() {
       
       return { previousTemplates };
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       setRenamingTemplateId(null);
       setRenamingTemplateName("");
+      // Ensure UI is fully synced by refetching after success
+      await queryClient.refetchQueries({ queryKey: ["/api/meeting-templates"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/meeting-templates/active"] });
       toast({ title: "Template renamed successfully" });
     },
     onError: (error: any, _variables, context) => {
