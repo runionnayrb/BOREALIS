@@ -100,7 +100,7 @@ export default function MeetingView() {
   // Check if user can edit meetings (admin or stage_management roles)
   const canEdit = user?.role === 'admin' || user?.role === 'stage_management';
 
-  // Fetch meeting - refetch on mount to ensure fresh data after edits
+  // Fetch meeting
   const { data: meeting, isLoading: meetingLoading } = useQuery<Meeting>({
     queryKey: ['/api/meetings', id],
     queryFn: async () => {
@@ -108,7 +108,6 @@ export default function MeetingView() {
       if (!response.ok) throw new Error('Failed to fetch meeting');
       return response.json();
     },
-    refetchOnMount: true,
   });
 
   // Fetch template
@@ -123,7 +122,7 @@ export default function MeetingView() {
     enabled: !!meeting?.templateId,
   });
 
-  // Fetch field values - refetch on mount to ensure fresh data after edits
+  // Fetch field values
   const { data: fieldValues = [] } = useQuery<MeetingFieldValue[]>({
     queryKey: ['/api/meetings', id, 'field-values'],
     queryFn: async () => {
@@ -132,7 +131,6 @@ export default function MeetingView() {
       return response.json();
     },
     enabled: !!meeting,
-    refetchOnMount: true,
   });
 
   // Fetch locations for display
