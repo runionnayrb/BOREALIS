@@ -70,19 +70,19 @@ export default function Meetings() {
                 return (
                   <Link key={meeting.id} href={`/meetings/${meeting.id}/view`}>
                     <Card className="hover-elevate cursor-pointer" data-testid={`card-meeting-${meeting.id}`}>
-                      <CardContent className="flex items-center justify-between p-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-primary/10 rounded-md flex items-center justify-center">
-                            <FileText className="w-6 h-6 text-primary" />
+                      <CardContent className="flex items-center justify-between p-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center flex-shrink-0">
+                            <FileText className="w-4 h-4 text-primary" />
                           </div>
                           <div>
-                            <h3 className="font-semibold" data-testid={`text-meeting-title-${meeting.id}`}>
+                            <h3 className="font-semibold text-sm" data-testid={`text-meeting-title-${meeting.id}`}>
                               {template?.name || "Meeting"}
                             </h3>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Calendar className="w-4 h-4" />
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Calendar className="w-3 h-3" />
                               <span data-testid={`text-meeting-date-${meeting.id}`}>
-                                {format(new Date(meeting.meetingDate), "MMMM d, yyyy")}
+                                {format(new Date(meeting.meetingDate), "MMM d, yyyy")}
                               </span>
                             </div>
                           </div>
