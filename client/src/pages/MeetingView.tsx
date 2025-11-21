@@ -516,13 +516,21 @@ export default function MeetingView() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email-body">Email Body</Label>
+              <Label>Email Preview</Label>
+              <div 
+                className="prose prose-sm max-w-none dark:prose-invert border rounded-md p-4 bg-muted/30 min-h-[250px] overflow-auto"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(originalHtmlBody) }}
+                data-testid="display-email-preview"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email-body">Edit Email Body (Plain Text)</Label>
               <Textarea
                 id="email-body"
                 value={emailBody}
                 onChange={(e) => setEmailBody(e.target.value)}
                 placeholder="Edit email body before sending"
-                className="min-h-[300px] resize-none"
+                className="min-h-[200px] resize-none"
                 data-testid="input-email-body"
               />
             </div>
