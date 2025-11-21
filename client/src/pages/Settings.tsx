@@ -152,6 +152,11 @@ export default function Settings() {
   const [newTemplateDialogOpen, setNewTemplateDialogOpen] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState("");
 
+  // Template rename/delete state
+  const [renamingTemplateId, setRenamingTemplateId] = useState<string | null>(null);
+  const [renamingTemplateName, setRenamingTemplateName] = useState("");
+  const [deleteTemplateConfirmId, setDeleteTemplateConfirmId] = useState<string | null>(null);
+
   // Optimistic state for technician reordering per department
   // Maps departmentId to array of technicianIds in their current order
   const [optimisticTechnicianOrder, setOptimisticTechnicianOrder] = useState<Map<string, string[]>>(new Map());
@@ -2136,6 +2141,47 @@ export default function Settings() {
     },
   });
 
+  // Rename meeting template mutation
+  const renameTemplateMutation = useMutation({
+    mutationFn: async (data: { id: string; name: string }) => {
+      return await apiRequest("PATCH", `/api/meeting-templates/${data.id}`, { name: data.name.trim() });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates/active"] });
+      setRenamingTemplateId(null);
+      setRenamingTemplateName("");
+      toast({ title: "Template renamed successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to rename template", 
+        description: error.message || "An error occurred",
+        variant: "destructive"
+      });
+    },
+  });
+
+  // Delete meeting template mutation
+  const deleteTemplateMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/meeting-templates/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-templates/active"] });
+      setDeleteTemplateConfirmId(null);
+      toast({ title: "Template deleted successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to delete template", 
+        description: error.message || "An error occurred",
+        variant: "destructive"
+      });
+    },
+  });
+
   // Reorder meeting templates mutation
   const reorderMeetingTemplatesMutation = useMutation({
     mutationFn: async (templates: Array<{ id: string; sortOrder: number }>) => {
@@ -2906,6 +2952,18 @@ export default function Settings() {
                 <GripVertical className="w-4 h-4 text-muted-foreground" />
               </div>
               <h2 className="text-lg font-semibold flex-1 text-left">{template.name}</h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setRenamingTemplateId(template.id);
+                  setRenamingTemplateName(template.name);
+                }}
+                data-testid={`button-rename-template-${template.id}`}
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
               {meetingTemplateOpenStates[template.id] ? (
                 <ChevronDown className="w-5 h-5" />
               ) : (
@@ -2968,7 +3026,17 @@ export default function Settings() {
                 </DndContext>
               </div>
 
-              <div className="mt-6">
+              <div className="mt-6 flex items-center justify-between gap-2">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setDeleteTemplateConfirmId(template.id)}
+                  disabled={deleteTemplateMutation.isPending}
+                  data-testid={`button-delete-template-${template.id}`}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </Button>
                 <Button
                   onClick={() => {
                     const headerData = headerFormRef.current;
@@ -2991,6 +3059,70 @@ export default function Settings() {
                   {saveMeetingTemplateMutation.isPending ? "Saving..." : "Save Template"}
                 </Button>
               </div>
+
+              {deleteTemplateConfirmId === template.id && (
+                <AlertDialog open={true} onOpenChange={() => setDeleteTemplateConfirmId(null)}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Template</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete "{template.name}"? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => deleteTemplateMutation.mutate(template.id)}
+                        disabled={deleteTemplateMutation.isPending}
+                        className="bg-destructive text-destructive-foreground"
+                      >
+                        {deleteTemplateMutation.isPending ? "Deleting..." : "Delete"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+
+              {renamingTemplateId === template.id && (
+                <Dialog open={true} onOpenChange={() => setRenamingTemplateId(null)}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Rename Template</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="rename-input">Template Name</Label>
+                        <Input
+                          id="rename-input"
+                          value={renamingTemplateName}
+                          onChange={(e) => setRenamingTemplateName(e.target.value)}
+                          placeholder="Enter template name"
+                          data-testid="input-rename-template"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => setRenamingTemplateId(null)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          if (renamingTemplateName.trim()) {
+                            renameTemplateMutation.mutate({ id: template.id, name: renamingTemplateName });
+                          }
+                        }}
+                        disabled={renameTemplateMutation.isPending || !renamingTemplateName.trim()}
+                        data-testid="button-confirm-rename"
+                      >
+                        {renameTemplateMutation.isPending ? "Renaming..." : "Rename"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
             </div>
           </CollapsibleContent>
         </Card>
