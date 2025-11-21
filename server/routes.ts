@@ -3267,7 +3267,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/meetings/:id/send-email", canEditMeetings, async (req, res) => {
     try {
       const { getUncachableOutlookClient } = await import("./outlook");
-      const { generatePdfFromHtml } = await import("./pdfGenerator");
       
       // Fetch meeting data
       const meeting = await storage.getMeeting(req.params.id);
@@ -3333,80 +3332,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Generate PDF for attachment (using the same logic as PDF endpoint)
-      const dateFormattedFile = format(new Date(meeting.meetingDate), "MMMM d, yyyy");
-      
-      let headerHtml = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #333;">';
-      if (template.pdfLeftImageUrl) {
-        headerHtml += `<div style="flex: 1;"><img src="${template.pdfLeftImageUrl}" style="max-height: 80px; max-width: 200px;" /></div>`;
-      } else {
-        headerHtml += '<div style="flex: 1;"></div>';
-      }
-      headerHtml += `<div style="flex: 2; text-center;"><h1 style="margin: 0; font-size: 24px;">${template.pdfTitle || template.name}</h1><p style="margin: 5px 0 0 0; font-size: 14px; color: #666;">${dateFormattedFile}</p></div>`;
-      if (template.pdfRightImageUrl) {
-        headerHtml += `<div style="flex: 1; text-align: right;"><img src="${template.pdfRightImageUrl}" style="max-height: 80px; max-width: 200px;" /></div>`;
-      } else {
-        headerHtml += '<div style="flex: 1;"></div>';
-      }
-      headerHtml += '</div>';
-      
-      let contentHtml = `<h2 style="margin-top: 0;">${meeting.title || template.name}</h2>`;
-      contentHtml += `<p style="color: #666; margin-bottom: 30px;">${dateFormattedFile}</p>`;
-      
-      for (const field of fields.sort((a, b) => a.sortOrder - b.sortOrder)) {
-        const fieldValue = fieldValues.find(fv => fv.fieldId === field.id);
-        contentHtml += `<div style="margin-bottom: 20px;">`;
-        contentHtml += `<h3 style="font-size: 16px; margin-bottom: 10px; color: #333;">${field.fieldName}</h3>`;
-        
-        if (field.fieldType === 'attendees' && fieldValue?.attendeeIds) {
-          // attendeeIds is already a string array from the database
-          const attendeeIds = Array.isArray(fieldValue.attendeeIds) ? fieldValue.attendeeIds : [];
-          const attendeeNames = attendeeIds.map((id: string) => {
-            const user = users.find((u: any) => u.id === id);
-            return user ? `${user.preferredName || user.firstName} ${user.lastName}` : '';
-          }).filter(Boolean);
-          contentHtml += `<p style="margin: 0;">${attendeeNames.join(', ') || 'None'}</p>`;
-        } else if (field.fieldType === 'location' && fieldValue?.locationId) {
-          const location = locations.find((l: any) => l.id === fieldValue.locationId);
-          contentHtml += `<p style="margin: 0;">${location?.name || 'Unknown'}</p>`;
-        } else if (fieldValue?.textValue) {
-          const text = fieldValue.textValue.replace(/\n/g, '<br>');
-          contentHtml += `<p style="margin: 0; white-space: pre-wrap;">${text}</p>`;
-        } else {
-          contentHtml += `<p style="margin: 0; color: #999;">N/A</p>`;
-        }
-        
-        contentHtml += `</div>`;
-      }
-      
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              line-height: 1.6; 
-              color: #333;
-              padding: 20px;
-            }
-            h1, h2, h3 { 
-              font-weight: normal; 
-            }
-          </style>
-        </head>
-        <body>
-          ${headerHtml}
-          ${contentHtml}
-        </body>
-        </html>
-      `;
-      
-      const pdfBuffer = await generatePdfFromHtml(htmlContent);
-      const pdfBase64 = pdfBuffer.toString('base64');
-      const pdfFileName = `${meeting.title || template.name} - ${dateFormattedFile}.pdf`;
-      
       // Parse email recipients (ensure they're arrays) and convert to lowercase
       let toEmails: string[] = Array.isArray(template.emailTo) ? template.emailTo : (template.emailTo ? [template.emailTo as string] : []);
       let ccEmails: string[] = Array.isArray(template.emailCc) ? template.emailCc : (template.emailCc ? [template.emailCc as string] : []);
@@ -3434,20 +3359,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })),
         bccRecipients: bccEmails.filter(e => e).map(email => ({
           emailAddress: { address: email }
-        })),
-        attachments: [
-          {
-            "@odata.type": "#microsoft.graph.fileAttachment",
-            "name": pdfFileName,
-            "contentType": "application/pdf",
-            "contentBytes": pdfBase64
-          }
-        ]
+        }))
       };
       
       await client.api('/me/sendMail').post({ message });
       
-      res.json({ success: true, message: "Email sent successfully with PDF attachment" });
+      res.json({ success: true, message: "Email sent successfully" });
     } catch (error: any) {
       console.error("Meeting email sending error:", error);
       res.status(500).json({ 

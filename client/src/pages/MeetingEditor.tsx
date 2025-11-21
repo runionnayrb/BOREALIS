@@ -435,14 +435,6 @@ export default function MeetingEditor() {
               {isNewMeeting ? "New Meeting" : "Edit Meeting"}
             </h1>
             <div className="flex gap-2">
-              {!isNewMeeting && (
-                <a href={`/api/meetings/${id}/pdf`} download>
-                  <Button variant="outline" data-testid="button-export-pdf">
-                    <FileDown className="w-4 h-4 mr-2" />
-                    Export PDF
-                  </Button>
-                </a>
-              )}
               <Link href={`/meetings/${id}/view`}>
                 <Button variant="outline" data-testid="button-cancel">Cancel</Button>
               </Link>
