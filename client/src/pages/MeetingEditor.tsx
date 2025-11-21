@@ -422,16 +422,30 @@ export default function MeetingEditor() {
     <div className="flex flex-col h-screen">
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-4xl mx-auto flex flex-col gap-6 h-full">
-          <div className="flex items-center gap-4">
-            <Link href="/meetings">
-              <Button variant="ghost" size="icon" data-testid="button-back">
-                <ArrowLeft className="w-4 h-4" />
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold" data-testid="text-page-title">
+              {isNewMeeting ? "New Meeting" : "Edit Meeting"}
+            </h1>
+            <div className="flex gap-2">
+              {!isNewMeeting && (
+                <a href={`/api/meetings/${id}/pdf`} download>
+                  <Button variant="outline" data-testid="button-export-pdf">
+                    <FileDown className="w-4 h-4 mr-2" />
+                    Export PDF
+                  </Button>
+                </a>
+              )}
+              <Link href="/meetings">
+                <Button variant="outline" data-testid="button-cancel">Cancel</Button>
+              </Link>
+              <Button
+                onClick={handleSave}
+                disabled={saveMeetingMutation.isPending}
+                data-testid="button-save"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {saveMeetingMutation.isPending ? "Saving..." : "Save"}
               </Button>
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold" data-testid="text-page-title">
-                {isNewMeeting ? "New Meeting" : "Edit Meeting"}
-              </h1>
             </div>
           </div>
 
@@ -483,8 +497,8 @@ export default function MeetingEditor() {
             </Card>
           )}
 
-          <div className="flex items-center justify-between gap-4">
-            {!isNewMeeting && (
+          {!isNewMeeting && (
+            <div className="flex items-center justify-end gap-4">
               <Button
                 variant="destructive"
                 onClick={() => setDeleteDialogOpen(true)}
@@ -494,29 +508,8 @@ export default function MeetingEditor() {
                 <Trash2 className="w-4 h-4 mr-2" />
                 {deleteMeetingMutation.isPending ? "Deleting..." : "Delete Meeting"}
               </Button>
-            )}
-            <div className="flex gap-4 ml-auto">
-              {!isNewMeeting && (
-                <a href={`/api/meetings/${id}/pdf`} download>
-                  <Button variant="outline" data-testid="button-export-pdf">
-                    <FileDown className="w-4 h-4 mr-2" />
-                    Export PDF
-                  </Button>
-                </a>
-              )}
-              <Button
-                onClick={handleSave}
-                disabled={saveMeetingMutation.isPending}
-                data-testid="button-save"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {saveMeetingMutation.isPending ? "Saving..." : "Save Meeting"}
-              </Button>
-              <Link href="/meetings">
-                <Button variant="outline" data-testid="button-cancel">Cancel</Button>
-              </Link>
             </div>
-          </div>
+          )}
         </div>
       </div>
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
