@@ -136,6 +136,8 @@ export default function Settings() {
   }, [whatsappCountryCode]);
   const [uaeMobilePhone, setUaeMobilePhone] = useState("");
   const [whatsappPhone, setWhatsappPhone] = useState("");
+  const [uaeMobileCountrySearch, setUaeMobileCountrySearch] = useState("");
+  const [whatsappCountrySearch, setWhatsappCountrySearch] = useState("");
   
   // Local state for artist ordering
   const [orderedArtists, setOrderedArtists] = useState<Artist[]>([]);
@@ -5943,7 +5945,10 @@ export default function Settings() {
                             <div className="flex gap-2">
                               <Select 
                                 value={uaeMobileSelectValue}
-                                onValueChange={(val) => setUaeMobileCountryCode(val.split('-')[0])}
+                                onValueChange={(val) => {
+                                  setUaeMobileCountryCode(val.split('-')[0]);
+                                  setUaeMobileCountrySearch("");
+                                }}
                               >
                                 <SelectTrigger className="w-24" data-testid="select-uae-mobile-country">
                                   {(() => {
@@ -5952,15 +5957,30 @@ export default function Settings() {
                                   })()}
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {COUNTRY_CODES.map((cc) => (
-                                    <SelectItem key={`${cc.code}-${cc.country}`} value={`${cc.code}-${cc.country}`} className="whitespace-nowrap">
-                                      <div className="flex items-center gap-2">
-                                        <span className="w-6">{cc.flag}</span>
-                                        <span className="w-12">{cc.code}</span>
-                                        <span>{cc.country}</span>
-                                      </div>
-                                    </SelectItem>
-                                  ))}
+                                  <div className="p-2 pb-0">
+                                    <Input 
+                                      placeholder="Search countries..." 
+                                      value={uaeMobileCountrySearch}
+                                      onChange={(e) => setUaeMobileCountrySearch(e.target.value)}
+                                      className="h-8"
+                                      autoFocus
+                                      data-testid="input-uae-mobile-search"
+                                    />
+                                  </div>
+                                  <div className="max-h-64 overflow-y-auto">
+                                    {COUNTRY_CODES.filter((cc) => 
+                                      cc.country.toLowerCase().includes(uaeMobileCountrySearch.toLowerCase()) ||
+                                      cc.code.includes(uaeMobileCountrySearch)
+                                    ).map((cc) => (
+                                      <SelectItem key={`${cc.code}-${cc.country}`} value={`${cc.code}-${cc.country}`} className="whitespace-nowrap">
+                                        <div className="flex items-center gap-2">
+                                          <span className="w-6">{cc.flag}</span>
+                                          <span className="w-12">{cc.code}</span>
+                                          <span>{cc.country}</span>
+                                        </div>
+                                      </SelectItem>
+                                    ))}
+                                  </div>
                                 </SelectContent>
                               </Select>
                               <Input 
@@ -5980,7 +6000,10 @@ export default function Settings() {
                             <div className="flex gap-2">
                               <Select 
                                 value={whatsappSelectValue}
-                                onValueChange={(val) => setWhatsappCountryCode(val.split('-')[0])}
+                                onValueChange={(val) => {
+                                  setWhatsappCountryCode(val.split('-')[0]);
+                                  setWhatsappCountrySearch("");
+                                }}
                               >
                                 <SelectTrigger className="w-24" data-testid="select-whatsapp-country">
                                   {(() => {
@@ -5989,15 +6012,30 @@ export default function Settings() {
                                   })()}
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {COUNTRY_CODES.map((cc) => (
-                                    <SelectItem key={`${cc.code}-${cc.country}`} value={`${cc.code}-${cc.country}`} className="whitespace-nowrap">
-                                      <div className="flex items-center gap-2">
-                                        <span className="w-6">{cc.flag}</span>
-                                        <span className="w-12">{cc.code}</span>
-                                        <span>{cc.country}</span>
-                                      </div>
-                                    </SelectItem>
-                                  ))}
+                                  <div className="p-2 pb-0">
+                                    <Input 
+                                      placeholder="Search countries..." 
+                                      value={whatsappCountrySearch}
+                                      onChange={(e) => setWhatsappCountrySearch(e.target.value)}
+                                      className="h-8"
+                                      autoFocus
+                                      data-testid="input-whatsapp-search"
+                                    />
+                                  </div>
+                                  <div className="max-h-64 overflow-y-auto">
+                                    {COUNTRY_CODES.filter((cc) => 
+                                      cc.country.toLowerCase().includes(whatsappCountrySearch.toLowerCase()) ||
+                                      cc.code.includes(whatsappCountrySearch)
+                                    ).map((cc) => (
+                                      <SelectItem key={`${cc.code}-${cc.country}`} value={`${cc.code}-${cc.country}`} className="whitespace-nowrap">
+                                        <div className="flex items-center gap-2">
+                                          <span className="w-6">{cc.flag}</span>
+                                          <span className="w-12">{cc.code}</span>
+                                          <span>{cc.country}</span>
+                                        </div>
+                                      </SelectItem>
+                                    ))}
+                                  </div>
                                 </SelectContent>
                               </Select>
                               <Input 
