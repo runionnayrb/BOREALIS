@@ -5902,7 +5902,10 @@ export default function Settings() {
                                 onValueChange={(val) => setUaeMobileCountryCode(val.split('-')[0])}
                               >
                                 <SelectTrigger className="w-24" data-testid="select-uae-mobile-country">
-                                  <SelectValue placeholder="Code" />
+                                  {(() => {
+                                    const country = COUNTRY_CODES.find(cc => cc.code === uaeMobileCountryCode);
+                                    return country ? <>{country.flag} {country.code}</> : "Code";
+                                  })()}
                                 </SelectTrigger>
                                 <SelectContent>
                                   {COUNTRY_CODES.map((cc) => (
@@ -5935,7 +5938,10 @@ export default function Settings() {
                                 onValueChange={(val) => setWhatsappCountryCode(val.split('-')[0])}
                               >
                                 <SelectTrigger className="w-24" data-testid="select-whatsapp-country">
-                                  <SelectValue placeholder="Code" />
+                                  {(() => {
+                                    const country = COUNTRY_CODES.find(cc => cc.code === whatsappCountryCode);
+                                    return country ? <>{country.flag} {country.code}</> : "Code";
+                                  })()}
                                 </SelectTrigger>
                                 <SelectContent>
                                   {COUNTRY_CODES.map((cc) => (
