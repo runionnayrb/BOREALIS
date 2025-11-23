@@ -5926,7 +5926,7 @@ export default function Settings() {
                                 type="tel"
                                 placeholder="50 123 4567" 
                                 value={uaeMobilePhone}
-                                onChange={(e) => setUaeMobilePhone(formatPhoneNumber(e.target.value))}
+                                onChange={(e) => setUaeMobilePhone(formatPhoneNumber(e.target.value, uaeMobileCountryCode))}
                                 data-testid="input-artist-mobile" 
                                 className="flex-1"
                               />
@@ -5962,7 +5962,7 @@ export default function Settings() {
                                 type="tel"
                                 placeholder="50 123 4567" 
                                 value={whatsappPhone}
-                                onChange={(e) => setWhatsappPhone(formatPhoneNumber(e.target.value))}
+                                onChange={(e) => setWhatsappPhone(formatPhoneNumber(e.target.value, whatsappCountryCode))}
                                 data-testid="input-artist-whatsapp" 
                                 className="flex-1"
                               />

@@ -211,27 +211,59 @@ export const COUNTRY_CODES = [
   { code: "+263", country: "Zimbabwe", flag: "🇿🇼" },
 ];
 
-export function formatPhoneNumber(phoneNumber: string): string {
+// Country-specific phone formatting patterns
+const COUNTRY_FORMATS: { [key: string]: string } = {
+  "+1": "XXX XXX XXXX", // USA, Canada, etc.
+  "+44": "XXXX XXXXXX", // UK
+  "+49": "XXX XXXXXXX", // Germany
+  "+33": "X XX XX XX XX", // France
+  "+39": "XXX XXX XXXX", // Italy
+  "+34": "XXX XX XX XX", // Spain
+  "+31": "X XX XXXXXX", // Netherlands
+  "+32": "XXX XX XX XX", // Belgium
+  "+41": "XX XXX XX XX", // Switzerland
+  "+43": "XXX XXXXXX", // Austria
+  "+45": "XXXX XXXX", // Denmark
+  "+46": "XXX XXX XXXX", // Sweden
+  "+47": "XXXX XXXX", // Norway
+  "+48": "XXX XXX XXXX", // Poland
+  "+61": "X XXXX XXXX", // Australia
+  "+64": "X XXXX XXXX", // New Zealand
+  "+81": "XX XXXX XXXX", // Japan
+  "+86": "XXX XXXX XXXX", // China
+  "+82": "XX XXXX XXXX", // South Korea
+  "+91": "XXXXX XXXXX", // India
+  "+971": "XX XXX XXXX", // UAE
+};
+
+export function formatPhoneNumber(phoneNumber: string, countryCode?: string): string {
   if (!phoneNumber) return "";
   
   // Remove all non-digit characters
   const digitsOnly = phoneNumber.replace(/\D/g, "");
   
-  // Format as xxx xxx xxxx (for 10+ digits)
-  if (digitsOnly.length >= 10) {
-    const lastTen = digitsOnly.slice(-10);
-    return lastTen.replace(/(\d{3})(\d{3})(\d{4})/, "$1 $2 $3");
+  // Get the format pattern for the country
+  const pattern = countryCode && COUNTRY_FORMATS[countryCode] ? COUNTRY_FORMATS[countryCode] : "XXX XXX XXXX";
+  
+  // Apply the pattern
+  let formatted = "";
+  let digitIndex = 0;
+  
+  for (let i = 0; i < pattern.length && digitIndex < digitsOnly.length; i++) {
+    if (pattern[i] === "X") {
+      formatted += digitsOnly[digitIndex];
+      digitIndex++;
+    } else {
+      formatted += pattern[i];
+    }
   }
   
-  // For shorter numbers, just add spacing at standard points
-  if (digitsOnly.length > 6) {
-    return digitsOnly.replace(/(\d{3})(\d{3})(\d+)/, "$1 $2 $3");
-  }
-  if (digitsOnly.length > 3) {
-    return digitsOnly.replace(/(\d{3})(\d+)/, "$1 $2");
+  // Append any remaining digits
+  if (digitIndex < digitsOnly.length) {
+    formatted += digitsOnly.substring(digitIndex);
   }
   
-  return digitsOnly;
+  return formatted;
 }
 
 export function getCountryByCode(code: string) {
