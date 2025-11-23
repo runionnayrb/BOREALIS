@@ -238,6 +238,16 @@ export default function Settings() {
   // Check if user is a stage manager or admin
   const isStageManager = user?.role === 'stage_management' || user?.role === 'admin';
 
+  // Reset phone number states when opening a new artist to edit
+  useEffect(() => {
+    if (editTarget?.type === "artist" && artistEditMode) {
+      setUaeMobileCountryCode("+971");
+      setWhatsappCountryCode("+971");
+      setUaeMobilePhone("");
+      setWhatsappPhone("");
+    }
+  }, [editTarget?.id, artistEditMode]);
+
   // Fetch all settings data with conditional loading based on active tab
   // Scenes, acts, cues - load when their tabs are active or when people tab is active (needed for assignments)
   const { data: scenes = [] } = useQuery<Scene[]>({ 
