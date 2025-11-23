@@ -5973,6 +5973,7 @@ export default function Settings() {
                                 onChange={(e) => setUaeMobilePhone(formatPhoneNumber(e.target.value, uaeMobileCountryCode))}
                                 data-testid="input-artist-mobile" 
                                 className="flex-1"
+                                key={`uae-${editTarget?.id}`}
                               />
                             </div>
                           </div>
@@ -6009,6 +6010,7 @@ export default function Settings() {
                                 onChange={(e) => setWhatsappPhone(formatPhoneNumber(e.target.value, whatsappCountryCode))}
                                 data-testid="input-artist-whatsapp" 
                                 className="flex-1"
+                                key={`whatsapp-${editTarget?.id}`}
                               />
                             </div>
                           </div>
