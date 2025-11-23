@@ -240,47 +240,45 @@ export default function Settings() {
 
   // Initialize phone number states when opening an artist for editing
   useEffect(() => {
-    if (editTarget?.type === "artist" && artistEditMode) {
-      // Parse and load saved phone numbers
-      let uaeMobileCode = "+971";
-      let uaeMobileNum = "";
-      let whatsappCode = "+971";
-      let whatsappNum = "";
-
-      if (editTarget.data.uaeMobile) {
-        // Parse format: "+971 052 435 6742"
-        const uaeParts = editTarget.data.uaeMobile.trim().split(" ");
-        if (uaeParts.length > 0) {
-          // Find matching country code by checking longest matches first
-          const sortedCodes = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
-          const matchedCode = sortedCodes.find(cc => uaeParts[0] === cc.code);
-          if (matchedCode) {
-            uaeMobileCode = matchedCode.code;
-            uaeMobileNum = uaeParts.slice(1).join(" ");
-          }
-        }
-      }
-
-      if (editTarget.data.whatsappNumber) {
-        // Parse format: "+971 052 435 6742"
-        const whatsappParts = editTarget.data.whatsappNumber.trim().split(" ");
-        if (whatsappParts.length > 0) {
-          // Find matching country code by checking longest matches first
-          const sortedCodes = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
-          const matchedCode = sortedCodes.find(cc => whatsappParts[0] === cc.code);
-          if (matchedCode) {
-            whatsappCode = matchedCode.code;
-            whatsappNum = whatsappParts.slice(1).join(" ");
-          }
-        }
-      }
-
-      setUaeMobileCountryCode(uaeMobileCode);
-      setUaeMobilePhone(uaeMobileNum);
-      setWhatsappCountryCode(whatsappCode);
-      setWhatsappPhone(whatsappNum);
+    if (!editTarget?.type || editTarget.type !== "artist" || !artistEditMode) {
+      return;
     }
-  }, [editTarget?.id, artistEditMode]);
+
+    // Parse and load saved phone numbers
+    let uaeMobileCode = "+971";
+    let uaeMobileNum = "";
+    let whatsappCode = "+971";
+    let whatsappNum = "";
+
+    if (editTarget.data?.uaeMobile) {
+      const uaeParts = editTarget.data.uaeMobile.trim().split(" ");
+      const sortedCodes = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
+      const matchedCode = sortedCodes.find(cc => uaeParts[0] === cc.code);
+      if (matchedCode) {
+        uaeMobileCode = matchedCode.code;
+        uaeMobileNum = uaeParts.slice(1).join(" ");
+      } else {
+        uaeMobileNum = editTarget.data.uaeMobile;
+      }
+    }
+
+    if (editTarget.data?.whatsappNumber) {
+      const whatsappParts = editTarget.data.whatsappNumber.trim().split(" ");
+      const sortedCodes = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
+      const matchedCode = sortedCodes.find(cc => whatsappParts[0] === cc.code);
+      if (matchedCode) {
+        whatsappCode = matchedCode.code;
+        whatsappNum = whatsappParts.slice(1).join(" ");
+      } else {
+        whatsappNum = editTarget.data.whatsappNumber;
+      }
+    }
+
+    setUaeMobileCountryCode(uaeMobileCode);
+    setUaeMobilePhone(uaeMobileNum);
+    setWhatsappCountryCode(whatsappCode);
+    setWhatsappPhone(whatsappNum);
+  }, [editTarget?.id, editTarget?.data?.uaeMobile, editTarget?.data?.whatsappNumber, artistEditMode]);
 
   // Fetch all settings data with conditional loading based on active tab
   // Scenes, acts, cues - load when their tabs are active or when people tab is active (needed for assignments)
@@ -5704,7 +5702,7 @@ export default function Settings() {
                                   className="text-sm text-primary hover:underline flex items-center gap-1"
                                   data-testid="link-artist-mobile"
                                 >
-                                  {editTarget.data.uaeMobile}
+                                  {editTarget.data.uaeMobile.startsWith("+") ? editTarget.data.uaeMobile : `+971 ${editTarget.data.uaeMobile}`}
                                 </a>
                               </div>
                             )}
@@ -5719,7 +5717,7 @@ export default function Settings() {
                                   className="text-sm text-primary hover:underline flex items-center gap-1"
                                   data-testid="link-artist-whatsapp"
                                 >
-                                  {editTarget.data.whatsappNumber}
+                                  {editTarget.data.whatsappNumber.startsWith("+") ? editTarget.data.whatsappNumber : `+971 ${editTarget.data.whatsappNumber}`}
                                 </a>
                               </div>
                             )}
