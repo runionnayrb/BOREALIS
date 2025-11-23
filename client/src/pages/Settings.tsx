@@ -282,6 +282,20 @@ export default function Settings() {
     setWhatsappPhone(whatsappNum);
   }, [editTarget?.id, editTarget?.data?.uaeMobile, editTarget?.data?.whatsappNumber, artistEditMode]);
 
+  // Reset phone fields when opening artist dialog for new creation
+  useEffect(() => {
+    if (artistDialogOpen && !artistEditMode) {
+      // Creating a new artist - reset all phone fields
+      setUaeMobileCountryCode("+971");
+      setUaeMobilePhone("");
+      setWhatsappCountryCode("+971");
+      setWhatsappPhone("");
+      setUaeMobileCountrySearch("");
+      setWhatsappCountrySearch("");
+      setUploadedPhotoUrl(null);
+    }
+  }, [artistDialogOpen, artistEditMode]);
+
   // Fetch all settings data with conditional loading based on active tab
   // Scenes, acts, cues - load when their tabs are active or when people tab is active (needed for assignments)
   const { data: scenes = [] } = useQuery<Scene[]>({ 
