@@ -123,7 +123,17 @@ export default function Settings() {
   
   // Artist phone number country codes
   const [uaeMobileCountryCode, setUaeMobileCountryCode] = useState("+971");
+  // Compute the select value to include country name for uniqueness
+  const uaeMobileSelectValue = useMemo(() => {
+    const country = COUNTRY_CODES.find(cc => cc.code === uaeMobileCountryCode);
+    return country ? `${country.code}-${country.country}` : "+971-United Arab Emirates";
+  }, [uaeMobileCountryCode]);
   const [whatsappCountryCode, setWhatsappCountryCode] = useState("+971");
+  // Compute the select value to include country name for uniqueness
+  const whatsappSelectValue = useMemo(() => {
+    const country = COUNTRY_CODES.find(cc => cc.code === whatsappCountryCode);
+    return country ? `${country.code}-${country.country}` : "+971-United Arab Emirates";
+  }, [whatsappCountryCode]);
   const [uaeMobilePhone, setUaeMobilePhone] = useState("");
   const [whatsappPhone, setWhatsappPhone] = useState("");
   
@@ -5888,15 +5898,15 @@ export default function Settings() {
                             <Label>UAE Mobile</Label>
                             <div className="flex gap-2">
                               <Select 
-                                value={uaeMobileCountryCode}
-                                onValueChange={setUaeMobileCountryCode}
+                                value={uaeMobileSelectValue}
+                                onValueChange={(val) => setUaeMobileCountryCode(val.split('-')[0])}
                               >
                                 <SelectTrigger className="w-24" data-testid="select-uae-mobile-country">
                                   <SelectValue placeholder="Code" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {COUNTRY_CODES.map((cc, index) => (
-                                    <SelectItem key={`${cc.code}-${cc.country}-${index}`} value={cc.code} className="whitespace-nowrap">
+                                  {COUNTRY_CODES.map((cc) => (
+                                    <SelectItem key={`${cc.code}-${cc.country}`} value={`${cc.code}-${cc.country}`} className="whitespace-nowrap">
                                       <div className="flex items-center gap-2">
                                         <span className="w-6">{cc.flag}</span>
                                         <span className="w-12">{cc.code}</span>
@@ -5921,15 +5931,15 @@ export default function Settings() {
                             <Label>WhatsApp Number</Label>
                             <div className="flex gap-2">
                               <Select 
-                                value={whatsappCountryCode}
-                                onValueChange={setWhatsappCountryCode}
+                                value={whatsappSelectValue}
+                                onValueChange={(val) => setWhatsappCountryCode(val.split('-')[0])}
                               >
                                 <SelectTrigger className="w-24" data-testid="select-whatsapp-country">
                                   <SelectValue placeholder="Code" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {COUNTRY_CODES.map((cc, index) => (
-                                    <SelectItem key={`${cc.code}-${cc.country}-${index}`} value={cc.code} className="whitespace-nowrap">
+                                  {COUNTRY_CODES.map((cc) => (
+                                    <SelectItem key={`${cc.code}-${cc.country}`} value={`${cc.code}-${cc.country}`} className="whitespace-nowrap">
                                       <div className="flex items-center gap-2">
                                         <span className="w-6">{cc.flag}</span>
                                         <span className="w-12">{cc.code}</span>
