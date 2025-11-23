@@ -5895,8 +5895,8 @@ export default function Settings() {
                                   <SelectValue placeholder="Code" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {COUNTRY_CODES.map((cc) => (
-                                    <SelectItem key={`${cc.code}-uae`} value={cc.code} className="whitespace-nowrap">
+                                  {COUNTRY_CODES.map((cc, index) => (
+                                    <SelectItem key={`${cc.code}-${cc.country}-${index}`} value={cc.code} className="whitespace-nowrap">
                                       <div className="flex items-center gap-2">
                                         <span className="w-6">{cc.flag}</span>
                                         <span className="w-12">{cc.code}</span>
@@ -5912,11 +5912,6 @@ export default function Settings() {
                                 placeholder="50 123 4567" 
                                 value={uaeMobilePhone}
                                 onChange={(e) => setUaeMobilePhone(formatPhoneNumber(e.target.value))}
-                                onBlur={() => {
-                                  const fullNumber = uaeMobileCountryCode + uaeMobilePhone.replace(/\s/g, '');
-                                  const input = document.querySelector('[name="uaeMobile"]') as HTMLInputElement;
-                                  if (input) input.value = fullNumber;
-                                }}
                                 data-testid="input-artist-mobile" 
                                 className="flex-1"
                               />
@@ -5933,8 +5928,8 @@ export default function Settings() {
                                   <SelectValue placeholder="Code" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {COUNTRY_CODES.map((cc) => (
-                                    <SelectItem key={`${cc.code}-whatsapp`} value={cc.code} className="whitespace-nowrap">
+                                  {COUNTRY_CODES.map((cc, index) => (
+                                    <SelectItem key={`${cc.code}-${cc.country}-${index}`} value={cc.code} className="whitespace-nowrap">
                                       <div className="flex items-center gap-2">
                                         <span className="w-6">{cc.flag}</span>
                                         <span className="w-12">{cc.code}</span>
@@ -5950,11 +5945,6 @@ export default function Settings() {
                                 placeholder="50 123 4567" 
                                 value={whatsappPhone}
                                 onChange={(e) => setWhatsappPhone(formatPhoneNumber(e.target.value))}
-                                onBlur={() => {
-                                  const fullNumber = whatsappCountryCode + whatsappPhone.replace(/\s/g, '');
-                                  const input = document.querySelector('[name="whatsappNumber"]') as HTMLInputElement;
-                                  if (input) input.value = fullNumber;
-                                }}
                                 data-testid="input-artist-whatsapp" 
                                 className="flex-1"
                               />
