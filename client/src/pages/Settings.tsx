@@ -5891,13 +5891,17 @@ export default function Settings() {
                                 value={uaeMobileCountryCode}
                                 onValueChange={setUaeMobileCountryCode}
                               >
-                                <SelectTrigger className="w-auto whitespace-nowrap" data-testid="select-uae-mobile-country">
-                                  <SelectValue placeholder="Select country" />
+                                <SelectTrigger className="w-24" data-testid="select-uae-mobile-country">
+                                  <SelectValue placeholder="Code" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {COUNTRY_CODES.map((cc) => (
                                     <SelectItem key={`${cc.code}-uae`} value={cc.code} className="whitespace-nowrap">
-                                      {cc.flag} {cc.code} {cc.country}
+                                      <div className="flex items-center gap-2">
+                                        <span className="w-6">{cc.flag}</span>
+                                        <span className="w-12">{cc.code}</span>
+                                        <span>{cc.country}</span>
+                                      </div>
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -5925,13 +5929,17 @@ export default function Settings() {
                                 value={whatsappCountryCode}
                                 onValueChange={setWhatsappCountryCode}
                               >
-                                <SelectTrigger className="w-auto whitespace-nowrap" data-testid="select-whatsapp-country">
-                                  <SelectValue placeholder="Select country" />
+                                <SelectTrigger className="w-24" data-testid="select-whatsapp-country">
+                                  <SelectValue placeholder="Code" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {COUNTRY_CODES.map((cc) => (
                                     <SelectItem key={`${cc.code}-whatsapp`} value={cc.code} className="whitespace-nowrap">
-                                      {cc.flag} {cc.code} {cc.country}
+                                      <div className="flex items-center gap-2">
+                                        <span className="w-6">{cc.flag}</span>
+                                        <span className="w-12">{cc.code}</span>
+                                        <span>{cc.country}</span>
+                                      </div>
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
