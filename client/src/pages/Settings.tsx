@@ -121,19 +121,17 @@ export default function Settings() {
   // Department type selection
   const [selectedDepartmentType, setSelectedDepartmentType] = useState<'technical' | 'artistic'>("technical");
   
-  // Artist phone number country codes
+  // Artist phone number country selection (store both code and country name for uniqueness)
   const [uaeMobileCountryCode, setUaeMobileCountryCode] = useState("+971");
-  // Compute the select value to include country name for uniqueness
+  const [uaeMobileCountryName, setUaeMobileCountryName] = useState("United Arab Emirates");
   const uaeMobileSelectValue = useMemo(() => {
-    const country = COUNTRY_CODES.find(cc => cc.code === uaeMobileCountryCode);
-    return country ? `${country.code}-${country.country}` : "+971-United Arab Emirates";
-  }, [uaeMobileCountryCode]);
+    return `${uaeMobileCountryCode}-${uaeMobileCountryName}`;
+  }, [uaeMobileCountryCode, uaeMobileCountryName]);
   const [whatsappCountryCode, setWhatsappCountryCode] = useState("+971");
-  // Compute the select value to include country name for uniqueness
+  const [whatsappCountryName, setWhatsappCountryName] = useState("United Arab Emirates");
   const whatsappSelectValue = useMemo(() => {
-    const country = COUNTRY_CODES.find(cc => cc.code === whatsappCountryCode);
-    return country ? `${country.code}-${country.country}` : "+971-United Arab Emirates";
-  }, [whatsappCountryCode]);
+    return `${whatsappCountryCode}-${whatsappCountryName}`;
+  }, [whatsappCountryCode, whatsappCountryName]);
   const [uaeMobilePhone, setUaeMobilePhone] = useState("");
   const [whatsappPhone, setWhatsappPhone] = useState("");
   const [uaeMobileCountrySearch, setUaeMobileCountrySearch] = useState("");
@@ -252,12 +250,16 @@ export default function Settings() {
     let whatsappCode = "+971";
     let whatsappNum = "";
 
+    let uaeMobileCountryName = "United Arab Emirates";
+    let whatsappCountryName = "United Arab Emirates";
+
     if (editTarget.data?.uaeMobile) {
       const uaeParts = editTarget.data.uaeMobile.trim().split(" ");
       const sortedCodes = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
       const matchedCode = sortedCodes.find(cc => uaeParts[0] === cc.code);
       if (matchedCode) {
         uaeMobileCode = matchedCode.code;
+        uaeMobileCountryName = matchedCode.country;
         uaeMobileNum = uaeParts.slice(1).join(" ");
       } else {
         uaeMobileNum = editTarget.data.uaeMobile;
@@ -270,6 +272,7 @@ export default function Settings() {
       const matchedCode = sortedCodes.find(cc => whatsappParts[0] === cc.code);
       if (matchedCode) {
         whatsappCode = matchedCode.code;
+        whatsappCountryName = matchedCode.country;
         whatsappNum = whatsappParts.slice(1).join(" ");
       } else {
         whatsappNum = editTarget.data.whatsappNumber;
@@ -277,8 +280,10 @@ export default function Settings() {
     }
 
     setUaeMobileCountryCode(uaeMobileCode);
+    setUaeMobileCountryName(uaeMobileCountryName);
     setUaeMobilePhone(uaeMobileNum);
     setWhatsappCountryCode(whatsappCode);
+    setWhatsappCountryName(whatsappCountryName);
     setWhatsappPhone(whatsappNum);
   }, [editTarget?.id, editTarget?.data?.uaeMobile, editTarget?.data?.whatsappNumber, artistEditMode]);
 
@@ -287,8 +292,10 @@ export default function Settings() {
     if (artistDialogOpen && !artistEditMode) {
       // Creating a new artist - reset all phone fields
       setUaeMobileCountryCode("+971");
+      setUaeMobileCountryName("United Arab Emirates");
       setUaeMobilePhone("");
       setWhatsappCountryCode("+971");
+      setWhatsappCountryName("United Arab Emirates");
       setWhatsappPhone("");
       setUaeMobileCountrySearch("");
       setWhatsappCountrySearch("");
@@ -5960,13 +5967,16 @@ export default function Settings() {
                               <Select 
                                 value={uaeMobileSelectValue}
                                 onValueChange={(val) => {
-                                  setUaeMobileCountryCode(val.split('-')[0]);
+                                  const [code, ...countryParts] = val.split('-');
+                                  const country = countryParts.join('-');
+                                  setUaeMobileCountryCode(code);
+                                  setUaeMobileCountryName(country);
                                   setUaeMobileCountrySearch("");
                                 }}
                               >
                                 <SelectTrigger className="w-24" data-testid="select-uae-mobile-country">
                                   {(() => {
-                                    const country = COUNTRY_CODES.find(cc => cc.code === uaeMobileCountryCode);
+                                    const country = COUNTRY_CODES.find(cc => cc.code === uaeMobileCountryCode && cc.country === uaeMobileCountryName);
                                     return country ? <>{country.flag} {country.code}</> : "Code";
                                   })()}
                                 </SelectTrigger>
@@ -6015,13 +6025,16 @@ export default function Settings() {
                               <Select 
                                 value={whatsappSelectValue}
                                 onValueChange={(val) => {
-                                  setWhatsappCountryCode(val.split('-')[0]);
+                                  const [code, ...countryParts] = val.split('-');
+                                  const country = countryParts.join('-');
+                                  setWhatsappCountryCode(code);
+                                  setWhatsappCountryName(country);
                                   setWhatsappCountrySearch("");
                                 }}
                               >
                                 <SelectTrigger className="w-24" data-testid="select-whatsapp-country">
                                   {(() => {
-                                    const country = COUNTRY_CODES.find(cc => cc.code === whatsappCountryCode);
+                                    const country = COUNTRY_CODES.find(cc => cc.code === whatsappCountryCode && cc.country === whatsappCountryName);
                                     return country ? <>{country.flag} {country.code}</> : "Code";
                                   })()}
                                 </SelectTrigger>
