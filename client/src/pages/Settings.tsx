@@ -5891,12 +5891,12 @@ export default function Settings() {
                                 value={uaeMobileCountryCode}
                                 onValueChange={setUaeMobileCountryCode}
                               >
-                                <SelectTrigger className="w-32" data-testid="select-uae-mobile-country">
-                                  <SelectValue />
+                                <SelectTrigger className="w-auto whitespace-nowrap" data-testid="select-uae-mobile-country">
+                                  <SelectValue placeholder="Select country" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {COUNTRY_CODES.map((cc) => (
-                                    <SelectItem key={`${cc.code}-uae`} value={cc.code}>
+                                    <SelectItem key={`${cc.code}-uae`} value={cc.code} className="whitespace-nowrap">
                                       {cc.flag} {cc.code} {cc.country}
                                     </SelectItem>
                                   ))}
@@ -5925,12 +5925,12 @@ export default function Settings() {
                                 value={whatsappCountryCode}
                                 onValueChange={setWhatsappCountryCode}
                               >
-                                <SelectTrigger className="w-32" data-testid="select-whatsapp-country">
-                                  <SelectValue />
+                                <SelectTrigger className="w-auto whitespace-nowrap" data-testid="select-whatsapp-country">
+                                  <SelectValue placeholder="Select country" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {COUNTRY_CODES.map((cc) => (
-                                    <SelectItem key={`${cc.code}-whatsapp`} value={cc.code}>
+                                    <SelectItem key={`${cc.code}-whatsapp`} value={cc.code} className="whitespace-nowrap">
                                       {cc.flag} {cc.code} {cc.country}
                                     </SelectItem>
                                   ))}
