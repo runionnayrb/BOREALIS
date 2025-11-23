@@ -5974,7 +5974,7 @@ export default function Settings() {
                                   setUaeMobileCountrySearch("");
                                 }}
                               >
-                                <SelectTrigger className="w-24" data-testid="select-uae-mobile-country">
+                                <SelectTrigger className="w-32 whitespace-nowrap" data-testid="select-uae-mobile-country">
                                   {(() => {
                                     const country = COUNTRY_CODES.find(cc => cc.code === uaeMobileCountryCode && cc.country === uaeMobileCountryName);
                                     return country ? <>{country.flag} {country.code}</> : "Code";
@@ -6032,7 +6032,7 @@ export default function Settings() {
                                   setWhatsappCountrySearch("");
                                 }}
                               >
-                                <SelectTrigger className="w-24" data-testid="select-whatsapp-country">
+                                <SelectTrigger className="w-32 whitespace-nowrap" data-testid="select-whatsapp-country">
                                   {(() => {
                                     const country = COUNTRY_CODES.find(cc => cc.code === whatsappCountryCode && cc.country === whatsappCountryName);
                                     return country ? <>{country.flag} {country.code}</> : "Code";
