@@ -5724,8 +5724,10 @@ export default function Settings() {
                             const artistGroupId = formData.get("groupId") as string;
                             const pinCode = (formData.get("pinCode") as string) || undefined;
                             const email = (formData.get("email") as string) || undefined;
-                            const uaeMobile = (formData.get("uaeMobile") as string) || undefined;
-                            const whatsappNumber = (formData.get("whatsappNumber") as string) || undefined;
+                            const uaeMobileRaw = (formData.get("uaeMobile") as string) || undefined;
+                            const whatsappNumberRaw = (formData.get("whatsappNumber") as string) || undefined;
+                            const uaeMobile = uaeMobileRaw ? `${uaeMobileCountryCode} ${uaeMobileRaw}` : undefined;
+                            const whatsappNumber = whatsappNumberRaw ? `${whatsappCountryCode} ${whatsappNumberRaw}` : undefined;
 
                             if (editTarget?.type === "artist") {
                               updateArtistMutation.mutate({
