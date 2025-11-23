@@ -5897,7 +5897,7 @@ export default function Settings() {
                                 <SelectContent>
                                   {COUNTRY_CODES.map((cc) => (
                                     <SelectItem key={`${cc.code}-uae`} value={cc.code}>
-                                      {cc.flag} {cc.code}
+                                      {cc.flag} {cc.code} {cc.country}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -5931,7 +5931,7 @@ export default function Settings() {
                                 <SelectContent>
                                   {COUNTRY_CODES.map((cc) => (
                                     <SelectItem key={`${cc.code}-whatsapp`} value={cc.code}>
-                                      {cc.flag} {cc.code}
+                                      {cc.flag} {cc.code} {cc.country}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
