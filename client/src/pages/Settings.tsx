@@ -44,6 +44,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { COUNTRY_CODES, formatPhoneNumber } from "@/lib/countryPhones";
 import type { 
   Scene, Act, Cue, Department, LocationType, Location, ArtistGroup, Artist, Technician, StaffMember, ReportTemplate, SafeUser, UserGroup, DepartmentRole, MeetingTemplate, MeetingTemplateField
 } from "@shared/schema";
@@ -119,6 +120,12 @@ export default function Settings() {
   
   // Department type selection
   const [selectedDepartmentType, setSelectedDepartmentType] = useState<'technical' | 'artistic'>("technical");
+  
+  // Artist phone number country codes
+  const [uaeMobileCountryCode, setUaeMobileCountryCode] = useState("+971");
+  const [whatsappCountryCode, setWhatsappCountryCode] = useState("+971");
+  const [uaeMobilePhone, setUaeMobilePhone] = useState("");
+  const [whatsappPhone, setWhatsappPhone] = useState("");
   
   // Local state for artist ordering
   const [orderedArtists, setOrderedArtists] = useState<Artist[]>([]);
@@ -5879,26 +5886,71 @@ export default function Settings() {
                           </div>
                           <div className="space-y-2">
                             <Label>UAE Mobile</Label>
-                            <Input 
-                              name="uaeMobile" 
-                              type="tel"
-                              placeholder="+971 50 123 4567" 
-                              defaultValue={editTarget?.type === "artist" ? editTarget.data.uaeMobile || "" : ""}
-                              data-testid="input-artist-mobile" 
-                            />
+                            <div className="flex gap-2">
+                              <Select 
+                                value={uaeMobileCountryCode}
+                                onValueChange={setUaeMobileCountryCode}
+                              >
+                                <SelectTrigger className="w-32" data-testid="select-uae-mobile-country">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {COUNTRY_CODES.map((cc) => (
+                                    <SelectItem key={`${cc.code}-uae`} value={cc.code}>
+                                      {cc.flag} {cc.code}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Input 
+                                name="uaeMobile" 
+                                type="tel"
+                                placeholder="50 123 4567" 
+                                value={uaeMobilePhone}
+                                onChange={(e) => setUaeMobilePhone(formatPhoneNumber(e.target.value))}
+                                onBlur={() => {
+                                  const fullNumber = uaeMobileCountryCode + uaeMobilePhone.replace(/\s/g, '');
+                                  const input = document.querySelector('[name="uaeMobile"]') as HTMLInputElement;
+                                  if (input) input.value = fullNumber;
+                                }}
+                                data-testid="input-artist-mobile" 
+                                className="flex-1"
+                              />
+                            </div>
                           </div>
                           <div className="space-y-2">
                             <Label>WhatsApp Number</Label>
-                            <Input 
-                              name="whatsappNumber" 
-                              type="tel"
-                              placeholder="+971 50 123 4567" 
-                              defaultValue={editTarget?.type === "artist" ? editTarget.data.whatsappNumber || "" : ""}
-                              data-testid="input-artist-whatsapp" 
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Include country code (e.g., +971 for UAE)
-                            </p>
+                            <div className="flex gap-2">
+                              <Select 
+                                value={whatsappCountryCode}
+                                onValueChange={setWhatsappCountryCode}
+                              >
+                                <SelectTrigger className="w-32" data-testid="select-whatsapp-country">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {COUNTRY_CODES.map((cc) => (
+                                    <SelectItem key={`${cc.code}-whatsapp`} value={cc.code}>
+                                      {cc.flag} {cc.code}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Input 
+                                name="whatsappNumber" 
+                                type="tel"
+                                placeholder="50 123 4567" 
+                                value={whatsappPhone}
+                                onChange={(e) => setWhatsappPhone(formatPhoneNumber(e.target.value))}
+                                onBlur={() => {
+                                  const fullNumber = whatsappCountryCode + whatsappPhone.replace(/\s/g, '');
+                                  const input = document.querySelector('[name="whatsappNumber"]') as HTMLInputElement;
+                                  if (input) input.value = fullNumber;
+                                }}
+                                data-testid="input-artist-whatsapp" 
+                                className="flex-1"
+                              />
+                            </div>
                           </div>
                           {editTarget?.type === "artist" && isStageManager && (
                             <div className="space-y-2 pt-2 border-t">
