@@ -5567,7 +5567,7 @@ export default function Settings() {
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader className="flex items-center justify-between">
+                        <div className="flex items-center justify-between absolute top-4 left-0 right-0 px-6 z-10">
                           <DialogTitle>Artist Contact Sheet</DialogTitle>
                           <Button
                             variant="ghost"
@@ -5622,7 +5622,8 @@ export default function Settings() {
                           >
                             <Download className="w-4 h-4" />
                           </Button>
-                        </DialogHeader>
+                        </div>
+                        <div className="mt-10"></div>
                         <div className="w-full overflow-x-auto">
                           <table className="w-full text-sm border-collapse">
                             <thead>
