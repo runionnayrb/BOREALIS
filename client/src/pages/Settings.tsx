@@ -5574,12 +5574,12 @@ export default function Settings() {
                           <table className="w-full text-sm border-collapse">
                             <thead>
                               <tr className="border-b bg-muted/50 sticky top-0">
-                                <th className="text-left py-2 px-4 font-semibold w-24">First Name</th>
-                                <th className="text-left py-2 px-4 font-semibold w-24">Last Name</th>
-                                <th className="text-left py-2 px-4 font-semibold w-32">Role</th>
-                                <th className="text-left py-2 px-4 font-semibold flex-1 min-w-48">Email</th>
-                                <th className="text-left py-2 px-4 font-semibold w-40">UAE Mobile</th>
-                                <th className="text-left py-2 px-4 font-semibold w-40">WhatsApp</th>
+                                <th className="text-left py-2 px-4 font-semibold w-20 whitespace-nowrap">First Name</th>
+                                <th className="text-left py-2 px-4 font-semibold w-20 whitespace-nowrap">Last Name</th>
+                                <th className="text-left py-2 px-4 font-semibold w-28 whitespace-nowrap">Role</th>
+                                <th className="text-left py-2 px-4 font-semibold w-40 whitespace-nowrap">Email</th>
+                                <th className="text-left py-2 px-4 font-semibold w-36 whitespace-nowrap">UAE Mobile</th>
+                                <th className="text-left py-2 px-4 font-semibold w-36 whitespace-nowrap">WhatsApp</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -5597,16 +5597,17 @@ export default function Settings() {
                                   </tr>,
                                   ...groupArtists.map((artist) => (
                                     <tr key={artist.id} className="border-b hover:bg-muted/30">
-                                      <td className="py-2 px-4 w-24">{artist.firstName}</td>
-                                      <td className="py-2 px-4 w-24">{artist.lastName}</td>
-                                      <td className="py-2 px-4 w-32 text-muted-foreground text-xs">
+                                      <td className="py-2 px-4 w-20 whitespace-nowrap">{artist.firstName}</td>
+                                      <td className="py-2 px-4 w-20 whitespace-nowrap">{artist.lastName}</td>
+                                      <td className="py-2 px-4 w-28 text-muted-foreground text-xs whitespace-nowrap overflow-hidden text-ellipsis">
                                         {artist.role || "-"}
                                       </td>
-                                      <td className="py-2 px-4 flex-1 min-w-48">
+                                      <td className="py-2 px-4 w-40 whitespace-nowrap overflow-hidden text-ellipsis">
                                         {artist.email ? (
                                           <a
                                             href={`mailto:${artist.email}`}
-                                            className="text-primary hover:underline break-all"
+                                            className="text-primary hover:underline"
+                                            title={artist.email}
                                             data-testid={`link-contact-email-${artist.id}`}
                                           >
                                             {artist.email}
@@ -5615,7 +5616,7 @@ export default function Settings() {
                                           <span className="text-muted-foreground">-</span>
                                         )}
                                       </td>
-                                      <td className="py-2 px-4 w-40">
+                                      <td className="py-2 px-4 w-36 whitespace-nowrap">
                                         {artist.uaeMobile ? (
                                           <a
                                             href={`tel:${artist.uaeMobile}`}
@@ -5628,7 +5629,7 @@ export default function Settings() {
                                           <span className="text-muted-foreground">-</span>
                                         )}
                                       </td>
-                                      <td className="py-2 px-4 w-40">
+                                      <td className="py-2 px-4 w-36 whitespace-nowrap">
                                         {artist.whatsappNumber ? (
                                           <a
                                             href={`https://wa.me/${artist.whatsappNumber.replace(
