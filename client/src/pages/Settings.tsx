@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, memo, useCallback } from "react";
-import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit, Settings as SettingsIcon, Shield, UserCircle2, GripVertical, KeyRound, Copy, Check, Archive, Info, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit, Settings as SettingsIcon, Shield, UserCircle2, GripVertical, KeyRound, Copy, Check, Archive, Info, ChevronDown, ChevronRight, Download } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -5567,8 +5567,61 @@ export default function Settings() {
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
+                        <DialogHeader className="flex items-center justify-between">
                           <DialogTitle>Artist Contact Sheet</DialogTitle>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              const rows = [
+                                ["First Name", "Last Name", "Role", "Email", "UAE Mobile", "WhatsApp"]
+                              ];
+                              
+                              artistGroups.forEach((group) => {
+                                const groupArtists = artists.filter(
+                                  (a) => a.artistGroupId === group.id && !a.archivedAt
+                                );
+                                if (groupArtists.length > 0) {
+                                  rows.push([group.name, "", "", "", "", ""]);
+                                  groupArtists.forEach((artist) => {
+                                    rows.push([
+                                      artist.firstName,
+                                      artist.lastName,
+                                      artist.role || "",
+                                      artist.email || "",
+                                      artist.uaeMobile || "",
+                                      artist.whatsappNumber || "",
+                                    ]);
+                                  });
+                                }
+                              });
+                              
+                              const csv = rows
+                                .map((row) =>
+                                  row
+                                    .map((cell) =>
+                                      typeof cell === "string" && (cell.includes(",") || cell.includes('"'))
+                                        ? `"${cell.replace(/"/g, '""')}"`
+                                        : cell
+                                    )
+                                    .join(",")
+                                )
+                                .join("\n");
+                              
+                              const blob = new Blob([csv], { type: "text/csv" });
+                              const url = window.URL.createObjectURL(blob);
+                              const link = document.createElement("a");
+                              link.href = url;
+                              link.download = `artist-contact-sheet-${new Date().toISOString().split("T")[0]}.csv`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              window.URL.revokeObjectURL(url);
+                            }}
+                            data-testid="button-download-contact-sheet"
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
                         </DialogHeader>
                         <div className="w-full overflow-x-auto">
                           <table className="w-full text-sm border-collapse">
