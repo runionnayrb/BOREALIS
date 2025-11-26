@@ -5572,6 +5572,7 @@ export default function Settings() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="mr-8"
                             onClick={() => {
                               const rows = [
                                 ["First Name", "Last Name", "Role", "Email", "UAE Mobile", "WhatsApp"]
