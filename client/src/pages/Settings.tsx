@@ -5571,85 +5571,84 @@ export default function Settings() {
                           <DialogTitle>Artist Contact Sheet</DialogTitle>
                         </DialogHeader>
                         <div className="w-full overflow-x-auto">
-                          <table className="w-full text-sm">
+                          <table className="w-full text-sm border-collapse">
                             <thead>
-                              <tr className="border-b">
-                                <th className="text-left py-2 px-4 font-semibold">Group</th>
-                                <th className="text-left py-2 px-4 font-semibold">First Name</th>
-                                <th className="text-left py-2 px-4 font-semibold">Last Name</th>
-                                <th className="text-left py-2 px-4 font-semibold">Role</th>
-                                <th className="text-left py-2 px-4 font-semibold">Email</th>
-                                <th className="text-left py-2 px-4 font-semibold">UAE Mobile</th>
-                                <th className="text-left py-2 px-4 font-semibold">WhatsApp</th>
+                              <tr className="border-b bg-muted/50 sticky top-0">
+                                <th className="text-left py-2 px-4 font-semibold w-24">First Name</th>
+                                <th className="text-left py-2 px-4 font-semibold w-24">Last Name</th>
+                                <th className="text-left py-2 px-4 font-semibold w-32">Role</th>
+                                <th className="text-left py-2 px-4 font-semibold flex-1 min-w-48">Email</th>
+                                <th className="text-left py-2 px-4 font-semibold w-40">UAE Mobile</th>
+                                <th className="text-left py-2 px-4 font-semibold w-40">WhatsApp</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {artistGroups.map((group) => {
+                              {artistGroups.flatMap((group) => {
                                 const groupArtists = artists.filter(
                                   (a) => a.artistGroupId === group.id && !a.archivedAt
                                 );
-                                if (groupArtists.length === 0) return null;
+                                if (groupArtists.length === 0) return [];
                                 
-                                return (
-                                  <tbody key={group.id}>
-                                    {groupArtists.map((artist) => (
-                                      <tr key={artist.id} className="border-b hover:bg-muted/50">
-                                        <td className="py-2 px-4 text-muted-foreground text-xs">
-                                          {group.name}
-                                        </td>
-                                        <td className="py-2 px-4">{artist.firstName}</td>
-                                        <td className="py-2 px-4">{artist.lastName}</td>
-                                        <td className="py-2 px-4 text-muted-foreground">
-                                          {artist.role || "-"}
-                                        </td>
-                                        <td className="py-2 px-4 text-muted-foreground">
-                                          {artist.email ? (
-                                            <a
-                                              href={`mailto:${artist.email}`}
-                                              className="text-primary hover:underline"
-                                              data-testid={`link-contact-email-${artist.id}`}
-                                            >
-                                              {artist.email}
-                                            </a>
-                                          ) : (
-                                            "-"
-                                          )}
-                                        </td>
-                                        <td className="py-2 px-4 text-muted-foreground">
-                                          {artist.uaeMobile ? (
-                                            <a
-                                              href={`tel:${artist.uaeMobile}`}
-                                              className="text-primary hover:underline"
-                                              data-testid={`link-contact-mobile-${artist.id}`}
-                                            >
-                                              {artist.uaeMobile}
-                                            </a>
-                                          ) : (
-                                            "-"
-                                          )}
-                                        </td>
-                                        <td className="py-2 px-4 text-muted-foreground">
-                                          {artist.whatsappNumber ? (
-                                            <a
-                                              href={`https://wa.me/${artist.whatsappNumber.replace(
-                                                /\D/g,
-                                                ""
-                                              )}`}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="text-primary hover:underline"
-                                              data-testid={`link-contact-whatsapp-${artist.id}`}
-                                            >
-                                              {artist.whatsappNumber}
-                                            </a>
-                                          ) : (
-                                            "-"
-                                          )}
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                );
+                                return [
+                                  <tr key={`group-${group.id}`}>
+                                    <td colSpan={6} className="py-3 px-4 bg-secondary/20 font-semibold text-sm border-b">
+                                      {group.name}
+                                    </td>
+                                  </tr>,
+                                  ...groupArtists.map((artist) => (
+                                    <tr key={artist.id} className="border-b hover:bg-muted/30">
+                                      <td className="py-2 px-4 w-24">{artist.firstName}</td>
+                                      <td className="py-2 px-4 w-24">{artist.lastName}</td>
+                                      <td className="py-2 px-4 w-32 text-muted-foreground text-xs">
+                                        {artist.role || "-"}
+                                      </td>
+                                      <td className="py-2 px-4 flex-1 min-w-48">
+                                        {artist.email ? (
+                                          <a
+                                            href={`mailto:${artist.email}`}
+                                            className="text-primary hover:underline break-all"
+                                            data-testid={`link-contact-email-${artist.id}`}
+                                          >
+                                            {artist.email}
+                                          </a>
+                                        ) : (
+                                          <span className="text-muted-foreground">-</span>
+                                        )}
+                                      </td>
+                                      <td className="py-2 px-4 w-40">
+                                        {artist.uaeMobile ? (
+                                          <a
+                                            href={`tel:${artist.uaeMobile}`}
+                                            className="text-primary hover:underline"
+                                            data-testid={`link-contact-mobile-${artist.id}`}
+                                          >
+                                            {artist.uaeMobile}
+                                          </a>
+                                        ) : (
+                                          <span className="text-muted-foreground">-</span>
+                                        )}
+                                      </td>
+                                      <td className="py-2 px-4 w-40">
+                                        {artist.whatsappNumber ? (
+                                          <a
+                                            href={`https://wa.me/${artist.whatsappNumber.replace(
+                                              /\D/g,
+                                              ""
+                                            )}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-primary hover:underline"
+                                            data-testid={`link-contact-whatsapp-${artist.id}`}
+                                          >
+                                            {artist.whatsappNumber}
+                                          </a>
+                                        ) : (
+                                          <span className="text-muted-foreground">-</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  )),
+                                ];
                               })}
                             </tbody>
                           </table>
