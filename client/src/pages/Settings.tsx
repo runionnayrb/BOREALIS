@@ -182,6 +182,9 @@ export default function Settings() {
   // User linking state for artists
   const [selectedLinkedUserId, setSelectedLinkedUserId] = useState<string | null>(null);
   
+  // Contact Sheet dialog state
+  const [contactSheetOpen, setContactSheetOpen] = useState(false);
+  
   // User linking state for technicians
   const [selectedLinkedTechUserId, setSelectedLinkedTechUserId] = useState<string | null>(null);
   
@@ -5555,6 +5558,105 @@ export default function Settings() {
                   <h2 className="text-lg font-semibold">Artists</h2>
                   <div className="flex gap-2">
                     <Dialog
+                      open={contactSheetOpen}
+                      onOpenChange={setContactSheetOpen}
+                    >
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" data-testid="button-contact-sheet">
+                          Contact Sheet
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Artist Contact Sheet</DialogTitle>
+                        </DialogHeader>
+                        <div className="w-full overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="text-left py-2 px-4 font-semibold">Group</th>
+                                <th className="text-left py-2 px-4 font-semibold">First Name</th>
+                                <th className="text-left py-2 px-4 font-semibold">Last Name</th>
+                                <th className="text-left py-2 px-4 font-semibold">Role</th>
+                                <th className="text-left py-2 px-4 font-semibold">Email</th>
+                                <th className="text-left py-2 px-4 font-semibold">UAE Mobile</th>
+                                <th className="text-left py-2 px-4 font-semibold">WhatsApp</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {artistGroups.map((group) => {
+                                const groupArtists = artists.filter(
+                                  (a) => a.artistGroupId === group.id && !a.archivedAt
+                                );
+                                if (groupArtists.length === 0) return null;
+                                
+                                return (
+                                  <tbody key={group.id}>
+                                    {groupArtists.map((artist) => (
+                                      <tr key={artist.id} className="border-b hover:bg-muted/50">
+                                        <td className="py-2 px-4 text-muted-foreground text-xs">
+                                          {group.name}
+                                        </td>
+                                        <td className="py-2 px-4">{artist.firstName}</td>
+                                        <td className="py-2 px-4">{artist.lastName}</td>
+                                        <td className="py-2 px-4 text-muted-foreground">
+                                          {artist.role || "-"}
+                                        </td>
+                                        <td className="py-2 px-4 text-muted-foreground">
+                                          {artist.email ? (
+                                            <a
+                                              href={`mailto:${artist.email}`}
+                                              className="text-primary hover:underline"
+                                              data-testid={`link-contact-email-${artist.id}`}
+                                            >
+                                              {artist.email}
+                                            </a>
+                                          ) : (
+                                            "-"
+                                          )}
+                                        </td>
+                                        <td className="py-2 px-4 text-muted-foreground">
+                                          {artist.uaeMobile ? (
+                                            <a
+                                              href={`tel:${artist.uaeMobile}`}
+                                              className="text-primary hover:underline"
+                                              data-testid={`link-contact-mobile-${artist.id}`}
+                                            >
+                                              {artist.uaeMobile}
+                                            </a>
+                                          ) : (
+                                            "-"
+                                          )}
+                                        </td>
+                                        <td className="py-2 px-4 text-muted-foreground">
+                                          {artist.whatsappNumber ? (
+                                            <a
+                                              href={`https://wa.me/${artist.whatsappNumber.replace(
+                                                /\D/g,
+                                                ""
+                                              )}`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-primary hover:underline"
+                                              data-testid={`link-contact-whatsapp-${artist.id}`}
+                                            >
+                                              {artist.whatsappNumber}
+                                            </a>
+                                          ) : (
+                                            "-"
+                                          )}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    <Dialog
                       open={groupDialogOpen}
                       onOpenChange={(open) => {
                         setGroupDialogOpen(open);
@@ -6252,20 +6354,20 @@ export default function Settings() {
                               id: editTarget.id,
                               firstName,
                               lastName,
-                              preferredName: preferredName || null,
-                              role: role || null,
-                              photoUrl: photoUrl || null,
+                              preferredName: preferredName || undefined,
+                              role: role || undefined,
+                              photoUrl: photoUrl || undefined,
                               status,
                               departmentIds: selectedArtisticStaffDepartmentIds,
-                              userId: editTarget?.data?.userId ?? null,
+                              userId: editTarget?.data?.userId ?? undefined,
                             });
                           } else {
                             createArtisticStaffMutation.mutate({
                               firstName,
                               lastName,
-                              preferredName: preferredName || null,
-                              role: role || null,
-                              photoUrl: photoUrl || null,
+                              preferredName: preferredName || undefined,
+                              role: role || undefined,
+                              photoUrl: photoUrl || undefined,
                               status,
                               departmentIds: selectedArtisticStaffDepartmentIds,
                             });
