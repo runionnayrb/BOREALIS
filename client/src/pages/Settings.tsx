@@ -5753,7 +5753,7 @@ export default function Settings() {
                                   // Collect all artists data
                                   const allArtists: Array<{group: string; groupColor: string; photoUrl: string | null; preferredName: string; fullName: string}> = [];
                                   artistGroups.filter(g => g.name !== "Test").forEach((group) => {
-                                    const groupArtists = artists.filter(a => !a.archivedAt && a.artistGroupId === group.id && a.preferredName.toUpperCase() !== "TEST");
+                                    const groupArtists = artists.filter(a => !a.archivedAt && a.artistGroupId === group.id && !a.preferredName.toUpperCase().includes("TEST"));
                                     groupArtists.forEach((artist) => {
                                       allArtists.push({
                                         group: group.name,
@@ -5946,7 +5946,7 @@ export default function Settings() {
                         </DialogHeader>
                         <div className="w-full overflow-y-auto space-y-8 p-4">
                           {artistGroups.filter(g => g.name !== "Test").map((group) => {
-                            const groupArtists = artists.filter(a => !a.archivedAt && a.artistGroupId === group.id && a.preferredName.toUpperCase() !== "TEST");
+                            const groupArtists = artists.filter(a => !a.archivedAt && a.artistGroupId === group.id && !a.preferredName.toUpperCase().includes("TEST"));
                             if (groupArtists.length === 0) return null;
                             return (
                               <div key={group.id}>
