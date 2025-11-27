@@ -5843,7 +5843,7 @@ export default function Settings() {
 
                                     // Add photo if available
                                     if (artist.photoUrl && imageMap.has(artist.photoUrl)) {
-                                      const photoSize = cellWidth * 0.6;
+                                      const photoSize = cellWidth * 0.85;
                                       try {
                                         pdf.addImage(
                                           imageMap.get(artist.photoUrl)!,
@@ -5860,16 +5860,16 @@ export default function Settings() {
 
                                     // Add preferred name (ALL CAPS)
                                     pdf.setFont("helvetica", "bold");
-                                    pdf.setFontSize(9);
-                                    pdf.text(artist.preferredName, x + cellWidth / 2, y + cellWidth * 0.75, {
+                                    pdf.setFontSize(8);
+                                    pdf.text(artist.preferredName, x + cellWidth / 2, y + cellWidth * 0.92, {
                                       align: "center",
                                       maxWidth: cellWidth - 2
                                     });
 
                                     // Add full name
                                     pdf.setFont("helvetica", "normal");
-                                    pdf.setFontSize(7);
-                                    pdf.text(artist.fullName, x + cellWidth / 2, y + cellWidth * 0.92, {
+                                    pdf.setFontSize(6);
+                                    pdf.text(artist.fullName, x + cellWidth / 2, y + cellWidth * 1.05, {
                                       align: "center",
                                       maxWidth: cellWidth - 2
                                     });
