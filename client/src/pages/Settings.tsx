@@ -5895,7 +5895,7 @@ export default function Settings() {
 
                                     // Add full name
                                     pdf.setFont("helvetica", "normal");
-                                    pdf.setFontSize(10);
+                                    pdf.setFontSize(9);
                                     const fullNameY = photoBottomY + textGap + 4;
                                     pdf.text(artist.fullName, x + cellWidth / 2, fullNameY, {
                                       align: "center",
