@@ -5805,11 +5805,15 @@ export default function Settings() {
 
                                   const pageWidth = pdf.internal.pageSize.getWidth();
                                   const pageHeight = pdf.internal.pageSize.getHeight();
+                                  const margin = 12.7; // 0.5 inches in mm
                                   const cols = 6;
                                   const rows = 5;
-                                  const cellWidth = pageWidth / cols;
-                                  const cellHeight = (pageHeight - 25) / rows;
-                                  const marginTop = 25;
+                                  const usableWidth = pageWidth - (margin * 2);
+                                  const usableHeight = pageHeight - (margin * 2) - 15; // 15mm for header
+                                  const cellWidth = usableWidth / cols;
+                                  const cellHeight = usableHeight / rows;
+                                  const marginLeft = margin;
+                                  const marginTop = margin + 15;
                                   let pageNum = 1;
 
                                   const addHeader = () => {
@@ -5836,8 +5840,8 @@ export default function Settings() {
                                       addPage();
                                     }
 
-                                    const x = col * cellWidth;
-                                    const y = marginTop + row * (cellHeight);
+                                    const x = marginLeft + col * cellWidth;
+                                    const y = marginTop + row * cellHeight;
 
                                     const artist = allArtists[i];
 
