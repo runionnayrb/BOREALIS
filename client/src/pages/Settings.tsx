@@ -5643,7 +5643,7 @@ export default function Settings() {
                                     pdf.text("Artist Contact Sheet", pageWidth / 2, 15, { align: "center" });
                                   };
 
-                                  // Helper function to add footer
+                                  // Helper function to add footer (without page numbers - added later)
                                   const addFooter = () => {
                                     const now = new Date();
                                     const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -5652,7 +5652,6 @@ export default function Settings() {
                                     pdf.setFontSize(8);
                                     
                                     pdf.text(`Published: ${dateStr}`, margin, pageHeight - margin + 5);
-                                    pdf.text(`Page 1 of 1`, pageWidth - margin, pageHeight - margin + 5, { align: "right" });
                                   };
 
                                   // Helper function to add new page
@@ -5735,6 +5734,16 @@ export default function Settings() {
                                   });
 
                                   addFooter();
+                                  
+                                  // Add page numbers to all pages
+                                  const totalPages = pdf.internal.pages.length - 1; // -1 because pages array includes empty first element
+                                  pdf.setFont("helvetica", "normal");
+                                  pdf.setFontSize(8);
+                                  
+                                  for (let i = 1; i <= totalPages; i++) {
+                                    pdf.setPage(i);
+                                    pdf.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - margin + 5, { align: "right" });
+                                  }
                                   
                                   const now = new Date();
                                   const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
