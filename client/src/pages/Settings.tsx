@@ -5602,12 +5602,13 @@ export default function Settings() {
                               onClick={async () => {
                                 try {
                                   // Collect all artists data grouped by artist group
-                                  const artistData: Array<{group: string; preferredName: string; firstName: string; lastName: string; email: string; uaeMobile: string; whatsappNumber: string}> = [];
+                                  const artistData: Array<{group: string; groupColor: string; preferredName: string; firstName: string; lastName: string; email: string; uaeMobile: string; whatsappNumber: string}> = [];
                                   artistGroups.filter(g => g.name !== "Test").forEach((group) => {
                                     const groupArtists = artists.filter(a => !a.archivedAt && a.artistGroupId === group.id && !a.preferredName.toUpperCase().includes("TEST"));
                                     groupArtists.forEach((artist) => {
                                       artistData.push({
                                         group: group.name,
+                                        groupColor: group.color,
                                         preferredName: artist.preferredName,
                                         firstName: artist.firstName,
                                         lastName: artist.lastName,
@@ -5664,22 +5665,7 @@ export default function Settings() {
 
                                   addNewPage(true);
 
-                                  // Add table header
-                                  const headers = ["Artist Name", "First Name", "Last Name", "Email", "UAE Mobile", "WhatsApp"];
-                                  pdf.setFont("helvetica", "bold");
-                                  pdf.setFontSize(9);
-                                  pdf.setFillColor(220, 220, 220);
-                                  
-                                  let xPos = startX;
-                                  headers.forEach((header, i) => {
-                                    pdf.rect(xPos, currentY - 4, columnWidths[i], lineHeight, "F");
-                                    pdf.setTextColor(0, 0, 0);
-                                    pdf.text(header, xPos + 1, currentY, { maxWidth: columnWidths[i] - 2 });
-                                    xPos += columnWidths[i];
-                                  });
-                                  currentY += lineHeight;
-
-                                  // Add data rows grouped by artist group
+                                  // Add data rows grouped by artist group (no header row)
                                   pdf.setFont("helvetica", "normal");
                                   pdf.setFontSize(8);
                                   let currentGroup = "";
@@ -5689,21 +5675,6 @@ export default function Settings() {
                                     if (currentY > maxY) {
                                       addFooter();
                                       addNewPage(false);
-                                      
-                                      // Redraw header on new page
-                                      pdf.setFont("helvetica", "bold");
-                                      pdf.setFontSize(9);
-                                      pdf.setFillColor(220, 220, 220);
-                                      let headerXPos = startX;
-                                      headers.forEach((header, i) => {
-                                        pdf.rect(headerXPos, currentY - 4, columnWidths[i], lineHeight, "F");
-                                        pdf.setTextColor(0, 0, 0);
-                                        pdf.text(header, headerXPos + 1, currentY, { maxWidth: columnWidths[i] - 2 });
-                                        headerXPos += columnWidths[i];
-                                      });
-                                      currentY += lineHeight;
-                                      pdf.setFont("helvetica", "normal");
-                                      pdf.setFontSize(8);
                                     }
 
                                     // Add group header if group changed
@@ -5711,16 +5682,24 @@ export default function Settings() {
                                       currentGroup = artist.group;
                                       pdf.setFont("helvetica", "bold");
                                       pdf.setFontSize(8);
-                                      pdf.setFillColor(240, 240, 240);
+                                      
+                                      // Convert hex color to RGB for group background
+                                      const hexColor = artist.groupColor.replace("#", "");
+                                      const r = parseInt(hexColor.substr(0, 2), 16);
+                                      const g = parseInt(hexColor.substr(2, 2), 16);
+                                      const b = parseInt(hexColor.substr(4, 2), 16);
+                                      pdf.setFillColor(r, g, b);
+                                      
                                       pdf.rect(startX, currentY - 3, pageWidth - (margin * 2), lineHeight, "F");
-                                      pdf.text(artist.group, startX + 1, currentY);
+                                      pdf.setTextColor(255, 255, 255); // White text
+                                      pdf.text(artist.group, startX + (pageWidth - (margin * 2)) / 2, currentY, { align: "center" });
                                       currentY += lineHeight;
                                       pdf.setFont("helvetica", "normal");
                                       pdf.setFontSize(8);
                                     }
 
-                                    // Add artist data
-                                    xPos = startX;
+                                    // Add artist data row with centered text
+                                    let xPos = startX;
                                     const rowData = [
                                       artist.preferredName,
                                       artist.firstName,
@@ -5731,8 +5710,9 @@ export default function Settings() {
                                     ];
                                     
                                     pdf.setTextColor(0, 0, 0);
+                                    const rowY = currentY + (lineHeight / 2);
                                     rowData.forEach((data, i) => {
-                                      pdf.text(data, xPos + 1, currentY, { maxWidth: columnWidths[i] - 2 });
+                                      pdf.text(data, xPos + columnWidths[i] / 2, rowY, { align: "center", maxWidth: columnWidths[i] - 2 });
                                       xPos += columnWidths[i];
                                     });
                                     currentY += lineHeight;
