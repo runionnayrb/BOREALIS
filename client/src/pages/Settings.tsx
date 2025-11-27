@@ -5891,7 +5891,7 @@ export default function Settings() {
                                     />
                                   </div>
                                   <div>
-                                    <Label htmlFor="edit-group-color" className="text-xs">Group Color</Label>
+                                    <Label htmlFor="edit-group-color" className="text-xs mb-2 block">Group Color</Label>
                                     <input
                                       type="color"
                                       id="edit-group-color"
