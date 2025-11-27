@@ -5738,39 +5738,42 @@ export default function Settings() {
                         <DialogHeader>
                           <DialogTitle>Artist Face Sheet</DialogTitle>
                         </DialogHeader>
-                        <div className="w-full overflow-x-auto">
-                          <div className="grid grid-cols-6 gap-6 p-4">
-                            {artists.filter(a => !a.archivedAt).map((artist) => {
-                              const group = artistGroups.find(g => g.id === artist.artistGroupId);
-                              return (
-                                <div key={artist.id} className="flex flex-col items-center text-center" data-testid={`card-artist-face-sheet-${artist.id}`}>
-                                  <div className="w-32 h-40 mb-2 bg-muted rounded-md overflow-hidden flex items-center justify-center border">
-                                    {artist.photoUrl ? (
-                                      <img
-                                        src={artist.photoUrl}
-                                        alt={artist.preferredName}
-                                        className="w-full h-full object-cover"
-                                        data-testid={`img-artist-photo-${artist.id}`}
-                                      />
-                                    ) : (
-                                      <div className="flex items-center justify-center w-full h-full">
-                                        <Users className="w-12 h-12 text-muted-foreground" />
+                        <div className="w-full overflow-y-auto space-y-8 p-4">
+                          {artistGroups.map((group) => {
+                            const groupArtists = artists.filter(a => !a.archivedAt && a.artistGroupId === group.id);
+                            if (groupArtists.length === 0) return null;
+                            return (
+                              <div key={group.id}>
+                                <h3 className="text-lg font-semibold mb-4">{group.name}</h3>
+                                <div className="grid grid-cols-6 gap-6">
+                                  {groupArtists.map((artist) => (
+                                    <div key={artist.id} className="flex flex-col items-center text-center" data-testid={`card-artist-face-sheet-${artist.id}`}>
+                                      <div className="w-40 h-40 mb-2 bg-muted rounded-md overflow-hidden flex items-center justify-center border">
+                                        {artist.photoUrl ? (
+                                          <img
+                                            src={artist.photoUrl}
+                                            alt={artist.preferredName}
+                                            className="w-full h-full object-cover"
+                                            data-testid={`img-artist-photo-${artist.id}`}
+                                          />
+                                        ) : (
+                                          <div className="flex items-center justify-center w-full h-full">
+                                            <Users className="w-12 h-12 text-muted-foreground" />
+                                          </div>
+                                        )}
                                       </div>
-                                    )}
-                                  </div>
-                                  <div className="text-xs font-bold mb-1 text-primary" data-testid={`text-preferred-name-${artist.id}`}>
-                                    {artist.preferredName.toUpperCase()}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground mb-2" data-testid={`text-full-name-${artist.id}`}>
-                                    {artist.firstName} {artist.lastName}
-                                  </div>
-                                  <div className="text-xs text-secondary-foreground font-medium" data-testid={`text-group-${artist.id}`}>
-                                    {group?.name || "-"}
-                                  </div>
+                                      <div className="text-xs font-bold mb-1 text-primary" data-testid={`text-preferred-name-${artist.id}`}>
+                                        {artist.preferredName.toUpperCase()}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground" data-testid={`text-full-name-${artist.id}`}>
+                                        {artist.firstName} {artist.lastName}
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
-                              );
-                            })}
-                          </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </DialogContent>
                     </Dialog>
