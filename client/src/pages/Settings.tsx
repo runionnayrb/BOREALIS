@@ -5661,6 +5661,9 @@ export default function Settings() {
                                     }
                                     addHeader();
                                     currentY = margin + 15;
+                                    // Reset font to normal after header
+                                    pdf.setFont("helvetica", "normal");
+                                    pdf.setFontSize(8);
                                   };
 
                                   addNewPage(true);
