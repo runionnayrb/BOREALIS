@@ -5892,20 +5892,14 @@ export default function Settings() {
                                   </div>
                                   <div>
                                     <Label htmlFor="edit-group-color" className="text-xs">Group Color</Label>
-                                    <div className="flex items-center gap-3">
-                                      <input
-                                        type="color"
-                                        id="edit-group-color"
-                                        value={groupColor}
-                                        onChange={(e) => setGroupColor(e.target.value)}
-                                        className="w-12 h-10 rounded cursor-pointer"
-                                        data-testid="input-edit-group-color"
-                                      />
-                                      <div 
-                                        className="w-12 h-10 rounded border" 
-                                        style={{ backgroundColor: groupColor }}
-                                      />
-                                    </div>
+                                    <input
+                                      type="color"
+                                      id="edit-group-color"
+                                      value={groupColor}
+                                      onChange={(e) => setGroupColor(e.target.value)}
+                                      className="w-12 h-10 rounded cursor-pointer"
+                                      data-testid="input-edit-group-color"
+                                    />
                                   </div>
                                   <div className="flex gap-2 pt-4">
                                     <Button 
