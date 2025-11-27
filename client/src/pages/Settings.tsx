@@ -38,6 +38,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import ReportHeader from "@/components/ReportHeader";
 import { PhotoUploader } from "@/components/PhotoUploader";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -184,6 +190,9 @@ export default function Settings() {
   
   // Contact Sheet dialog state
   const [contactSheetOpen, setContactSheetOpen] = useState(false);
+  
+  // Face Sheet dialog state
+  const [faceSheetOpen, setFaceSheetOpen] = useState(false);
   
   // User linking state for technicians
   const [selectedLinkedTechUserId, setSelectedLinkedTechUserId] = useState<string | null>(null);
@@ -5557,15 +5566,25 @@ export default function Settings() {
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">Artists</h2>
                   <div className="flex gap-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" data-testid="button-view-options">
+                          View
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setContactSheetOpen(true)} data-testid="menu-item-contact-sheet">
+                          Contact Sheet
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setFaceSheetOpen(true)} data-testid="menu-item-face-sheet">
+                          Face Sheet
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     <Dialog
                       open={contactSheetOpen}
                       onOpenChange={setContactSheetOpen}
                     >
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" data-testid="button-contact-sheet">
-                          Contact Sheet
-                        </Button>
-                      </DialogTrigger>
                       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                           <div className="flex items-center gap-2">
@@ -5708,6 +5727,50 @@ export default function Settings() {
                               })}
                             </tbody>
                           </table>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    <Dialog
+                      open={faceSheetOpen}
+                      onOpenChange={setFaceSheetOpen}
+                    >
+                      <DialogContent className="max-w-full max-h-[90vh] overflow-y-auto w-11/12">
+                        <DialogHeader>
+                          <DialogTitle>Artist Face Sheet</DialogTitle>
+                        </DialogHeader>
+                        <div className="w-full overflow-x-auto">
+                          <div className="grid grid-cols-6 gap-6 p-4">
+                            {artists.filter(a => !a.archivedAt).map((artist) => {
+                              const group = artistGroups.find(g => g.id === artist.artistGroupId);
+                              return (
+                                <div key={artist.id} className="flex flex-col items-center text-center" data-testid={`card-artist-face-sheet-${artist.id}`}>
+                                  <div className="w-32 h-40 mb-2 bg-muted rounded-md overflow-hidden flex items-center justify-center border">
+                                    {artist.photoUrl ? (
+                                      <img
+                                        src={artist.photoUrl}
+                                        alt={artist.preferredName}
+                                        className="w-full h-full object-cover"
+                                        data-testid={`img-artist-photo-${artist.id}`}
+                                      />
+                                    ) : (
+                                      <div className="flex items-center justify-center w-full h-full">
+                                        <Users className="w-12 h-12 text-muted-foreground" />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="text-xs font-bold mb-1 text-primary" data-testid={`text-preferred-name-${artist.id}`}>
+                                    {artist.preferredName.toUpperCase()}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground mb-2" data-testid={`text-full-name-${artist.id}`}>
+                                    {artist.firstName} {artist.lastName}
+                                  </div>
+                                  <div className="text-xs text-secondary-foreground font-medium" data-testid={`text-group-${artist.id}`}>
+                                    {group?.name || "-"}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       </DialogContent>
                     </Dialog>
