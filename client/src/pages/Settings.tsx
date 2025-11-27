@@ -5751,12 +5751,13 @@ export default function Settings() {
                               onClick={async () => {
                                 try {
                                   // Collect all artists data
-                                  const allArtists: Array<{group: string; photoUrl: string | null; preferredName: string; fullName: string}> = [];
+                                  const allArtists: Array<{group: string; groupColor: string; photoUrl: string | null; preferredName: string; fullName: string}> = [];
                                   artistGroups.filter(g => g.name !== "Test").forEach((group) => {
                                     const groupArtists = artists.filter(a => !a.archivedAt && a.artistGroupId === group.id);
                                     groupArtists.forEach((artist) => {
                                       allArtists.push({
                                         group: group.name,
+                                        groupColor: group.color,
                                         photoUrl: artist.photoUrl,
                                         preferredName: artist.preferredName.toUpperCase(),
                                         fullName: `${artist.firstName} ${artist.lastName}`
@@ -5895,10 +5896,36 @@ export default function Settings() {
                                     // Add full name
                                     pdf.setFont("helvetica", "normal");
                                     pdf.setFontSize(10);
-                                    pdf.text(artist.fullName, x + cellWidth / 2, photoBottomY + textGap + 4, {
+                                    const fullNameY = photoBottomY + textGap + 4;
+                                    pdf.text(artist.fullName, x + cellWidth / 2, fullNameY, {
                                       align: "center",
                                       maxWidth: cellWidth - 2
                                     });
+
+                                    // Add artist group label with background color
+                                    const groupLabelY = fullNameY + 4;
+                                    pdf.setFillColor(0, 0, 0); // Reset to black first
+                                    
+                                    // Convert hex color to RGB
+                                    const hexColor = artist.groupColor.replace("#", "");
+                                    const r = parseInt(hexColor.substr(0, 2), 16);
+                                    const g = parseInt(hexColor.substr(2, 2), 16);
+                                    const b = parseInt(hexColor.substr(4, 2), 16);
+                                    pdf.setFillColor(r, g, b);
+                                    
+                                    // Draw background rectangle for group label - full column width
+                                    const groupBoxHeight = 5;
+                                    pdf.rect(x, groupLabelY - 1, cellWidth, groupBoxHeight, "F");
+                                    
+                                    // Add group text in ALL CAPS on the colored background
+                                    pdf.setFont("helvetica", "normal");
+                                    pdf.setFontSize(10);
+                                    pdf.setTextColor(255, 255, 255); // White text
+                                    pdf.text(artist.group.toUpperCase(), x + cellWidth / 2, groupLabelY + 2, {
+                                      align: "center",
+                                      maxWidth: cellWidth - 2
+                                    });
+                                    pdf.setTextColor(0, 0, 0); // Reset text color to black
                                   }
 
                                   const now = new Date();
