@@ -5692,7 +5692,7 @@ export default function Settings() {
                                       
                                       pdf.rect(startX, currentY - 3, pageWidth - (margin * 2), lineHeight, "F");
                                       pdf.setTextColor(0, 0, 0); // Black text
-                                      const groupRowY = currentY - 3 + (lineHeight / 2) - 0.5;
+                                      const groupRowY = currentY - 3 + (lineHeight / 2) - 1.3;
                                       pdf.text(artist.group, startX + 1, groupRowY, { align: "left" });
                                       currentY += lineHeight;
                                       pdf.setFont("helvetica", "normal");
@@ -5711,7 +5711,7 @@ export default function Settings() {
                                     ];
                                     
                                     pdf.setTextColor(0, 0, 0);
-                                    const rowY = currentY - 3 + (lineHeight / 2) - 0.5;
+                                    const rowY = currentY - 3 + (lineHeight / 2) - 1.3;
                                     rowData.forEach((data, i) => {
                                       pdf.text(data, xPos + 1, rowY, { align: "left", maxWidth: columnWidths[i] - 2 });
                                       xPos += columnWidths[i];
