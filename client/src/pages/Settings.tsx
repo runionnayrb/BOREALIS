@@ -5816,10 +5816,29 @@ export default function Settings() {
                                   const marginTop = margin + 15;
                                   let pageNum = 1;
 
+                                  // Calculate total pages needed
+                                  const artistsPerPage = cols * rows;
+                                  const totalPages = Math.ceil(allArtists.length / artistsPerPage);
+
                                   const addHeader = () => {
                                     pdf.setFont("helvetica", "bold");
                                     pdf.setFontSize(20);
                                     pdf.text("Artist Face Sheet", pageWidth / 2, 15, { align: "center" });
+                                  };
+
+                                  const addFooter = () => {
+                                    // Get current date in format "November 27, 2025"
+                                    const now = new Date();
+                                    const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                                    
+                                    pdf.setFont("helvetica", "normal");
+                                    pdf.setFontSize(8);
+                                    
+                                    // Published date on left
+                                    pdf.text(`Published: ${dateStr}`, margin, pageHeight - margin + 5);
+                                    
+                                    // Page X of Y on right
+                                    pdf.text(`Page ${pageNum} of ${totalPages}`, pageWidth - margin - 20, pageHeight - margin + 5, { align: "right" });
                                   };
 
                                   const addPage = () => {
@@ -5827,6 +5846,7 @@ export default function Settings() {
                                       pdf.addPage();
                                     }
                                     addHeader();
+                                    addFooter();
                                     pageNum++;
                                   };
 
