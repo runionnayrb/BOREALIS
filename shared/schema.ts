@@ -191,6 +191,7 @@ export type Location = typeof locations.$inferSelect;
 export const artistGroups = pgTable("artist_groups", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  color: text("color").notNull().default("#000000"),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

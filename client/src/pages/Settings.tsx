@@ -194,6 +194,9 @@ export default function Settings() {
   // Face Sheet dialog state
   const [faceSheetOpen, setFaceSheetOpen] = useState(false);
   
+  // Artist group color state
+  const [groupColor, setGroupColor] = useState("#000000");
+  
   // User linking state for technicians
   const [selectedLinkedTechUserId, setSelectedLinkedTechUserId] = useState<string | null>(null);
   
@@ -1161,12 +1164,13 @@ export default function Settings() {
   });
 
   const createGroupMutation = useMutation({
-    mutationFn: async (data: { name: string; sortOrder: number }) => {
+    mutationFn: async (data: { name: string; color: string; sortOrder: number }) => {
       return await apiRequest("POST", "/api/artist-groups", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/artist-groups"] });
       setGroupDialogOpen(false);
+      setGroupColor("#000000");
       toast({ title: "Artist group created successfully" });
     },
   });
@@ -1366,13 +1370,14 @@ export default function Settings() {
   });
 
   const updateGroupMutation = useMutation({
-    mutationFn: async (data: { id: string; name: string; sortOrder: number }) => {
-      return await apiRequest("PATCH", `/api/artist-groups/${data.id}`, { name: data.name, sortOrder: data.sortOrder });
+    mutationFn: async (data: { id: string; name: string; color: string; sortOrder: number }) => {
+      return await apiRequest("PATCH", `/api/artist-groups/${data.id}`, { name: data.name, color: data.color, sortOrder: data.sortOrder });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/artist-groups"] });
       setGroupDialogOpen(false);
       setEditTarget(null);
+      setGroupColor("#000000");
       toast({ title: "Artist group updated successfully" });
     },
   });
@@ -5794,75 +5799,151 @@ export default function Settings() {
                           <DialogTitle>Manage Artist Groups</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
-                          <form
-                            onSubmit={(e) => {
-                              e.preventDefault();
-                              const formData = new FormData(e.currentTarget);
-                              const name = formData.get("name") as string;
-                              
-                              if (editTarget?.type === "group") {
-                                updateGroupMutation.mutate({
-                                  id: editTarget.id,
-                                  name,
-                                  sortOrder: editTarget.data.sortOrder,
-                                });
-                              } else {
-                                createGroupMutation.mutate({
-                                  name,
-                                  sortOrder: artistGroups.length,
-                                });
-                              }
-                              e.currentTarget.reset();
-                            }}
-                          >
-                            <div className="flex gap-2">
-                              <Input
-                                id="group-name"
-                                name="name"
-                                placeholder="Enter group name"
-                                defaultValue={editTarget?.type === "group" ? editTarget.data.name : ""}
-                                required
-                                data-testid="input-group-name"
-                              />
-                              <Button 
-                                type="submit"
-                                disabled={createGroupMutation.isPending || updateGroupMutation.isPending}
-                                data-testid="button-save-group"
+                          {!editTarget?.type ? (
+                            <>
+                              <form
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  const formData = new FormData(e.currentTarget);
+                                  const name = formData.get("name") as string;
+                                  
+                                  createGroupMutation.mutate({
+                                    name,
+                                    color: groupColor,
+                                    sortOrder: artistGroups.length,
+                                  });
+                                  e.currentTarget.reset();
+                                  setGroupColor("#000000");
+                                }}
                               >
-                                {editTarget?.type === "group" ? "Update" : "Add"}
-                              </Button>
-                            </div>
-                          </form>
-                          <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                            {artistGroups.map((group) => (
-                              <Card key={group.id} className="p-3 flex items-center justify-between" data-testid={`card-group-${group.id}`}>
-                                <p className="font-medium">{group.name}</p>
-                                <div className="flex items-center gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      setEditTarget({ type: "group", id: group.id, data: group });
-                                    }}
-                                    data-testid={`button-edit-group-${group.id}`}
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      setDeleteTarget({ type: "group", id: group.id });
-                                      setDeleteDialogOpen(true);
-                                    }}
-                                    data-testid={`button-delete-group-${group.id}`}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
+                                <div className="flex gap-2 items-end">
+                                  <div className="flex-1">
+                                    <Input
+                                      id="group-name"
+                                      name="name"
+                                      placeholder="Enter group name"
+                                      required
+                                      data-testid="input-group-name"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="color"
+                                      value={groupColor}
+                                      onChange={(e) => setGroupColor(e.target.value)}
+                                      className="w-10 h-9 rounded cursor-pointer"
+                                      data-testid="input-group-color"
+                                    />
+                                    <Button 
+                                      type="submit"
+                                      disabled={createGroupMutation.isPending}
+                                      data-testid="button-save-group"
+                                    >
+                                      Add
+                                    </Button>
+                                  </div>
                                 </div>
-                              </Card>
-                            ))}
-                          </div>
+                              </form>
+                              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                                {artistGroups.map((group) => (
+                                  <Card key={group.id} className="p-3 flex items-center justify-between cursor-pointer hover-elevate" onClick={() => {
+                                    setEditTarget({ type: "group", id: group.id, data: group });
+                                    setGroupColor(group.color || "#000000");
+                                  }} data-testid={`card-group-${group.id}`}>
+                                    <div className="flex items-center gap-3 flex-1">
+                                      <div 
+                                        className="w-6 h-6 rounded" 
+                                        style={{ backgroundColor: group.color || "#000000" }}
+                                        data-testid={`color-indicator-${group.id}`}
+                                      />
+                                      <p className="font-medium">{group.name}</p>
+                                    </div>
+                                  </Card>
+                                ))}
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <form
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  const formData = new FormData(e.currentTarget);
+                                  const name = formData.get("name") as string;
+                                  
+                                  updateGroupMutation.mutate({
+                                    id: editTarget.id,
+                                    name,
+                                    color: groupColor,
+                                    sortOrder: editTarget.data.sortOrder,
+                                  });
+                                }}
+                              >
+                                <div className="space-y-4">
+                                  <div>
+                                    <Label htmlFor="edit-group-name" className="text-xs">Group Name</Label>
+                                    <Input
+                                      id="edit-group-name"
+                                      name="name"
+                                      placeholder="Enter group name"
+                                      defaultValue={editTarget.data.name}
+                                      required
+                                      data-testid="input-edit-group-name"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="edit-group-color" className="text-xs">Group Color</Label>
+                                    <div className="flex items-center gap-3">
+                                      <input
+                                        type="color"
+                                        id="edit-group-color"
+                                        value={groupColor}
+                                        onChange={(e) => setGroupColor(e.target.value)}
+                                        className="w-12 h-10 rounded cursor-pointer"
+                                        data-testid="input-edit-group-color"
+                                      />
+                                      <div 
+                                        className="w-12 h-10 rounded border" 
+                                        style={{ backgroundColor: groupColor }}
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-2 pt-4">
+                                    <Button 
+                                      type="submit"
+                                      disabled={updateGroupMutation.isPending}
+                                      className="flex-1"
+                                      data-testid="button-update-group"
+                                    >
+                                      Update
+                                    </Button>
+                                    <Button 
+                                      type="button"
+                                      variant="destructive"
+                                      disabled={updateGroupMutation.isPending}
+                                      onClick={() => {
+                                        setDeleteTarget({ type: "group", id: editTarget.id });
+                                        setDeleteDialogOpen(true);
+                                      }}
+                                      data-testid="button-delete-group"
+                                    >
+                                      Delete
+                                    </Button>
+                                    <Button 
+                                      type="button"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setEditTarget(null);
+                                        setGroupColor("#000000");
+                                      }}
+                                      data-testid="button-cancel-edit-group"
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              </form>
+                            </>
+                          )}
                         </div>
                       </DialogContent>
                     </Dialog>
