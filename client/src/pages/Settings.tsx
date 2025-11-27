@@ -5752,7 +5752,7 @@ export default function Settings() {
                                 try {
                                   // Collect all artists data
                                   const allArtists: Array<{group: string; photoUrl: string | null; preferredName: string; fullName: string}> = [];
-                                  artistGroups.forEach((group) => {
+                                  artistGroups.filter(g => g.name !== "Test").forEach((group) => {
                                     const groupArtists = artists.filter(a => !a.archivedAt && a.artistGroupId === group.id);
                                     groupArtists.forEach((artist) => {
                                       allArtists.push({
@@ -5915,7 +5915,7 @@ export default function Settings() {
                           </div>
                         </DialogHeader>
                         <div className="w-full overflow-y-auto space-y-8 p-4">
-                          {artistGroups.map((group) => {
+                          {artistGroups.filter(g => g.name !== "Test").map((group) => {
                             const groupArtists = artists.filter(a => !a.archivedAt && a.artistGroupId === group.id);
                             if (groupArtists.length === 0) return null;
                             return (
