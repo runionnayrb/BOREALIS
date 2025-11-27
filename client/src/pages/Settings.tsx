@@ -5632,7 +5632,7 @@ export default function Settings() {
                                   const margin = 12.7; // 0.5 inches in mm
                                   let currentY = margin + 15; // Start below header
                                   const lineHeight = 6;
-                                  const columnWidths = [20, 20, 20, 32, 42, 29, 29]; // Approximate widths for 7 columns (total: 192mm)
+                                  const columnWidths = [20, 20, 20, 32, 42, 28, 29]; // Approximate widths for 7 columns (total: 191mm)
                                   const startX = margin;
                                   const maxY = pageHeight - margin - 15; // Leave space for footer
 
@@ -5698,7 +5698,7 @@ export default function Settings() {
                                       currentY += lineHeight;
 
                                       // Add field headers row
-                                      const fieldHeaders = ["Artist", "First", "Last", "Role", "Email", "Mobile", "WhatsApp"];
+                                      const fieldHeaders = ["Artist", "First", "Last", "Role", "Email", "UAE Mobile", "WhatsApp"];
                                       let xPos = startX;
                                       pdf.setFont("helvetica", "bold");
                                       pdf.setFontSize(7);
