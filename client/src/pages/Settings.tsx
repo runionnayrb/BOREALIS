@@ -5913,18 +5913,21 @@ export default function Settings() {
                                     const b = parseInt(hexColor.substr(4, 2), 16);
                                     pdf.setFillColor(r, g, b);
                                     
-                                    // Draw background rectangle for group label - full column width
+                                    // Draw background rectangle for group label with white gap margins
                                     const groupBoxHeight = 5.5;
                                     const groupBoxY = groupLabelY - 1.5;
-                                    pdf.rect(x, groupBoxY, cellWidth, groupBoxHeight, "F");
+                                    const groupBoxMargin = 1; // 1mm margin on left and right for white gap
+                                    const groupBoxWidth = cellWidth - (groupBoxMargin * 2);
+                                    const groupBoxX = x + groupBoxMargin;
+                                    pdf.rect(groupBoxX, groupBoxY, groupBoxWidth, groupBoxHeight, "F");
                                     
                                     // Add group text in ALL CAPS on the colored background (centered both horizontally and vertically)
                                     pdf.setFont("helvetica", "normal");
                                     pdf.setFontSize(9);
                                     pdf.setTextColor(0, 0, 0); // Black text
-                                    pdf.text(artist.group.toUpperCase(), x + cellWidth / 2, groupBoxY + groupBoxHeight / 2 + 1.2, {
+                                    pdf.text(artist.group.toUpperCase(), groupBoxX + groupBoxWidth / 2, groupBoxY + groupBoxHeight / 2 + 1.2, {
                                       align: "center",
-                                      maxWidth: cellWidth - 2
+                                      maxWidth: groupBoxWidth - 2
                                     });
                                   }
 
