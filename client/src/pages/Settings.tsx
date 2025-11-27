@@ -5798,7 +5798,7 @@ export default function Settings() {
 
                                   // Create PDF with 6 columns, 5 rows per page
                                   const pdf = new jsPDF({
-                                    orientation: 'landscape',
+                                    orientation: 'portrait',
                                     unit: 'mm',
                                     format: 'a4'
                                   });
