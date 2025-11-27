@@ -5920,13 +5920,12 @@ export default function Settings() {
                                     
                                     // Add group text in ALL CAPS on the colored background (centered both horizontally and vertically)
                                     pdf.setFont("helvetica", "normal");
-                                    pdf.setFontSize(10);
-                                    pdf.setTextColor(255, 255, 255); // White text
+                                    pdf.setFontSize(9);
+                                    pdf.setTextColor(0, 0, 0); // Black text
                                     pdf.text(artist.group.toUpperCase(), x + cellWidth / 2, groupBoxY + groupBoxHeight / 2 + 1.2, {
                                       align: "center",
                                       maxWidth: cellWidth - 2
                                     });
-                                    pdf.setTextColor(0, 0, 0); // Reset text color to black
                                   }
 
                                   const now = new Date();
