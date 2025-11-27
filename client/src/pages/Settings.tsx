@@ -5886,7 +5886,7 @@ export default function Settings() {
                                     const photoBottomY = y + 2 + photoSize;
                                     const textGap = 5;
                                     pdf.setFont("helvetica", "bold");
-                                    pdf.setFontSize(8);
+                                    pdf.setFontSize(12);
                                     pdf.text(artist.preferredName, x + cellWidth / 2, photoBottomY + textGap, {
                                       align: "center",
                                       maxWidth: cellWidth - 2
@@ -5894,7 +5894,7 @@ export default function Settings() {
 
                                     // Add full name
                                     pdf.setFont("helvetica", "normal");
-                                    pdf.setFontSize(6);
+                                    pdf.setFontSize(10);
                                     pdf.text(artist.fullName, x + cellWidth / 2, photoBottomY + textGap + 4, {
                                       align: "center",
                                       maxWidth: cellWidth - 2
