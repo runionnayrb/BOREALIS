@@ -5901,7 +5901,9 @@ export default function Settings() {
                                     });
                                   }
 
-                                  pdf.save(`artist-face-sheet-${new Date().toISOString().split("T")[0]}.pdf`);
+                                  const now = new Date();
+                                  const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                                  pdf.save(`La Perle Artists Face Sheet - ${dateStr}.pdf`);
                                 } catch (error) {
                                   console.error("Error generating PDF:", error);
                                 }
