@@ -5903,7 +5903,7 @@ export default function Settings() {
                                     });
 
                                     // Add artist group label with background color
-                                    const groupLabelY = fullNameY + 4;
+                                    const groupLabelY = fullNameY + 6; // 2px gap before group box
                                     pdf.setFillColor(0, 0, 0); // Reset to black first
                                     
                                     // Convert hex color to RGB
@@ -5914,14 +5914,15 @@ export default function Settings() {
                                     pdf.setFillColor(r, g, b);
                                     
                                     // Draw background rectangle for group label - full column width
-                                    const groupBoxHeight = 5;
-                                    pdf.rect(x, groupLabelY - 1, cellWidth, groupBoxHeight, "F");
+                                    const groupBoxHeight = 5.5;
+                                    const groupBoxY = groupLabelY - 1.5;
+                                    pdf.rect(x, groupBoxY, cellWidth, groupBoxHeight, "F");
                                     
-                                    // Add group text in ALL CAPS on the colored background
+                                    // Add group text in ALL CAPS on the colored background (centered both horizontally and vertically)
                                     pdf.setFont("helvetica", "normal");
                                     pdf.setFontSize(10);
                                     pdf.setTextColor(255, 255, 255); // White text
-                                    pdf.text(artist.group.toUpperCase(), x + cellWidth / 2, groupLabelY + 2, {
+                                    pdf.text(artist.group.toUpperCase(), x + cellWidth / 2, groupBoxY + groupBoxHeight / 2 + 1.2, {
                                       align: "center",
                                       maxWidth: cellWidth - 2
                                     });
