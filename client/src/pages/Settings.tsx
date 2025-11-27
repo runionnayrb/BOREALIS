@@ -5691,14 +5691,15 @@ export default function Settings() {
                                       pdf.setFillColor(r, g, b);
                                       
                                       pdf.rect(startX, currentY - 3, pageWidth - (margin * 2), lineHeight, "F");
-                                      pdf.setTextColor(255, 255, 255); // White text
-                                      pdf.text(artist.group, startX + (pageWidth - (margin * 2)) / 2, currentY, { align: "center" });
+                                      pdf.setTextColor(0, 0, 0); // Black text
+                                      const groupRowY = currentY - 3 + (lineHeight / 2);
+                                      pdf.text(artist.group, startX + (pageWidth - (margin * 2)) / 2, groupRowY, { align: "center" });
                                       currentY += lineHeight;
                                       pdf.setFont("helvetica", "normal");
                                       pdf.setFontSize(8);
                                     }
 
-                                    // Add artist data row with centered text
+                                    // Add artist data row with centered text (vertical and horizontal)
                                     let xPos = startX;
                                     const rowData = [
                                       artist.preferredName,
@@ -5710,7 +5711,7 @@ export default function Settings() {
                                     ];
                                     
                                     pdf.setTextColor(0, 0, 0);
-                                    const rowY = currentY + (lineHeight / 2);
+                                    const rowY = currentY - 3 + (lineHeight / 2);
                                     rowData.forEach((data, i) => {
                                       pdf.text(data, xPos + columnWidths[i] / 2, rowY, { align: "center", maxWidth: columnWidths[i] - 2 });
                                       xPos += columnWidths[i];
