@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo, useRef, memo, useCallback } from "react";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 import { Plus, Users, Briefcase, Theater, UsersRound, FileText, MapPin, Trash2, Edit, Settings as SettingsIcon, Shield, UserCircle2, GripVertical, KeyRound, Copy, Check, Archive, Info, ChevronDown, ChevronRight, Download } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -5741,7 +5743,148 @@ export default function Settings() {
                     >
                       <DialogContent className="max-w-full max-h-[90vh] overflow-y-auto w-11/12">
                         <DialogHeader>
-                          <DialogTitle>Artist Face Sheet</DialogTitle>
+                          <div className="flex items-center gap-2">
+                            <DialogTitle>Artist Face Sheet</DialogTitle>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={async () => {
+                                try {
+                                  // Collect all artists data
+                                  const allArtists: Array<{group: string; photoUrl: string | null; preferredName: string; fullName: string}> = [];
+                                  artistGroups.forEach((group) => {
+                                    const groupArtists = artists.filter(a => !a.archivedAt && a.artistGroupId === group.id);
+                                    groupArtists.forEach((artist) => {
+                                      allArtists.push({
+                                        group: group.name,
+                                        photoUrl: artist.photoUrl,
+                                        preferredName: artist.preferredName.toUpperCase(),
+                                        fullName: `${artist.firstName} ${artist.lastName}`
+                                      });
+                                    });
+                                  });
+
+                                  // Load all images first
+                                  const imageMap = new Map<string, string>();
+                                  const loadImage = (url: string): Promise<string | null> => {
+                                    return new Promise((resolve) => {
+                                      const img = new Image();
+                                      img.crossOrigin = "anonymous";
+                                      img.onload = () => {
+                                        const canvas = document.createElement("canvas");
+                                        canvas.width = img.width;
+                                        canvas.height = img.height;
+                                        const ctx = canvas.getContext("2d");
+                                        if (ctx) {
+                                          ctx.drawImage(img, 0, 0);
+                                          resolve(canvas.toDataURL("image/jpeg"));
+                                        } else {
+                                          resolve(null);
+                                        }
+                                      };
+                                      img.onerror = () => resolve(null);
+                                      img.src = url;
+                                    });
+                                  };
+
+                                  for (const artist of allArtists) {
+                                    if (artist.photoUrl && !imageMap.has(artist.photoUrl)) {
+                                      const dataUrl = await loadImage(artist.photoUrl);
+                                      if (dataUrl) {
+                                        imageMap.set(artist.photoUrl, dataUrl);
+                                      }
+                                    }
+                                  }
+
+                                  // Create PDF with 6 columns, 5 rows per page
+                                  const pdf = new jsPDF({
+                                    orientation: 'landscape',
+                                    unit: 'mm',
+                                    format: 'a4'
+                                  });
+
+                                  const pageWidth = pdf.internal.pageSize.getWidth();
+                                  const pageHeight = pdf.internal.pageSize.getHeight();
+                                  const cols = 6;
+                                  const rows = 5;
+                                  const cellWidth = pageWidth / cols;
+                                  const cellHeight = (pageHeight - 25) / rows;
+                                  const marginTop = 25;
+                                  let pageNum = 1;
+
+                                  const addHeader = () => {
+                                    pdf.setFont("helvetica", "bold");
+                                    pdf.setFontSize(20);
+                                    pdf.text("Artist Face Sheet", pageWidth / 2, 15, { align: "center" });
+                                  };
+
+                                  const addPage = () => {
+                                    if (pageNum > 1) {
+                                      pdf.addPage();
+                                    }
+                                    addHeader();
+                                    pageNum++;
+                                  };
+
+                                  addPage();
+
+                                  for (let i = 0; i < allArtists.length; i++) {
+                                    const row = Math.floor((i % (cols * rows)) / cols);
+                                    const col = i % cols;
+
+                                    if (i > 0 && i % (cols * rows) === 0) {
+                                      addPage();
+                                    }
+
+                                    const x = col * cellWidth;
+                                    const y = marginTop + row * (cellHeight);
+
+                                    const artist = allArtists[i];
+
+                                    // Add photo if available
+                                    if (artist.photoUrl && imageMap.has(artist.photoUrl)) {
+                                      const photoSize = cellWidth * 0.6;
+                                      try {
+                                        pdf.addImage(
+                                          imageMap.get(artist.photoUrl)!,
+                                          "JPEG",
+                                          x + (cellWidth - photoSize) / 2,
+                                          y + 2,
+                                          photoSize,
+                                          photoSize
+                                        );
+                                      } catch (e) {
+                                        // Silently skip if image fails
+                                      }
+                                    }
+
+                                    // Add preferred name (ALL CAPS)
+                                    pdf.setFont("helvetica", "bold");
+                                    pdf.setFontSize(9);
+                                    pdf.text(artist.preferredName, x + cellWidth / 2, y + cellWidth * 0.75, {
+                                      align: "center",
+                                      maxWidth: cellWidth - 2
+                                    });
+
+                                    // Add full name
+                                    pdf.setFont("helvetica", "normal");
+                                    pdf.setFontSize(7);
+                                    pdf.text(artist.fullName, x + cellWidth / 2, y + cellWidth * 0.92, {
+                                      align: "center",
+                                      maxWidth: cellWidth - 2
+                                    });
+                                  }
+
+                                  pdf.save(`artist-face-sheet-${new Date().toISOString().split("T")[0]}.pdf`);
+                                } catch (error) {
+                                  console.error("Error generating PDF:", error);
+                                }
+                              }}
+                              data-testid="button-download-face-sheet"
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </DialogHeader>
                         <div className="w-full overflow-y-auto space-y-8 p-4">
                           {artistGroups.map((group) => {
