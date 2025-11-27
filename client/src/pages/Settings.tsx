@@ -5602,7 +5602,7 @@ export default function Settings() {
                               onClick={async () => {
                                 try {
                                   // Collect all artists data grouped by artist group
-                                  const artistData: Array<{group: string; groupColor: string; preferredName: string; firstName: string; lastName: string; email: string; uaeMobile: string; whatsappNumber: string}> = [];
+                                  const artistData: Array<{group: string; groupColor: string; preferredName: string; firstName: string; lastName: string; role: string; email: string; uaeMobile: string; whatsappNumber: string}> = [];
                                   artistGroups.filter(g => g.name !== "Test").forEach((group) => {
                                     const groupArtists = artists.filter(a => !a.archivedAt && a.artistGroupId === group.id && !a.preferredName.toUpperCase().includes("TEST"));
                                     groupArtists.forEach((artist) => {
@@ -5612,6 +5612,7 @@ export default function Settings() {
                                         preferredName: artist.preferredName,
                                         firstName: artist.firstName,
                                         lastName: artist.lastName,
+                                        role: artist.role || "",
                                         email: artist.email || "",
                                         uaeMobile: artist.uaeMobile || "",
                                         whatsappNumber: artist.whatsappNumber || ""
@@ -5631,7 +5632,7 @@ export default function Settings() {
                                   const margin = 12.7; // 0.5 inches in mm
                                   let currentY = margin + 15; // Start below header
                                   const lineHeight = 6;
-                                  const columnWidths = [25, 22, 22, 45, 30, 30]; // Approximate widths for 6 columns
+                                  const columnWidths = [22, 20, 20, 20, 40, 27, 27]; // Approximate widths for 7 columns
                                   const startX = margin;
                                   const maxY = pageHeight - margin - 15; // Leave space for footer
 
@@ -5695,6 +5696,19 @@ export default function Settings() {
                                       const groupRowY = currentY - 3 + (lineHeight / 2) + 0.5;
                                       pdf.text(artist.group, startX + 1, groupRowY, { align: "left" });
                                       currentY += lineHeight;
+
+                                      // Add field headers row
+                                      const fieldHeaders = ["Artist", "First", "Last", "Role", "Email", "Mobile", "WhatsApp"];
+                                      let xPos = startX;
+                                      pdf.setFont("helvetica", "bold");
+                                      pdf.setFontSize(7);
+                                      pdf.setTextColor(0, 0, 0);
+                                      const headerRowY = currentY - 3 + (lineHeight / 2) + 0.5;
+                                      fieldHeaders.forEach((header, i) => {
+                                        pdf.text(header, xPos + 1, headerRowY, { align: "left", maxWidth: columnWidths[i] - 2 });
+                                        xPos += columnWidths[i];
+                                      });
+                                      currentY += lineHeight;
                                       pdf.setFont("helvetica", "normal");
                                       pdf.setFontSize(8);
                                     }
@@ -5705,6 +5719,7 @@ export default function Settings() {
                                       artist.preferredName,
                                       artist.firstName,
                                       artist.lastName,
+                                      artist.role,
                                       artist.email,
                                       artist.uaeMobile,
                                       artist.whatsappNumber
