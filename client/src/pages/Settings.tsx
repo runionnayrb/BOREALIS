@@ -5846,8 +5846,8 @@ export default function Settings() {
                                     const artist = allArtists[i];
 
                                     // Add photo if available
+                                    const photoSize = cellWidth * 0.85;
                                     if (artist.photoUrl && imageMap.has(artist.photoUrl)) {
-                                      const photoSize = cellWidth * 0.85;
                                       try {
                                         pdf.addImage(
                                           imageMap.get(artist.photoUrl)!,
@@ -5862,10 +5862,12 @@ export default function Settings() {
                                       }
                                     }
 
-                                    // Add preferred name (ALL CAPS)
+                                    // Add preferred name (ALL CAPS) - positioned just below photo with minimal gap
+                                    const photoBottomY = y + 2 + photoSize;
+                                    const textGap = 2;
                                     pdf.setFont("helvetica", "bold");
                                     pdf.setFontSize(8);
-                                    pdf.text(artist.preferredName, x + cellWidth / 2, y + cellHeight * 0.78, {
+                                    pdf.text(artist.preferredName, x + cellWidth / 2, photoBottomY + textGap, {
                                       align: "center",
                                       maxWidth: cellWidth - 2
                                     });
@@ -5873,7 +5875,7 @@ export default function Settings() {
                                     // Add full name
                                     pdf.setFont("helvetica", "normal");
                                     pdf.setFontSize(6);
-                                    pdf.text(artist.fullName, x + cellWidth / 2, y + cellHeight * 0.92, {
+                                    pdf.text(artist.fullName, x + cellWidth / 2, photoBottomY + textGap + 4, {
                                       align: "center",
                                       maxWidth: cellWidth - 2
                                     });
