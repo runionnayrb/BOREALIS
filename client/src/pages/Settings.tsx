@@ -5864,7 +5864,7 @@ export default function Settings() {
 
                                     // Add preferred name (ALL CAPS) - positioned just below photo with minimal gap
                                     const photoBottomY = y + 2 + photoSize;
-                                    const textGap = 2;
+                                    const textGap = 5;
                                     pdf.setFont("helvetica", "bold");
                                     pdf.setFontSize(8);
                                     pdf.text(artist.preferredName, x + cellWidth / 2, photoBottomY + textGap, {
