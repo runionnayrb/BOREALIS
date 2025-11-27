@@ -5692,14 +5692,14 @@ export default function Settings() {
                                       
                                       pdf.rect(startX, currentY - 3, pageWidth - (margin * 2), lineHeight, "F");
                                       pdf.setTextColor(0, 0, 0); // Black text
-                                      const groupRowY = currentY - 3 + (lineHeight / 2);
-                                      pdf.text(artist.group, startX + (pageWidth - (margin * 2)) / 2, groupRowY, { align: "center" });
+                                      const groupRowY = currentY - 3 + (lineHeight / 2) - 0.5;
+                                      pdf.text(artist.group, startX + 1, groupRowY, { align: "left" });
                                       currentY += lineHeight;
                                       pdf.setFont("helvetica", "normal");
                                       pdf.setFontSize(8);
                                     }
 
-                                    // Add artist data row with centered text (vertical and horizontal)
+                                    // Add artist data row with left-aligned text
                                     let xPos = startX;
                                     const rowData = [
                                       artist.preferredName,
@@ -5711,9 +5711,9 @@ export default function Settings() {
                                     ];
                                     
                                     pdf.setTextColor(0, 0, 0);
-                                    const rowY = currentY - 3 + (lineHeight / 2);
+                                    const rowY = currentY - 3 + (lineHeight / 2) - 0.5;
                                     rowData.forEach((data, i) => {
-                                      pdf.text(data, xPos + columnWidths[i] / 2, rowY, { align: "center", maxWidth: columnWidths[i] - 2 });
+                                      pdf.text(data, xPos + 1, rowY, { align: "left", maxWidth: columnWidths[i] - 2 });
                                       xPos += columnWidths[i];
                                     });
                                     currentY += lineHeight;
