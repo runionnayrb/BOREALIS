@@ -5599,51 +5599,153 @@ export default function Settings() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => {
-                                const rows = [
-                                  ["First Name", "Last Name", "Role", "Email", "UAE Mobile", "WhatsApp"]
-                                ];
-                                
-                                artistGroups.forEach((group) => {
-                                  const groupArtists = artists.filter(
-                                    (a) => a.artistGroupId === group.id && !a.archivedAt
-                                  );
-                                  if (groupArtists.length > 0) {
-                                    rows.push([group.name, "", "", "", "", ""]);
+                              onClick={async () => {
+                                try {
+                                  // Collect all artists data grouped by artist group
+                                  const artistData: Array<{group: string; preferredName: string; firstName: string; lastName: string; email: string; uaeMobile: string; whatsappNumber: string}> = [];
+                                  artistGroups.filter(g => g.name !== "Test").forEach((group) => {
+                                    const groupArtists = artists.filter(a => !a.archivedAt && a.artistGroupId === group.id && !a.preferredName.toUpperCase().includes("TEST"));
                                     groupArtists.forEach((artist) => {
-                                      rows.push([
-                                        artist.firstName,
-                                        artist.lastName,
-                                        artist.role || "",
-                                        artist.email || "",
-                                        artist.uaeMobile || "",
-                                        artist.whatsappNumber || "",
-                                      ]);
+                                      artistData.push({
+                                        group: group.name,
+                                        preferredName: artist.preferredName,
+                                        firstName: artist.firstName,
+                                        lastName: artist.lastName,
+                                        email: artist.email || "",
+                                        uaeMobile: artist.uaeMobile || "",
+                                        whatsappNumber: artist.whatsappNumber || ""
+                                      });
                                     });
-                                  }
-                                });
-                                
-                                const csv = rows
-                                  .map((row) =>
-                                    row
-                                      .map((cell) =>
-                                        typeof cell === "string" && (cell.includes(",") || cell.includes('"'))
-                                          ? `"${cell.replace(/"/g, '""')}"`
-                                          : cell
-                                      )
-                                      .join(",")
-                                  )
-                                  .join("\n");
-                                
-                                const blob = new Blob([csv], { type: "text/csv" });
-                                const url = window.URL.createObjectURL(blob);
-                                const link = document.createElement("a");
-                                link.href = url;
-                                link.download = `artist-contact-sheet-${new Date().toISOString().split("T")[0]}.csv`;
-                                document.body.appendChild(link);
-                                link.click();
-                                document.body.removeChild(link);
-                                window.URL.revokeObjectURL(url);
+                                  });
+
+                                  // Create PDF
+                                  const pdf = new jsPDF({
+                                    orientation: 'portrait',
+                                    unit: 'mm',
+                                    format: 'a4'
+                                  });
+
+                                  const pageWidth = pdf.internal.pageSize.getWidth();
+                                  const pageHeight = pdf.internal.pageSize.getHeight();
+                                  const margin = 12.7; // 0.5 inches in mm
+                                  let currentY = margin + 15; // Start below header
+                                  const lineHeight = 6;
+                                  const columnWidths = [25, 22, 22, 45, 30, 30]; // Approximate widths for 6 columns
+                                  const startX = margin;
+                                  const maxY = pageHeight - margin - 15; // Leave space for footer
+
+                                  // Helper function to add header
+                                  const addHeader = () => {
+                                    pdf.setFont("helvetica", "bold");
+                                    pdf.setFontSize(20);
+                                    pdf.text("Artist Contact Sheet", pageWidth / 2, 15, { align: "center" });
+                                  };
+
+                                  // Helper function to add footer
+                                  const addFooter = () => {
+                                    const now = new Date();
+                                    const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                                    
+                                    pdf.setFont("helvetica", "normal");
+                                    pdf.setFontSize(8);
+                                    
+                                    pdf.text(`Published: ${dateStr}`, margin, pageHeight - margin + 5);
+                                    pdf.text(`Page 1 of 1`, pageWidth - margin, pageHeight - margin + 5, { align: "right" });
+                                  };
+
+                                  // Helper function to add new page
+                                  const addNewPage = (isFirstPage: boolean) => {
+                                    if (!isFirstPage) {
+                                      pdf.addPage();
+                                    }
+                                    addHeader();
+                                    currentY = margin + 15;
+                                  };
+
+                                  addNewPage(true);
+
+                                  // Add table header
+                                  const headers = ["Artist Name", "First Name", "Last Name", "Email", "UAE Mobile", "WhatsApp"];
+                                  pdf.setFont("helvetica", "bold");
+                                  pdf.setFontSize(9);
+                                  pdf.setFillColor(220, 220, 220);
+                                  
+                                  let xPos = startX;
+                                  headers.forEach((header, i) => {
+                                    pdf.rect(xPos, currentY - 4, columnWidths[i], lineHeight, "F");
+                                    pdf.setTextColor(0, 0, 0);
+                                    pdf.text(header, xPos + 1, currentY, { maxWidth: columnWidths[i] - 2 });
+                                    xPos += columnWidths[i];
+                                  });
+                                  currentY += lineHeight;
+
+                                  // Add data rows grouped by artist group
+                                  pdf.setFont("helvetica", "normal");
+                                  pdf.setFontSize(8);
+                                  let currentGroup = "";
+                                  
+                                  artistData.forEach((artist) => {
+                                    // Check if we need to add a new page
+                                    if (currentY > maxY) {
+                                      addFooter();
+                                      addNewPage(false);
+                                      
+                                      // Redraw header on new page
+                                      pdf.setFont("helvetica", "bold");
+                                      pdf.setFontSize(9);
+                                      pdf.setFillColor(220, 220, 220);
+                                      let headerXPos = startX;
+                                      headers.forEach((header, i) => {
+                                        pdf.rect(headerXPos, currentY - 4, columnWidths[i], lineHeight, "F");
+                                        pdf.setTextColor(0, 0, 0);
+                                        pdf.text(header, headerXPos + 1, currentY, { maxWidth: columnWidths[i] - 2 });
+                                        headerXPos += columnWidths[i];
+                                      });
+                                      currentY += lineHeight;
+                                      pdf.setFont("helvetica", "normal");
+                                      pdf.setFontSize(8);
+                                    }
+
+                                    // Add group header if group changed
+                                    if (artist.group !== currentGroup) {
+                                      currentGroup = artist.group;
+                                      pdf.setFont("helvetica", "bold");
+                                      pdf.setFontSize(8);
+                                      pdf.setFillColor(240, 240, 240);
+                                      pdf.rect(startX, currentY - 3, pageWidth - (margin * 2), lineHeight, "F");
+                                      pdf.text(artist.group, startX + 1, currentY);
+                                      currentY += lineHeight;
+                                      pdf.setFont("helvetica", "normal");
+                                      pdf.setFontSize(8);
+                                    }
+
+                                    // Add artist data
+                                    xPos = startX;
+                                    const rowData = [
+                                      artist.preferredName,
+                                      artist.firstName,
+                                      artist.lastName,
+                                      artist.email,
+                                      artist.uaeMobile,
+                                      artist.whatsappNumber
+                                    ];
+                                    
+                                    pdf.setTextColor(0, 0, 0);
+                                    rowData.forEach((data, i) => {
+                                      pdf.text(data, xPos + 1, currentY, { maxWidth: columnWidths[i] - 2 });
+                                      xPos += columnWidths[i];
+                                    });
+                                    currentY += lineHeight;
+                                  });
+
+                                  addFooter();
+                                  
+                                  const now = new Date();
+                                  const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                                  pdf.save(`La Perle Artists Contact Sheet - ${dateStr}.pdf`);
+                                } catch (error) {
+                                  console.error("Error generating PDF:", error);
+                                }
                               }}
                               data-testid="button-download-contact-sheet"
                             >
