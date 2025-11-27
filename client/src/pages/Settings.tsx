@@ -5893,17 +5893,26 @@ export default function Settings() {
                                       maxWidth: cellWidth - 2
                                     });
 
-                                    // Add full name
+                                    // Add first and last name on separate lines
                                     pdf.setFont("helvetica", "normal");
                                     pdf.setFontSize(9);
-                                    const fullNameY = photoBottomY + textGap + 4;
-                                    pdf.text(artist.fullName, x + cellWidth / 2, fullNameY, {
+                                    const firstNameY = photoBottomY + textGap + 4;
+                                    const names = artist.fullName.split(' ');
+                                    const firstName = names[0];
+                                    const lastName = names.slice(1).join(' ');
+                                    
+                                    pdf.text(firstName, x + cellWidth / 2, firstNameY, {
+                                      align: "center",
+                                      maxWidth: cellWidth - 2
+                                    });
+                                    
+                                    pdf.text(lastName, x + cellWidth / 2, firstNameY + 4, {
                                       align: "center",
                                       maxWidth: cellWidth - 2
                                     });
 
                                     // Add artist group label with background color
-                                    const groupLabelY = fullNameY + 6; // 2px gap before group box
+                                    const groupLabelY = firstNameY + 10; // More space between last name and group box
                                     pdf.setFillColor(0, 0, 0); // Reset to black first
                                     
                                     // Convert hex color to RGB
