@@ -5632,7 +5632,7 @@ export default function Settings() {
                                   const margin = 12.7; // 0.5 inches in mm
                                   let currentY = margin + 15; // Start below header
                                   const lineHeight = 6;
-                                  const columnWidths = [18, 15, 15, 20, 38, 36, 36]; // Approximate widths for 7 columns
+                                  const columnWidths = [8, 8, 6, 33, 54, 36, 36]; // Approximate widths for 7 columns
                                   const startX = margin;
                                   const maxY = pageHeight - margin - 15; // Leave space for footer
 
