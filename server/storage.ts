@@ -42,6 +42,7 @@ import {
   type PositionTrack, type InsertPositionTrack, positionTracks,
   type TrackPosition, type InsertTrackPosition, trackPositions,
   type LineupRule, type InsertLineupRule, lineupRules,
+  type LineupTemplate, type InsertLineupTemplate, lineupTemplates,
   type PwdRestriction, type InsertPwdRestriction, pwdRestrictions,
   type TrainingProgram, type InsertTrainingProgram, trainingPrograms,
   type ProgramStep, type InsertProgramStep, programSteps,
@@ -640,6 +641,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAct(id: string): Promise<void> {
+    // Delete all related records first (cascade delete)
+    await db.delete(actDepartments).where(eq(actDepartments.actId, id));
+    await db.delete(actArtists).where(eq(actArtists.actId, id));
+    await db.delete(actArtistGroups).where(eq(actArtistGroups.actId, id));
+    await db.delete(trainings).where(eq(trainings.actId, id));
+    await db.delete(lineupTemplates).where(eq(lineupTemplates.actId, id));
+    await db.delete(positions).where(eq(positions.actId, id));
+    // Finally delete the act itself
     await db.delete(acts).where(eq(acts.id, id));
   }
 
@@ -694,6 +703,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCue(id: string): Promise<void> {
+    // Delete all related records first (cascade delete)
+    await db.delete(cueDepartments).where(eq(cueDepartments.cueId, id));
+    await db.delete(cueArtists).where(eq(cueArtists.cueId, id));
+    await db.delete(cueArtistGroups).where(eq(cueArtistGroups.cueId, id));
+    await db.delete(positions).where(eq(positions.cueId, id));
+    // Finally delete the cue itself
     await db.delete(cues).where(eq(cues.id, id));
   }
 
