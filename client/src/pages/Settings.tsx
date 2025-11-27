@@ -5865,7 +5865,7 @@ export default function Settings() {
                                     // Add preferred name (ALL CAPS)
                                     pdf.setFont("helvetica", "bold");
                                     pdf.setFontSize(8);
-                                    pdf.text(artist.preferredName, x + cellWidth / 2, y + cellWidth * 0.92, {
+                                    pdf.text(artist.preferredName, x + cellWidth / 2, y + cellHeight * 0.78, {
                                       align: "center",
                                       maxWidth: cellWidth - 2
                                     });
@@ -5873,7 +5873,7 @@ export default function Settings() {
                                     // Add full name
                                     pdf.setFont("helvetica", "normal");
                                     pdf.setFontSize(6);
-                                    pdf.text(artist.fullName, x + cellWidth / 2, y + cellWidth * 1.05, {
+                                    pdf.text(artist.fullName, x + cellWidth / 2, y + cellHeight * 0.92, {
                                       align: "center",
                                       maxWidth: cellWidth - 2
                                     });
