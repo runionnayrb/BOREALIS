@@ -5838,7 +5838,7 @@ export default function Settings() {
                                     pdf.text(`Published: ${dateStr}`, margin, pageHeight - margin + 5);
                                     
                                     // Page X of Y on right
-                                    pdf.text(`Page ${pageNum} of ${totalPages}`, pageWidth - margin - 20, pageHeight - margin + 5, { align: "right" });
+                                    pdf.text(`Page ${pageNum} of ${totalPages}`, pageWidth - margin, pageHeight - margin + 5, { align: "right" });
                                   };
 
                                   const addPage = () => {
