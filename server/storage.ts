@@ -641,14 +641,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAct(id: string): Promise<void> {
-    // Delete all related records first (cascade delete)
+    // Remove related act records before deleting the act
     await db.delete(actDepartments).where(eq(actDepartments.actId, id));
     await db.delete(actArtists).where(eq(actArtists.actId, id));
     await db.delete(actArtistGroups).where(eq(actArtistGroups.actId, id));
     await db.delete(trainings).where(eq(trainings.actId, id));
     await db.delete(lineupTemplates).where(eq(lineupTemplates.actId, id));
     await db.delete(positions).where(eq(positions.actId, id));
-    // Finally delete the act itself
+    // Then delete the act
     await db.delete(acts).where(eq(acts.id, id));
   }
 
